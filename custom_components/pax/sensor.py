@@ -28,10 +28,11 @@ SENSOR_TYPES = [
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
     """Setup sensors from a config entry created in the integrations UI."""
-    _LOGGER.debug("Starting paxcalima sensor")
+    _LOGGER.debug("Starting paxcalima sensors: %s", config_entry.data[CONF_NAME])
     
     # Load coordinator and create entities
-    coordinator = hass.data[DOMAIN]["coordinator"]
+    mac = config_entry.data[CONF_MAC]
+    coordinator = hass.data[DOMAIN][mac]
     async_add_devices([PaxCalimaSensorEntity(coordinator,key,name,unit,device_class, ent_cat) for [key, name, unit, device_class, ent_cat] in SENSOR_TYPES], True)
  
 class PaxCalimaSensorEntity(CoordinatorEntity, SensorEntity):

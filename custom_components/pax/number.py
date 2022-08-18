@@ -50,10 +50,11 @@ ENTITIES = [
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
     """Setup sensors from a config entry created in the integrations UI."""
-    _LOGGER.debug("Starting paxcalima number")
+    _LOGGER.debug("Starting paxcalima numbers: %s", config_entry.data[CONF_NAME])
     
     # Load coordinator and create entities
-    coordinator = hass.data[DOMAIN]["coordinator"]
+    mac = config_entry.data[CONF_MAC]
+    coordinator = hass.data[DOMAIN][mac]
     async_add_devices([PaxCalimaNumberEntity(coordinator,key,name,unit,device_class, ent_cat, options, write_type) for [key, name, unit, device_class, ent_cat, options, write_type] in ENTITIES], True)
 
 class PaxCalimaNumberEntity(CoordinatorEntity, NumberEntity):

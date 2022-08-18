@@ -9,10 +9,6 @@ from homeassistant import config_entries
 
 from .const import (DOMAIN, CONF_NAME, CONF_MAC, CONF_PIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
-DEV_ADD = "Add device manually"
-DEV_REM = "Remove device"
-DEV_CONF = "Configure device"
-
 _LOGGER = logging.getLogger(__name__)
 
 class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
@@ -21,10 +17,11 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self):
         pass
-        
-    def async_get_options_flow(config_entry):
-        """Get the options flow for this handler."""
-        return PaxOptionsFlowHandler(config_entry) 
+
+    # This doesn't really work well at the  
+    #def async_get_options_flow(config_entry):
+    #    """Get the options flow for this handler."""
+    #    return PaxOptionsFlowHandler(config_entry) 
 
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""        

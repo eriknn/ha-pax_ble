@@ -19,10 +19,11 @@ ENTITIES = [
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
     """Setup switch from a config entry created in the integrations UI."""
-    _LOGGER.debug("Starting paxcalima switch")
+    _LOGGER.debug("Starting paxcalima switches: %s", config_entry.data[CONF_NAME])
 
     # Load coordinator and create entities
-    coordinator = hass.data[DOMAIN]["coordinator"]
+    mac = config_entry.data[CONF_MAC]
+    coordinator = hass.data[DOMAIN][mac]
     async_add_devices([ PaxCalimaSwitchEntity(coordinator, key, name) for [key, name] in ENTITIES], True)
 
 class PaxCalimaSwitchEntity(CoordinatorEntity, SwitchEntity):

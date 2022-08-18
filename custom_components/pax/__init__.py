@@ -11,6 +11,7 @@ _LOGGER = logging.getLogger(__name__)
     
 async def async_setup_entry(hass, config_entry):   
     # Set up platform from a ConfigEntry."""
+    _LOGGER.debug("Setting up entry: %s", config_entry.data[CONF_NAME]) 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][config_entry.entry_id] = config_entry.data
     
@@ -23,11 +24,10 @@ async def async_setup_entry(hass, config_entry):
     # Set up shared api and coordinator
     calimaApi = CalimaApi(hass, name, mac, pin)                                     
     coordinator = PaxUpdateCoordinator(hass, calimaApi, scan_interval)
-    hass.data[DOMAIN]["coordinator"] = coordinator
+    hass.data[DOMAIN][mac] = coordinator
 
     # Forward the setup to the platforms.
-    for platform in PLATFORMS:
-        hass.async_create_task(hass.config_entries.async_forward_entry_setup(config_entry, platform))
+    hass.async_create_task(hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS))
 
     # Set up options listener
     config_entry.async_on_unload(config_entry.add_update_listener(update_listener)) 
@@ -35,10 +35,12 @@ async def async_setup_entry(hass, config_entry):
     return True
 
 async def update_listener(hass, config_entry):
+    _LOGGER.debug("Update entry: %s", config_entry.data[CONF_NAME]) 
     await hass.config_entries.async_reload(config_entry.entry_id)
 
 async def async_unload_entry(hass, config_entry):
     """Unload a config entry."""
+    _LOGGER.debug("Unload entry: %s", config_entry.data[CONF_NAME]) 
     unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
 
     return unload_ok
