@@ -11,8 +11,6 @@ If not you may try to add it manually through the integration configuration.
 
 ## Thanks
 
-Thanks to:
-
 @PatrickE94 for the Calima driver:
 https://github.com/PatrickE94/pycalima
 
