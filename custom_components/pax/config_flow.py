@@ -55,7 +55,7 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(dr.format_mac(user_input[CONF_MAC]))
             self._abort_if_unique_id_configured()
             
-            return self.async_create_entry(title="Pax Calima",data=user_input)
+            return self.async_create_entry(title=user_input[CONF_NAME],data=user_input)
 
         return self.async_show_form(step_id="add_device", data_schema=data_schema, errors=errors)
 
