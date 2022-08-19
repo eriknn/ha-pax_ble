@@ -18,10 +18,9 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self):
         pass
 
-    # This doesn't really work well at the  
-    #def async_get_options_flow(config_entry):
-    #    """Get the options flow for this handler."""
-    #    return PaxOptionsFlowHandler(config_entry) 
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return PaxOptionsFlowHandler(config_entry) 
 
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""        
@@ -74,14 +73,16 @@ class PaxOptionsFlowHandler(config_entries.OptionsFlow):
         """ Common handler for configuring device. """
         errors = {}
 
-        name = self.config_entry.data[CONF_NAME]
-        mac = self.config_entry.data[CONF_MAC]
         pin = self.config_entry.data[CONF_PIN]
         scan_interval = self.config_entry.data[CONF_SCAN_INTERVAL]
         
-        data_schema = getDeviceSchema(name, mac, pin, scan_interval)
+        data_schema = getDeviceSchemaOptions(pin, scan_interval)
 
         if user_input is not None:
+            # Fetch data from old config entry
+            user_input[CONF_NAME] = self.config_entry.data[CONF_NAME]
+            user_input[CONF_MAC] = self.config_entry.data[CONF_MAC]
+        
             # Update config entry
             self.hass.config_entries.async_update_entry(self.config_entry, data=user_input, options=self.config_entry.options)            
 
@@ -97,6 +98,16 @@ def getDeviceSchema(name='', mac='', pin='', scan_interval=DEFAULT_SCAN_INTERVAL
             vol.Required(CONF_NAME, description="Name", default=name): cv.string,
             vol.Required(CONF_MAC, description="MAC Address", default=mac): cv.string,
             vol.Required(CONF_PIN, description="Pin Code", default=pin): cv.string,
+            vol.Optional(CONF_SCAN_INTERVAL, default=scan_interval): vol.All(vol.Coerce(int), vol.Range(min=1, max=999)),  
+        }
+    )
+
+    return data_schema
+
+def getDeviceSchemaOptions(pin='', scan_interval=DEFAULT_SCAN_INTERVAL):
+    data_schema = vol.Schema(
+        {
+            vol.Optional(CONF_PIN, description="Pin Code", default=pin): cv.string,
             vol.Optional(CONF_SCAN_INTERVAL, default=scan_interval): vol.All(vol.Coerce(int), vol.Range(min=1, max=999)),  
         }
     )
