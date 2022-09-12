@@ -33,7 +33,12 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
     # Load coordinator and create entities
     mac = config_entry.data[CONF_MAC]
     coordinator = hass.data[DOMAIN][mac]
-    async_add_devices([PaxCalimaSensorEntity(coordinator,key,name,unit,device_class, ent_cat) for [key, name, unit, device_class, ent_cat] in SENSOR_TYPES], True)
+
+    # Create entities
+    ha_entities = []
+    for [key, name, unit, device_class, ent_cat] in SENSOR_TYPES:
+        ha_entities.append(PaxCalimaSensorEntity(coordinator,key,name,unit,device_class, ent_cat)) 
+    async_add_devices(ha_entities, True)
  
 class PaxCalimaSensorEntity(CoordinatorEntity, SensorEntity):
     """Representation of a Sensor."""

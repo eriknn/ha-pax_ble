@@ -73,61 +73,50 @@ CHARACTERISTIC_TEMP_HEAT_DISTRIBUTOR = "a22eae12-dba8-49f3-9c69-1721dcff1d96"
 CHARACTERISTIC_TIME_FUNCTIONS = "49c616de-02b1-4b67-b237-90f66793a6f2"
 
 class Calima:
-    def __init__(self, hass):
+    def __init__(self, hass, mac, pin):
         # Set debug to true if you want more verbose output
         self._hass = hass
         self._debug = False
         self._dev = None
-        self._isConnected = False
+        self._mac = mac
+        self._pin = pin
 
     async def __del__(self):
         await self.disconnect()
 
-    async def init(self, addr, pin):        
-        # Create connection
-        await self.connect(mac=addr, retries=1)
-        
-        # Authorize
-        await self.setAuth(pin)
-
     def isConnected(self):
-        return self._isConnected
+        if self._dev is None:
+            return False
+        else:
+            return self._dev.is_connected
+
+    async def authorize(self):
+        await self.setAuth(self._pin)
         
-    async def connect(self, mac, retries=1):  
+    async def connect(self, retries=1):  
         await self.disconnect()
         tries = 0
         while (tries < retries):
             tries += 1
             try:
-                #d = await BleakScanner.find_device_by_address(device_identifier=mac.lower(),timeout=10.0)
-                #if not d:
-                    #raise BleakError(f"A device with address {mac} could not be found.")
-
                 scanner = bluetooth.async_get_scanner(self._hass)
-                d = await scanner.find_device_by_address(device_identifier=mac.lower(),timeout=10.0)
+                d = await scanner.find_device_by_address(device_identifier=self._mac.lower(),timeout=10.0)
                 if not d:
                     raise BleakError(f"A device with address {mac} could not be found.")
-
-                #d = await bluetooth.async_ble_device_from_address(self._hass, mac.upper())
-
-                
                 self._dev = BleakClient(d)
-                ret = await self._dev.connect()
-                if ret:
-                    self._isConnected = True
-                    break
+                
+                await self._dev.connect()
             except Exception as e:
                 if tries == retries:
-                    _LOGGER.info("Not able to connect to {}".format(mac))
-                    print("Not able to connect to {}".format(mac))
+                    _LOGGER.info("Not able to connect to {}".format(self._mac))
+                    print("Not able to connect to {}".format(self._mac))
                     pass
                 else:
-                    _LOGGER.debug("Retrying {}".format(mac))
+                    _LOGGER.debug("Retrying {}".format(self._mac))
 
     async def disconnect(self):
         if self._dev is not None:
             await self._dev.disconnect()
-            self._isConnected = False
             self._dev = None
 
     def _bToStr(self, val):
@@ -204,17 +193,19 @@ class Calima:
         # Short Short Short Short    Byte Short Byte
         # Hum   Temp  Light FanSpeed Mode Tbd   Tbd
         v = unpack('<4HBHB', await self._readUUID(CHARACTERISTIC_SENSOR_DATA))
+        _LOGGER.debug("Read Fan States: %s", v)
+        
         trigger = "No trigger"
         if ((v[4] >> 4) & 1) == 1:
             trigger = "Boost"
+        elif ((v[4] >> 6) & 3) == 3:
+            trigger = "Switch"
         elif (v[4] & 3) == 1:
             trigger = "Trickle ventilation"
         elif (v[4] & 3) == 2:
             trigger = "Light ventilation"
         elif (v[4] & 3) == 3: # Note that the trigger might be active, but mode must be enabled to be activated
             trigger = "Humidity ventilation"
-
-        _LOGGER.debug("Read Fan State values: [Hum, Temp, Light, Fanspeed]: %s %s %s %s", v[0], v[1], v[2], v[3])
 
         return FanState(round(math.log2(v[0]-30)*10, 2) if v[0] > 30 else 0, v[1]/4 - 2.6, v[2], v[3], trigger)
 

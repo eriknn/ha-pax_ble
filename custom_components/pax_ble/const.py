@@ -2,7 +2,7 @@ from homeassistant.const import Platform
 from datetime import timedelta
 
 # Global Constants
-DOMAIN: str = "pax"
+DOMAIN: str = "pax_ble"
 PLATFORMS = [
     Platform.SENSOR,
     Platform.SWITCH,

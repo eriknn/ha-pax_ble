@@ -21,7 +21,6 @@ OPTIONS = {}
 # Creating nested dictionary of key/pairs
 OPTIONS = {
     'automatic_cycles': {'0': "Off", '1': "30 min", '2': "60 min", '3': "90 min"},
-    'boostmode': {'0': "Off", '1': "Activate"},
     'lightsensorsettings_delayedstart': {'0': "No delay", '5': "5 min", '10': "10 min"},
     'lightsensorsettings_runningtime': {'5': "5 min", '10': "10 min", '15': "15 min", '30': "30 min", '60': "60 min"},
     'off_on': {'0': "Off", '1': "On"},

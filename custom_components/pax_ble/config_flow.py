@@ -6,6 +6,7 @@ import homeassistant.helpers.config_validation as cv
 import homeassistant.helpers.device_registry as dr
 import voluptuous as vol
 from homeassistant import config_entries
+from datetime import timedelta
 
 from .const import (DOMAIN, CONF_NAME, CONF_MAC, CONF_PIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
@@ -98,7 +99,7 @@ def getDeviceSchema(name='', mac='', pin='', scan_interval=DEFAULT_SCAN_INTERVAL
             vol.Required(CONF_NAME, description="Name", default=name): cv.string,
             vol.Required(CONF_MAC, description="MAC Address", default=mac): cv.string,
             vol.Required(CONF_PIN, description="Pin Code", default=pin): cv.string,
-            vol.Optional(CONF_SCAN_INTERVAL, default=scan_interval): vol.All(vol.Coerce(int), vol.Range(min=1, max=999)),  
+            vol.Optional(CONF_SCAN_INTERVAL, default=scan_interval): vol.All(vol.Coerce(int), vol.Range(min=1, max=999))
         }
     )
 
@@ -108,7 +109,7 @@ def getDeviceSchemaOptions(pin='', scan_interval=DEFAULT_SCAN_INTERVAL):
     data_schema = vol.Schema(
         {
             vol.Optional(CONF_PIN, description="Pin Code", default=pin): cv.string,
-            vol.Optional(CONF_SCAN_INTERVAL, default=scan_interval): vol.All(vol.Coerce(int), vol.Range(min=1, max=999)),  
+            vol.Optional(CONF_SCAN_INTERVAL, default=scan_interval): vol.All(vol.Coerce(int), vol.Range(min=1, max=999)) 
         }
     )
 
