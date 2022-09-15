@@ -10,9 +10,9 @@ from homeassistant.components.number import NumberEntity
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from homeassistant.const import (TEMP_CELSIUS, DEVICE_CLASS_HUMIDITY, DEVICE_CLASS_TEMPERATURE, DEVICE_CLASS_ILLUMINANCE, STATE_UNKNOWN)
+from homeassistant.const import TEMP_CELSIUS, DEVICE_CLASS_TEMPERATURE
 
-from .const import DOMAIN, CONF_NAME, CONF_MAC, CONF_PIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+from .const import DOMAIN, CONF_NAME, CONF_MAC
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,74 +32,75 @@ OPTIONS['boostmodesec'] = [3600, 60, 1, DT_INTEGER]
 OPTIONS['hour'] = [23, 0, 1, DT_INTEGER]
 OPTIONS['min'] = [59, 0, 1, DT_INTEGER]
 
-ENTITIES = [
-    # Name, displayName, units, deviceClass, category
-    ['fanspeed_humidity', 'Fanspeed Humidity', 'rpm', None, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_REMOTE],
-    ['fanspeed_light', 'Fanspeed Light', 'rpm', None, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_REMOTE],
-    ['fanspeed_trickle', 'Fanspeed Trickle', 'rpm', None, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_REMOTE],
-    ['boostmodespeed', 'BoostMode Speed', 'rpm', None, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_LOCAL],
-    ['boostmodesec', 'BoostMode Time', 's', None, EntityCategory.CONFIG, OPTIONS['boostmodesec'], WT_LOCAL],
-    ['heatdistributorsettings_temperaturelimit', 'HeatDistributorSettings TemperatureLimit', TEMP_CELSIUS, DEVICE_CLASS_TEMPERATURE, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_REMOTE],
-    ['heatdistributorsettings_fanspeedbelow', 'HeatDistributorSettings FanSpeedBelow', 'rpm', None, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_REMOTE],
-    ['heatdistributorsettings_fanspeedabove', 'HeatDistributorSettings FanSpeedAbove', 'rpm', None, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_REMOTE],
-    ['silenthours_startinghour', 'SilentHours StartingHour', 'H', None, EntityCategory.CONFIG, OPTIONS['hour'], WT_REMOTE],
-    ['silenthours_startingminute', 'SilentHours StartingMinute', 'Min', None, EntityCategory.CONFIG, OPTIONS['min'], WT_REMOTE],
-    ['silenthours_endinghour', 'SilentHours EndingHour', 'H', None, EntityCategory.CONFIG, OPTIONS['hour'], WT_REMOTE],
-    ['silenthours_endingminute', 'SilentHours EndingMinute', 'Min', None, EntityCategory.CONFIG, OPTIONS['min'], WT_REMOTE],
+class Sensor:
+    def __init__(self, key, entityName, units, deviceClass, category, options, writeType):
+        self.key = key
+        self.entityName = entityName
+        self.units = units
+        self.deviceClass = deviceClass
+        self.category = category
+        self.options = options
+        self.writeType = writeType
+
+SENSOR_TYPES = [
+    Sensor('fanspeed_humidity', 'Fanspeed Humidity', 'rpm', None, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_REMOTE),
+    Sensor('fanspeed_light', 'Fanspeed Light', 'rpm', None, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_REMOTE),
+    Sensor('fanspeed_trickle', 'Fanspeed Trickle', 'rpm', None, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_REMOTE),
+    Sensor('boostmodespeed', 'BoostMode Speed', 'rpm', None, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_LOCAL),
+    Sensor('boostmodesec', 'BoostMode Time', 's', None, EntityCategory.CONFIG, OPTIONS['boostmodesec'], WT_LOCAL),
+    Sensor('heatdistributorsettings_temperaturelimit', 'HeatDistributorSettings TemperatureLimit', TEMP_CELSIUS, DEVICE_CLASS_TEMPERATURE, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_REMOTE),
+    Sensor('heatdistributorsettings_fanspeedbelow', 'HeatDistributorSettings FanSpeedBelow', 'rpm', None, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_REMOTE),
+    Sensor('heatdistributorsettings_fanspeedabove', 'HeatDistributorSettings FanSpeedAbove', 'rpm', None, EntityCategory.CONFIG, OPTIONS['fanspeed'], WT_REMOTE),
+    Sensor('silenthours_startinghour', 'SilentHours StartingHour', 'H', None, EntityCategory.CONFIG, OPTIONS['hour'], WT_REMOTE),
+    Sensor('silenthours_startingminute', 'SilentHours StartingMinute', 'Min', None, EntityCategory.CONFIG, OPTIONS['min'], WT_REMOTE),
+    Sensor('silenthours_endinghour', 'SilentHours EndingHour', 'H', None, EntityCategory.CONFIG, OPTIONS['hour'], WT_REMOTE),
+    Sensor('silenthours_endingminute', 'SilentHours EndingMinute', 'Min', None, EntityCategory.CONFIG, OPTIONS['min'], WT_REMOTE),
 ]
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
     """Setup sensors from a config entry created in the integrations UI."""
     _LOGGER.debug("Starting paxcalima numbers: %s", config_entry.data[CONF_NAME])
-    
+
     # Load coordinator and create entities
     mac = config_entry.data[CONF_MAC]
     coordinator = hass.data[DOMAIN][mac]
-    async_add_devices([PaxCalimaNumberEntity(coordinator,key,name,unit,device_class, ent_cat, options, write_type) for [key, name, unit, device_class, ent_cat, options, write_type] in ENTITIES], True)
+
+    # Create entities
+    ha_entities = []
+    for sensor in SENSOR_TYPES:
+        ha_entities.append(PaxCalimaNumberEntity(coordinator,sensor))
+    async_add_devices(ha_entities, True)
 
 class PaxCalimaNumberEntity(CoordinatorEntity, NumberEntity):
     """Representation of a Number."""
 
-    def __init__(self, coordinator, key, name, unit, device_class, ent_cat, options, write_type):
+    def __init__(self, coordinator, sensor):
         """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator)
 
         """Generic Entity properties"""
-        self._attr_device_class = device_class
-        self._attr_entity_category = ent_cat        
-        self._attr_name = '{} {}'.format(self.coordinator.calimaApi.name, name)
-
-        """Sensor Entity properties"""    
-        self._attr_mode = "box"
-        self._attr_native_max_value = options[0]
-        self._attr_native_min_value = options[1]
-        self._attr_native_step = options[2]
-        self._datatype = options[3]
-        self._write_type = write_type
-        self._attr_native_unit_of_measurement = unit
-
-        """Initialize the number."""
-        self._key = key
-
-    @callback
-    def _handle_coordinator_update(self):
-        """Handle updated data from the coordinator."""
-        self.async_write_ha_state()
-
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {
-                (DOMAIN, self.coordinator.calimaApi.mac)
-            },
+        self._attr_device_class = sensor.deviceClass
+        self._attr_entity_category = sensor.category        
+        self._attr_name = '{} {}'.format(self.coordinator.calimaApi.name, sensor.entityName)
+        self._attr_unique_id = '{}-{}'.format(self.coordinator.calimaApi.mac, self.name)
+        self._attr_device_info = {
+            "identifiers": { (DOMAIN, self.coordinator.calimaApi.mac) },
             "name": self.coordinator.calimaApi.name,
             "manufacturer": "Pax",
             "model": "Calima"
         }
-    
-    @property
-    def unique_id(self):
-        return '{}-{}'.format(self.coordinator.calimaApi.mac, self.name)
+
+        """Sensor Entity properties"""    
+        self._attr_mode = "box"
+        self._attr_native_max_value = sensor.options[0]
+        self._attr_native_min_value = sensor.options[1]
+        self._attr_native_step = sensor.options[2]
+        self._datatype = sensor.options[3]
+        self._write_type = sensor.writeType
+        self._attr_native_unit_of_measurement = sensor.units
+
+        """Initialize the number."""
+        self._key = sensor.key
 
     @property
     def native_value(self):

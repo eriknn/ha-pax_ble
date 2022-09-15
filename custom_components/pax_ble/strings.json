@@ -8,13 +8,13 @@
                 "data": {                     
                     "name": "Name of device",                     
                     "mac": "MAC Address",                                
-                    "pin": "PIN-Code",    
+                    "pin": "PIN Code",    
                     "scan_interval": "Scan Interval in seconds"  					
                 }                                                            
             }
         },
 		"error": {
-			"auth": "Connection failed"
+			"cannot_connect": "Failed to connect"
 		},
 		"abort": {
 			"already_configured": "Device is already configured"
@@ -28,7 +28,7 @@
                 "data": {                     
                     "name": "Name of device",                     
                     "mac": "MAC Address",                                
-                    "pin": "PIN-Code",    
+                    "pin": "PIN Code",    
                     "scan_interval": "Scan Interval in seconds"                                      
                 }                                     
             }             

@@ -5,16 +5,25 @@ import subprocess
 
 from homeassistant.core import callback
 from homeassistant.components.switch import SwitchEntity
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from homeassistant.util import Throttle
-
-from .const import DOMAIN, CONF_NAME, CONF_MAC, CONF_PIN
+from .const import DOMAIN, CONF_NAME, CONF_MAC
 
 _LOGGER = logging.getLogger(__name__)
 
-ENTITIES = [
-    ['boostmode', 'BoostMode'],
+class Sensor:
+    def __init__(self, key, entityName, category):
+        self.key = key
+
+        self.entityName = entityName
+        self.category = category
+
+SENSOR_TYPES = [
+    Sensor('boostmode', 'BoostMode', None),
+    Sensor('silenthours_on', 'SilentHours On', EntityCategory.CONFIG),
+    Sensor('trickledays_weekdays', 'TrickleDays Weekdays', EntityCategory.CONFIG),
+    Sensor('trickledays_weekends', 'TrickleDays Weekends', EntityCategory.CONFIG)    
 ]
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
@@ -24,40 +33,33 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
     # Load coordinator and create entities
     mac = config_entry.data[CONF_MAC]
     coordinator = hass.data[DOMAIN][mac]
-    async_add_devices([ PaxCalimaSwitchEntity(coordinator, key, name) for [key, name] in ENTITIES], True)
+
+    # Create entities
+    ha_entities = []
+    for sensor in SENSOR_TYPES:
+        ha_entities.append(PaxCalimaSwitchEntity(coordinator,sensor))
+    async_add_devices(ha_entities, True)
 
 class PaxCalimaSwitchEntity(CoordinatorEntity, SwitchEntity):
     """Representation of a Command."""
 
-    def __init__(self, coordinator, key, name):
+    def __init__(self, coordinator, sensor):
         """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator)
 
-        """Generic Entity properties"""   
-        self._attr_name = '{} {}'.format(self.coordinator.calimaApi.name, name)
-        
-        """Initialize the sensor."""
-        self._key = key
-
-    @callback
-    def _handle_coordinator_update(self):
-        """Handle updated data from the coordinator."""
-        self.async_write_ha_state()
-        
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {
-                (DOMAIN, self.coordinator.calimaApi.mac)
-            },
+        """Generic Entity properties"""
+        self._attr_entity_category = sensor.category
+        self._attr_name = '{} {}'.format(self.coordinator.calimaApi.name, sensor.entityName)
+        self._attr_unique_id = '{}-{}'.format(self.coordinator.calimaApi.mac, self.name)
+        self._attr_device_info = {
+            "identifiers": { (DOMAIN, self.coordinator.calimaApi.mac) },
             "name": self.coordinator.calimaApi.name,
             "manufacturer": "Pax",
             "model": "Calima"
         }
-    
-    @property
-    def unique_id(self):
-        return '{}-{}'.format(self.coordinator.calimaApi.mac, self.name)
+            
+        """Initialize the sensor."""
+        self._key = sensor.key
     
     @property
     def is_on(self):

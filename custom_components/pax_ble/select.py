@@ -10,32 +10,31 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from homeassistant.const import (TEMP_CELSIUS, DEVICE_CLASS_HUMIDITY, DEVICE_CLASS_TEMPERATURE, DEVICE_CLASS_ILLUMINANCE, STATE_UNKNOWN)
-
-from .const import DOMAIN, CONF_NAME, CONF_MAC, CONF_PIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+from .const import DOMAIN, CONF_NAME, CONF_MAC
 
 _LOGGER = logging.getLogger(__name__)
 
-OPTIONS = {}
+class Sensor:
+    def __init__(self, key, entityName, category, options):
+        self.key = key
+        self.entityName = entityName
+        self.category = category
+        self.options = options
 
 # Creating nested dictionary of key/pairs
 OPTIONS = {
     'automatic_cycles': {'0': "Off", '1': "30 min", '2': "60 min", '3': "90 min"},
     'lightsensorsettings_delayedstart': {'0': "No delay", '5': "5 min", '10': "10 min"},
     'lightsensorsettings_runningtime': {'5': "5 min", '10': "10 min", '15': "15 min", '30': "30 min", '60': "60 min"},
-    'off_on': {'0': "Off", '1': "On"},
     'sensitivity': {'0': "Off", '1': "Low sensitivity", '2': "Medium sensitivity", '3': "High sensitivity"}
 }
-ENTITIES = [
-    # Name, displayName, category
-    ['automatic_cycles', 'Automatic Cycles', EntityCategory.CONFIG, OPTIONS['automatic_cycles']],
-    ['lightsensorsettings_delayedstart', 'LightSensorSettings DelayedStart', EntityCategory.CONFIG, OPTIONS['lightsensorsettings_delayedstart']],
-    ['lightsensorsettings_runningtime', 'LightSensorSettings Runningtime', EntityCategory.CONFIG, OPTIONS['lightsensorsettings_runningtime']],
-    ['silenthours_on', 'SilentHours On', EntityCategory.CONFIG, OPTIONS['off_on']],
-    ['sensitivity_humidity', 'Sensitivity Humidity', EntityCategory.CONFIG, OPTIONS['sensitivity']],
-    ['sensitivity_light', 'Sensitivity Light', EntityCategory.CONFIG, OPTIONS['sensitivity']],
-    ['trickledays_weekdays', 'TrickleDays Weekdays', EntityCategory.CONFIG, OPTIONS['off_on']],
-    ['trickledays_weekends', 'TrickleDays Weekends', EntityCategory.CONFIG, OPTIONS['off_on']],
+
+SENSOR_TYPES = [
+    Sensor('automatic_cycles', 'Automatic Cycles', EntityCategory.CONFIG, OPTIONS['automatic_cycles']),
+    Sensor('lightsensorsettings_delayedstart', 'LightSensorSettings DelayedStart', EntityCategory.CONFIG, OPTIONS['lightsensorsettings_delayedstart']),
+    Sensor('lightsensorsettings_runningtime', 'LightSensorSettings Runningtime', EntityCategory.CONFIG, OPTIONS['lightsensorsettings_runningtime']),
+    Sensor('sensitivity_humidity', 'Sensitivity Humidity', EntityCategory.CONFIG, OPTIONS['sensitivity']),
+    Sensor('sensitivity_light', 'Sensitivity Light', EntityCategory.CONFIG, OPTIONS['sensitivity'])
 ]
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
@@ -45,44 +44,36 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
     # Load coordinator and create entities
     mac = config_entry.data[CONF_MAC]
     coordinator = hass.data[DOMAIN][mac]
-    async_add_devices([PaxCalimaSelectEntity(coordinator,key,name,ent_cat,options) for [key,name,ent_cat,options] in ENTITIES], True)
+
+    # Create entities
+    ha_entities = []
+    for sensor in SENSOR_TYPES:
+        ha_entities.append(PaxCalimaSelectEntity(coordinator,sensor)) 
+    async_add_devices(ha_entities, True)
 
 class PaxCalimaSelectEntity(CoordinatorEntity, SelectEntity):
     """Representation of a Select."""
 
-    def __init__(self, coordinator, key, name, ent_cat, options):
+    def __init__(self, coordinator, sensor):
         """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator)
 
         """Generic Entity properties"""
-        self._attr_entity_category = ent_cat
-        self._attr_name = '{} {}'.format(self.coordinator.calimaApi.name, name)
-
-        """Select Entity properties"""    
-        self._options = options
-
-        """Initialize the select."""
-        self._key = key
-
-    @callback
-    def _handle_coordinator_update(self):
-        """Handle updated data from the coordinator."""
-        self.async_write_ha_state()
-
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {
-                (DOMAIN, self.coordinator.calimaApi.mac)
-            },
+        self._attr_entity_category = sensor.category 
+        self._attr_name = '{} {}'.format(self.coordinator.calimaApi.name, sensor.entityName)
+        self._attr_unique_id = '{}-{}'.format(self.coordinator.calimaApi.mac, self.name)
+        self._attr_device_info = {
+            "identifiers": { (DOMAIN, self.coordinator.calimaApi.mac) },
             "name": self.coordinator.calimaApi.name,
             "manufacturer": "Pax",
             "model": "Calima"
         }
 
-    @property
-    def unique_id(self):
-        return '{}-{}'.format(self.coordinator.calimaApi.mac, self.name)
+        """Select Entity properties"""    
+        self._options = sensor.options
+
+        """Initialize the select."""
+        self._key = sensor.key
 
     @property
     def current_option(self):

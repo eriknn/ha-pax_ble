@@ -62,10 +62,10 @@ class PaxUpdateCoordinator(DataUpdateCoordinator):
     def calimaApi(self):
         return self._calimaApi
 
-    async def _async_update_data(self):
+    async def _async_update_data(self):       
         """ Fetch data from device. """
         try:
             async with async_timeout.timeout(30):
                 return await self._calimaApi.async_fetch_data()
         except Exception as err:
-            raise UpdateFailed(f"Error communicating with device: {err}")
+                return False

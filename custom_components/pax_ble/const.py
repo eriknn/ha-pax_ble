@@ -7,7 +7,7 @@ PLATFORMS = [
     Platform.SENSOR,
     Platform.SWITCH,
     Platform.NUMBER,
-    Platform.SELECT,   
+    Platform.SELECT
 ]
 
 # Configuration Constants

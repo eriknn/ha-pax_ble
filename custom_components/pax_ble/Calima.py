@@ -74,9 +74,7 @@ CHARACTERISTIC_TIME_FUNCTIONS = "49c616de-02b1-4b67-b237-90f66793a6f2"
 
 class Calima:
     def __init__(self, hass, mac, pin):
-        # Set debug to true if you want more verbose output
         self._hass = hass
-        self._debug = False
         self._dev = None
         self._mac = mac
         self._pin = pin
@@ -109,8 +107,6 @@ class Calima:
             except Exception as e:
                 if tries == retries:
                     _LOGGER.info("Not able to connect to {}".format(self._mac))
-                    print("Not able to connect to {}".format(self._mac))
-                    pass
                 else:
                     _LOGGER.debug("Retrying {}".format(self._mac))
 
@@ -124,30 +120,14 @@ class Calima:
 
     async def _readUUID(self, uuid):
         val = await self._dev.read_gatt_char(uuid)
-        if (self._debug):
-            print("[Calima] [R] %s = %s" % (uuid, self._bToStr(val)))
         return val
 
     async def _readHandle(self, handle):
         val = await self._dev.read_gatt_char(char_specifier=handle)
-        if (self._debug):
-            print("[Calima] [R] %s = %s" % (hex(handle), self._bToStr(val)))
         return val
 
     async def _writeUUID(self, uuid, val):
-        if (self._debug):
-            print("[Calima] [W] %s = %s" % (uuid, self._bToStr(val)))
-
         await self._dev.write_gatt_char(char_specifier=uuid, data=val, response=True)
-
-    def scanCharacteristics(self):
-        val = self._dev.getCharacteristics()
-        for ch in val:
-            if (ch.supportsRead()):
-                rd = ch.read()
-                print("[%s] %s (%s) = (%d) %s" % (hex(ch.getHandle()), ch.uuid.getCommonName(), ch.propertiesToString(), len(rd), self._bToStr(rd)))
-            else:
-                print("[%s] %s (%s)" % (hex(ch.getHandle()), ch.uuid.getCommonName(), ch.propertiesToString()))
 
     # --- Generic GATT Characteristics
 

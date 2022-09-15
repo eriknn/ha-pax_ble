@@ -14,7 +14,7 @@
             }
         },
 		"error": {
-			"auth": "Connection failed"
+			"cannot_connect": "Connection failed"
 		},
 		"abort": {
 			"already_configured": "Device is already configured"
