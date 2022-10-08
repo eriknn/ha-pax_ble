@@ -31,8 +31,7 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
     _LOGGER.debug("Starting paxcalima switches: %s", config_entry.data[CONF_NAME])
 
     # Load coordinator and create entities
-    mac = config_entry.data[CONF_MAC]
-    coordinator = hass.data[DOMAIN][mac]
+    coordinator = hass.data[DOMAIN][config_entry.entry_id]
 
     # Create entities
     ha_entities = []
@@ -68,22 +67,18 @@ class PaxCalimaSwitchEntity(CoordinatorEntity, SwitchEntity):
     
     async def async_turn_on(self, **kwargs):
         _LOGGER.debug('Enabling Boost Mode')
-        
-        """ Write new value to our storage """ 
-        self.coordinator.calimaApi.set_data(self._key, 1)
-        
-        """ Write value to device """
-        ret = await self.coordinator.calimaApi.write_data(self._key)
-        
-        self.async_schedule_update_ha_state()
+        await self.writeVal(1)
 
     async def async_turn_off(self, **kwargs):
         _LOGGER.debug('Disabling Boost Mode')
-        
+        await self.writeVal(0)
+
+    async def writeVal(self, val):
         """ Write new value to our storage """ 
-        self.coordinator.calimaApi.set_data(self._key, 0)
+        self.coordinator.calimaApi.set_data(self._key, val)
         
         """ Write value to device """
-        ret = await self.coordinator.calimaApi.write_data(self._key)
-        
-        self.async_schedule_update_ha_state()
+        await self.coordinator.calimaApi.write_data(self._key)
+
+        """ Update displayed value """
+        self.async_schedule_update_ha_state()        

@@ -97,13 +97,16 @@ class Calima:
         while (tries < retries):
             tries += 1
             try:
-                scanner = bluetooth.async_get_scanner(self._hass)
-                d = await scanner.find_device_by_address(device_identifier=self._mac.lower(),timeout=10.0)
+                d = bluetooth.async_ble_device_from_address(self._hass, self._mac.upper())
                 if not d:
-                    raise BleakError(f"A device with address {mac} could not be found.")
+                    raise BleakError(f"A device with address {self._mac} could not be found.")
+                
                 self._dev = BleakClient(d)
                 
-                await self._dev.connect()
+                ret = await self._dev.connect()
+                if ret:
+                    _LOGGER.debug("Connected to {}".format(self._mac))
+                    break
             except Exception as e:
                 if tries == retries:
                     _LOGGER.info("Not able to connect to {}".format(self._mac))

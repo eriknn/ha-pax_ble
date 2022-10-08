@@ -110,7 +110,7 @@ def getDeviceSchema(user_input):
             vol.Required(CONF_NAME, description="Name", default=user_input[CONF_NAME]): cv.string,
             vol.Required(CONF_MAC, description="MAC Address", default=user_input[CONF_MAC]): cv.string,
             vol.Required(CONF_PIN, description="Pin Code", default=user_input[CONF_PIN]): cv.string,
-            vol.Optional(CONF_SCAN_INTERVAL, default=user_input[CONF_SCAN_INTERVAL]): vol.All(vol.Coerce(int), vol.Range(min=1, max=999))
+            vol.Optional(CONF_SCAN_INTERVAL, default=user_input[CONF_SCAN_INTERVAL]): vol.All(vol.Coerce(int), vol.Range(min=1, max=999)),
         }
     )
 

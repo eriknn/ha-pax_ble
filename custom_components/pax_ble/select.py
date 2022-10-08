@@ -21,7 +21,7 @@ class Sensor:
         self.category = category
         self.options = options
 
-# Creating nested dictionary of key/pairs
+# These are the dropdown options
 OPTIONS = {
     'automatic_cycles': {'0': "Off", '1': "30 min", '2': "60 min", '3': "90 min"},
     'lightsensorsettings_delayedstart': {'0': "No delay", '5': "5 min", '10': "10 min"},
@@ -42,8 +42,7 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
     _LOGGER.debug("Starting paxcalima selects: %s", config_entry.data[CONF_NAME])
     
     # Load coordinator and create entities
-    mac = config_entry.data[CONF_MAC]
-    coordinator = hass.data[DOMAIN][mac]
+    coordinator = hass.data[DOMAIN][config_entry.entry_id]
 
     # Create entities
     ha_entities = []

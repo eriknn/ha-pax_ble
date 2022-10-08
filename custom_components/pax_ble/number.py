@@ -16,21 +16,17 @@ from .const import DOMAIN, CONF_NAME, CONF_MAC
 
 _LOGGER = logging.getLogger(__name__)
 
-DT_INTEGER = 0
-DT_FLOAT = 1
-DT_UNKNOWN = 10
-
-# Writetype - Local will not send data to device.
+# Writetype - Local will not send data to device (because it will be sent with some other value).
 WT_REMOTE = 0
 WT_LOCAL = 1
 
 OPTIONS = {}
-#OPTIONS['key'] = [MaxValue, MinValue, Step, Datatype]
-OPTIONS['fanspeed'] = [2400, 0, 1, DT_INTEGER]
-OPTIONS['boostmodespeed'] = [2400, 1000, 1, DT_INTEGER]
-OPTIONS['boostmodesec'] = [3600, 60, 1, DT_INTEGER]
-OPTIONS['hour'] = [23, 0, 1, DT_INTEGER]
-OPTIONS['min'] = [59, 0, 1, DT_INTEGER]
+#OPTIONS['key'] = [MaxValue, MinValue, Step]
+OPTIONS['fanspeed'] = [2400, 0, 1]
+OPTIONS['boostmodespeed'] = [2400, 1000, 1]
+OPTIONS['boostmodesec'] = [3600, 60, 1]
+OPTIONS['hour'] = [23, 0, 1]
+OPTIONS['min'] = [59, 0, 1]
 
 class Sensor:
     def __init__(self, key, entityName, units, deviceClass, category, options, writeType):
@@ -62,8 +58,7 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
     _LOGGER.debug("Starting paxcalima numbers: %s", config_entry.data[CONF_NAME])
 
     # Load coordinator and create entities
-    mac = config_entry.data[CONF_MAC]
-    coordinator = hass.data[DOMAIN][mac]
+    coordinator = hass.data[DOMAIN][config_entry.entry_id]
 
     # Create entities
     ha_entities = []
@@ -90,28 +85,27 @@ class PaxCalimaNumberEntity(CoordinatorEntity, NumberEntity):
             "model": "Calima"
         }
 
-        """Sensor Entity properties"""    
+        """Number Entity properties"""    
         self._attr_mode = "box"
         self._attr_native_max_value = sensor.options[0]
         self._attr_native_min_value = sensor.options[1]
         self._attr_native_step = sensor.options[2]
-        self._datatype = sensor.options[3]
-        self._write_type = sensor.writeType
         self._attr_native_unit_of_measurement = sensor.units
 
         """Initialize the number."""
         self._key = sensor.key
+        self._write_type = sensor.writeType
 
     @property
     def native_value(self):
         """ Return number value. """
         retVal = self.coordinator.calimaApi.get_data(self._key)
         
-        if self._datatype == DT_INTEGER:
-            try:
-                retVal = int(retVal)
-            except:
-                pass
+        try:
+            retVal = int(retVal)
+        except:
+            pass
+        
         return retVal
 
     async def async_set_native_value(self, value):
@@ -122,18 +116,10 @@ class PaxCalimaNumberEntity(CoordinatorEntity, NumberEntity):
             oldValue = self.coordinator.calimaApi.get_data(self._key)
                 
             """ Write new value to our storage """
-            if self._datatype == DT_INTEGER:
-                try:
-                    value = int(value)
-                except:
-                    pass
-            self.coordinator.calimaApi.set_data(self._key, value)
+            self.coordinator.calimaApi.set_data(self._key, int(value))
 
             """ Write value to device """
-            ret = await self.coordinator.calimaApi.write_data(self._key)
-                
-            """ Update HA value """
-            if not ret:
+            if not await self.coordinator.calimaApi.write_data(self._key):
                 """ Restore value """
                 self.coordinator.calimaApi.set_data(self._key, oldValue)
         self.async_schedule_update_ha_state()

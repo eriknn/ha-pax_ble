@@ -24,7 +24,7 @@ async def async_setup_entry(hass, config_entry):
     # Set up shared api and coordinator
     calimaApi = CalimaApi(hass, name, mac, pin)                                     
     coordinator = PaxUpdateCoordinator(hass, calimaApi, scan_interval)
-    hass.data[DOMAIN][mac] = coordinator
+    hass.data[DOMAIN][config_entry.entry_id] = coordinator
 
     # Forward the setup to the platforms.
     hass.async_create_task(hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS))
@@ -41,9 +41,7 @@ async def update_listener(hass, config_entry):
 async def async_unload_entry(hass, config_entry):
     """Unload a config entry."""
     _LOGGER.debug("Unload entry: %s", config_entry.data[CONF_NAME]) 
-    unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
-
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
 
 class PaxUpdateCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, calimaApi, scanInterval):
@@ -55,17 +53,14 @@ class PaxUpdateCoordinator(DataUpdateCoordinator):
             name="Pax Calima",
             # Polling interval. Will only be polled if there are subscribers.
             update_interval=timedelta(seconds=scanInterval),
-        )
-        self._calimaApi = calimaApi
+        )       
+        self.calimaApi = calimaApi
 
-    @property
-    def calimaApi(self):
-        return self._calimaApi
 
     async def _async_update_data(self):       
         """ Fetch data from device. """
         try:
             async with async_timeout.timeout(30):
-                return await self._calimaApi.async_fetch_data()
+                return await self.calimaApi.async_fetch_data()
         except Exception as err:
                 return False
