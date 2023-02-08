@@ -2,7 +2,6 @@ import logging
 import threading
 
 from .Calima import Calima
-from homeassistant.const import STATE_ON, STATE_OFF, STATE_UNKNOWN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,7 +16,7 @@ class CalimaApi:
     def get_data(self, key):
         if key in self._state:
             return self._state[key]
-        return STATE_UNKNOWN
+        return None
 
     def set_data(self, key, value):
         _LOGGER.debug("Set_Data: %s %s", key, value)
