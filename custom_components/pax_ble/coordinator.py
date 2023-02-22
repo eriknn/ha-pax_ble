@@ -1,17 +1,39 @@
 import logging
-import threading
+import async_timeout
 
-from .Calima import Calima
+from datetime import timedelta
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+from .calima import Calima
 
 _LOGGER = logging.getLogger(__name__)
 
-class CalimaApi: 
-    def __init__(self, hass, name, mac, pin):
-        self._name = name
+class PaxCalimaCoordinator(DataUpdateCoordinator): 
+    def __init__(self, hass, devicename, mac, pin, scanInterval):
+        """ Initialize coordinator parent """
+        super().__init__(
+            hass,
+            _LOGGER,
+            # Name of the data. For logging purposes.
+            name="Pax Calima",
+            # Polling interval. Will only be polled if there are subscribers.
+            update_interval=timedelta(seconds=scanInterval),
+        )
+                
+        self._devicename = devicename
         self._mac = mac
         self._pin = pin
         self._state = { }
         self._fan = Calima(hass, mac, pin)
+
+    async def _async_update_data(self):
+        _LOGGER.debug("Coordinator updating data!!")
+        """ Fetch data from device. """
+        try:
+            async with async_timeout.timeout(30):
+                return await self.async_fetch_data()
+        except Exception as err:
+                return False
 
     def get_data(self, key):
         if key in self._state:
@@ -69,8 +91,8 @@ class CalimaApi:
         return True
 
     @property
-    def name(self):
-        return self._name
+    def devicename(self):
+        return self._devicename
 
     @property
     def mac(self):

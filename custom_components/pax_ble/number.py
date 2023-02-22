@@ -81,7 +81,7 @@ class PaxCalimaNumberEntity(PaxCalimaEntity, NumberEntity):
     @property
     def native_value(self):
         """ Return number value. """
-        retVal = self.coordinator.calimaApi.get_data(self._key)
+        retVal = self.coordinator.get_data(self._key)
         
         try:
             retVal = int(retVal)
@@ -92,16 +92,16 @@ class PaxCalimaNumberEntity(PaxCalimaEntity, NumberEntity):
 
     async def async_set_native_value(self, value):
         if self._write_type == WT_LOCAL:
-            self.coordinator.calimaApi.set_data(self._key, value)
+            self.coordinator.set_data(self._key, value)
         else: 
             """ Save old value """
-            oldValue = self.coordinator.calimaApi.get_data(self._key)
+            oldValue = self.coordinator.get_data(self._key)
                 
             """ Write new value to our storage """
-            self.coordinator.calimaApi.set_data(self._key, int(value))
+            self.coordinator.set_data(self._key, int(value))
 
             """ Write value to device """
-            if not await self.coordinator.calimaApi.write_data(self._key):
+            if not await self.coordinator.write_data(self._key):
                 """ Restore value """
-                self.coordinator.calimaApi.set_data(self._key, oldValue)
+                self.coordinator.set_data(self._key, oldValue)
         self.async_schedule_update_ha_state()

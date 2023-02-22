@@ -11,7 +11,7 @@ from datetime import timedelta
 from .const import DOMAIN, CONF_NAME, CONF_MAC, CONF_PIN, CONF_SCAN_INTERVAL
 from .const import DEFAULT_SCAN_INTERVAL
 
-from .Calima import Calima
+from .calima import Calima
 
 _LOGGER = logging.getLogger(__name__)
 

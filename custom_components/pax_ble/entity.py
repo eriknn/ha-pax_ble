@@ -16,15 +16,15 @@ class PaxCalimaEntity(CoordinatorEntity):
 
         """Generic Entity properties"""
         self._attr_entity_category = sensor.category        
-        self._attr_name = '{} {}'.format(self.coordinator.calimaApi.name, sensor.entityName)
-        self._attr_unique_id = '{}-{}'.format(self.coordinator.calimaApi.mac, self.name)
+        self._attr_name = '{} {}'.format(self.coordinator.devicename, sensor.entityName)
+        self._attr_unique_id = '{}-{}'.format(self.coordinator.mac, self.name)
         self._attr_device_info = {
-            "identifiers": { (DOMAIN, self.coordinator.calimaApi.mac) },
-            "name": self.coordinator.calimaApi.name,
-            "manufacturer": self.coordinator.calimaApi.get_data('manufacturer'),
-            "model": self.coordinator.calimaApi.get_data('model'),    
-            "hw_version": self.coordinator.calimaApi.get_data('hw_rev'),
-            "sw_version": self.coordinator.calimaApi.get_data('sw_rev'),
+            "identifiers": { (DOMAIN, self.coordinator.mac) },
+            "name": self.coordinator.devicename,
+            "manufacturer": self.coordinator.get_data('manufacturer'),
+            "model": self.coordinator.get_data('model'),    
+            "hw_version": self.coordinator.get_data('hw_rev'),
+            "sw_version": self.coordinator.get_data('sw_rev'),
         }
         
         """Store this entities key."""

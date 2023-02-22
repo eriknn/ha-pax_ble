@@ -54,4 +54,4 @@ class PaxCalimaSensorEntity(PaxCalimaEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the value of the sensor."""
-        return self.coordinator.calimaApi.get_data(self._key)
+        return self.coordinator.get_data(self._key)

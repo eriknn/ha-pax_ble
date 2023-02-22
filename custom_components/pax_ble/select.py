@@ -57,7 +57,7 @@ class PaxCalimaSelectEntity(PaxCalimaEntity, SelectEntity):
     @property
     def current_option(self):
         try:
-            optionIndexStr = self.coordinator.calimaApi.get_data(self._key)
+            optionIndexStr = self.coordinator.get_data(self._key)
             option = self._options[str(optionIndexStr)]
         except Exception as e:            
             option = "Unknown"
@@ -69,7 +69,7 @@ class PaxCalimaSelectEntity(PaxCalimaEntity, SelectEntity):
 
     async def async_select_option(self, option):
         """ Save old value """
-        oldValue = self.coordinator.calimaApi.get_data(self._key)
+        oldValue = self.coordinator.get_data(self._key)
         
         """ Find new value """ 
         value = None
@@ -82,13 +82,13 @@ class PaxCalimaSelectEntity(PaxCalimaEntity, SelectEntity):
             return
         
         """ Write new value to our storage """ 
-        self.coordinator.calimaApi.set_data(self._key, value)
+        self.coordinator.set_data(self._key, value)
         
         """ Write value to device """
-        ret = await self.coordinator.calimaApi.write_data(self._key)
+        ret = await self.coordinator.write_data(self._key)
         
         """ Update HA value """
         if not ret:
             """ Restore value """
-            self.coordinator.calimaApi.set_data(self._key, oldValue)
+            self.coordinator.set_data(self._key, oldValue)
         self.async_schedule_update_ha_state()

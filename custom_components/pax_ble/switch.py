@@ -44,7 +44,7 @@ class PaxCalimaSwitchEntity(PaxCalimaEntity, SwitchEntity):
     @property
     def is_on(self):
         """Return the state of the switch."""
-        return self.coordinator.calimaApi.get_data(self._key)
+        return self.coordinator.get_data(self._key)
     
     async def async_turn_on(self, **kwargs):
         _LOGGER.debug('Enabling Boost Mode')
@@ -56,10 +56,10 @@ class PaxCalimaSwitchEntity(PaxCalimaEntity, SwitchEntity):
 
     async def writeVal(self, val):
         """ Write new value to our storage """ 
-        self.coordinator.calimaApi.set_data(self._key, val)
+        self.coordinator.set_data(self._key, val)
         
         """ Write value to device """
-        await self.coordinator.calimaApi.write_data(self._key)
+        await self.coordinator.write_data(self._key)
 
         """ Update displayed value """
         self.async_schedule_update_ha_state()        
