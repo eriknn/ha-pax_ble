@@ -243,7 +243,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             await self.update_data()
             await self.update_config()
         except Exception as e:
-            _LOGGER.debug("Error when fetching data: " + str(e))
+            _LOGGER.warning("Error when fetching data: " + str(e))
             return False
         finally:
             await self._fan.disconnect()
