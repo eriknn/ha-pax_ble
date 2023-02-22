@@ -25,10 +25,10 @@ async def async_setup_entry(hass, config_entry):
 
     # Load initial data (model name etc)
     try:
-        async with async_timeout.timeout(10):
+        async with async_timeout.timeout(20):
             await coordinator.read_deviceinfo()     
     except Exception as err:
-        _LOGGER.debug("Failed when loading initdata: " + err)
+        _LOGGER.debug("Failed when loading initdata: " + str(err))
 
     # Forward the setup to the platforms.
     hass.async_create_task(hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS))

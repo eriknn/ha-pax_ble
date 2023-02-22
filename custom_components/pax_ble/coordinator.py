@@ -25,9 +25,18 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         self._pin = pin
         self._state = { }
         self._fan = Calima(hass, mac, pin)
-
+    
     async def _async_update_data(self):
         _LOGGER.debug("Coordinator updating data!!")
+
+        """ Load initial data (model name etc) """
+        if 'manufacturer' not in self._state:
+            try:
+                async with async_timeout.timeout(20):
+                    await self.read_deviceinfo()     
+            except Exception as err:
+                _LOGGER.debug("Failed when loading initdata: " + str(err))
+        
         """ Fetch data from device. """
         try:
             async with async_timeout.timeout(30):

@@ -95,23 +95,23 @@ class Calima:
         
     async def connect(self, retries=1):  
         await self.disconnect()
+
         tries = 0
         while (tries < retries):
             tries += 1
+
             try:
                 d = bluetooth.async_ble_device_from_address(self._hass, self._mac.upper())
                 if not d:
                     raise BleakError(f"A device with address {self._mac} could not be found.")
-                
                 self._dev = BleakClient(d)
-                
                 ret = await self._dev.connect()
                 if ret:
                     _LOGGER.debug("Connected to {}".format(self._mac))
                     break
             except Exception as e:
                 if tries == retries:
-                    _LOGGER.info("Not able to connect to {}".format(self._mac))
+                    _LOGGER.info("Not able to connect to {}! ".format(self._mac) + str(e))
                 else:
                     _LOGGER.debug("Retrying {}".format(self._mac))
 
