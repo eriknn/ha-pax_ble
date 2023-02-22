@@ -59,11 +59,17 @@ class PaxCalimaSwitchEntity(PaxCalimaEntity, SwitchEntity):
         await self.writeVal(0)
 
     async def writeVal(self, val):
+        """Save old value"""
+        oldValue = self.coordinator.get_data(self._key)
+        
         """Write new value to our storage"""
         self.coordinator.set_data(self._key, val)
 
         """ Write value to device """
-        await self.coordinator.write_data(self._key)
+        ret = await self.coordinator.write_data(self._key)
 
-        """ Update displayed value """
+        """ Update HA value """
+        if not ret:
+            """Restore value"""
+            self.coordinator.set_data(self._key, oldValue)
         self.async_schedule_update_ha_state()
