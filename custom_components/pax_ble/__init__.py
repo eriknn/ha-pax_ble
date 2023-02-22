@@ -26,6 +26,13 @@ async def async_setup_entry(hass, config_entry):
     coordinator = PaxUpdateCoordinator(hass, calimaApi, scan_interval)
     hass.data[DOMAIN][config_entry.entry_id] = coordinator
 
+    # Load initial data (model name etc)
+    try:
+        async with async_timeout.timeout(10):
+            await calimaApi.read_deviceinfo()     
+    except Exception as err:
+        _LOGGER.debug("Failed when loading initdata: " + err)
+
     # Forward the setup to the platforms.
     hass.async_create_task(hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS))
 
@@ -41,7 +48,9 @@ async def update_listener(hass, config_entry):
 async def async_unload_entry(hass, config_entry):
     """Unload a config entry."""
     _LOGGER.debug("Unload entry: %s", config_entry.data[CONF_NAME]) 
-    return await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
+    unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
+
+    return unload_ok
 
 class PaxUpdateCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, calimaApi, scanInterval):

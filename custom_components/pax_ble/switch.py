@@ -1,21 +1,16 @@
 import logging
-import struct
-import datetime
-import subprocess
 
-from homeassistant.core import callback
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, CONF_NAME, CONF_MAC
+from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 class Sensor:
     def __init__(self, key, entityName, category):
         self.key = key
-
         self.entityName = entityName
         self.category = category
 
@@ -39,26 +34,12 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
         ha_entities.append(PaxCalimaSwitchEntity(coordinator,sensor))
     async_add_devices(ha_entities, True)
 
-class PaxCalimaSwitchEntity(CoordinatorEntity, SwitchEntity):
+class PaxCalimaSwitchEntity(PaxCalimaEntity, SwitchEntity):
     """Representation of a Command."""
 
     def __init__(self, coordinator, sensor):
-        """Pass coordinator to CoordinatorEntity."""
-        super().__init__(coordinator)
-
-        """Generic Entity properties"""
-        self._attr_entity_category = sensor.category
-        self._attr_name = '{} {}'.format(self.coordinator.calimaApi.name, sensor.entityName)
-        self._attr_unique_id = '{}-{}'.format(self.coordinator.calimaApi.mac, self.name)
-        self._attr_device_info = {
-            "identifiers": { (DOMAIN, self.coordinator.calimaApi.mac) },
-            "name": self.coordinator.calimaApi.name,
-            "manufacturer": "Pax",
-            "model": "Calima"
-        }
-            
-        """Initialize the sensor."""
-        self._key = sensor.key
+        """Pass coordinator to PaxCalimaEntity."""
+        super().__init__(coordinator, sensor)
     
     @property
     def is_on(self):

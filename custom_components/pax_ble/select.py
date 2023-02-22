@@ -1,16 +1,10 @@
 import logging
-import struct
-import datetime
-import subprocess
 
-from datetime import timedelta
-
-from homeassistant.core import callback
 from homeassistant.components.select import SelectEntity
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, CONF_NAME, CONF_MAC
+from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,7 +15,7 @@ class Sensor:
         self.category = category
         self.options = options
 
-# These are the dropdown options
+# Creating nested dictionary of key/pairs
 OPTIONS = {
     'automatic_cycles': {'0': "Off", '1': "30 min", '2': "60 min", '3': "90 min"},
     'lightsensorsettings_delayedstart': {'0': "No delay", '5': "5 min", '10': "10 min"},
@@ -50,29 +44,15 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
         ha_entities.append(PaxCalimaSelectEntity(coordinator,sensor)) 
     async_add_devices(ha_entities, True)
 
-class PaxCalimaSelectEntity(CoordinatorEntity, SelectEntity):
+class PaxCalimaSelectEntity(PaxCalimaEntity, SelectEntity):
     """Representation of a Select."""
 
     def __init__(self, coordinator, sensor):
-        """Pass coordinator to CoordinatorEntity."""
-        super().__init__(coordinator)
-
-        """Generic Entity properties"""
-        self._attr_entity_category = sensor.category 
-        self._attr_name = '{} {}'.format(self.coordinator.calimaApi.name, sensor.entityName)
-        self._attr_unique_id = '{}-{}'.format(self.coordinator.calimaApi.mac, self.name)
-        self._attr_device_info = {
-            "identifiers": { (DOMAIN, self.coordinator.calimaApi.mac) },
-            "name": self.coordinator.calimaApi.name,
-            "manufacturer": "Pax",
-            "model": "Calima"
-        }
+        """Pass coordinator to PaxCalimaEntity."""
+        super().__init__(coordinator, sensor)
 
         """Select Entity properties"""    
         self._options = sensor.options
-
-        """Initialize the select."""
-        self._key = sensor.key
 
     @property
     def current_option(self):

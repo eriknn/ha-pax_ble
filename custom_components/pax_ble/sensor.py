@@ -1,18 +1,12 @@
 import logging
-import struct
-import datetime
-import subprocess
 
-from datetime import timedelta
-
-from homeassistant.core import callback
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from homeassistant.const import TEMP_CELSIUS, DEVICE_CLASS_HUMIDITY, DEVICE_CLASS_TEMPERATURE, DEVICE_CLASS_ILLUMINANCE
 
 from .const import DOMAIN, CONF_NAME, CONF_MAC
+from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,30 +40,16 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
         ha_entities.append(PaxCalimaSensorEntity(coordinator,sensor)) 
     async_add_devices(ha_entities, True)
  
-class PaxCalimaSensorEntity(CoordinatorEntity, SensorEntity):
+class PaxCalimaSensorEntity(PaxCalimaEntity, SensorEntity):
     """Representation of a Sensor."""
 
     def __init__(self, coordinator, sensor):
-        """Pass coordinator to CoordinatorEntity."""
-        super().__init__(coordinator)
-
-        """Generic Entity properties"""
+        """Pass coordinator to PaxCalimaEntity."""
+        super().__init__(coordinator, sensor)
+        
+        """Sensor Entity properties"""
         self._attr_device_class = sensor.deviceClass
-        self._attr_entity_category = sensor.category        
-        self._attr_name = '{} {}'.format(self.coordinator.calimaApi.name, sensor.entityName)
-        self._attr_unique_id = '{}-{}'.format(self.coordinator.calimaApi.mac, self.name)
-        self._attr_device_info = {
-            "identifiers": { (DOMAIN, self.coordinator.calimaApi.mac) },
-            "name": self.coordinator.calimaApi.name,
-            "manufacturer": "Pax",
-            "model": "Calima"
-        }
-        
-        """Sensor Entity properties"""    
         self._attr_native_unit_of_measurement = sensor.units
-        
-        """Initialize the sensor."""
-        self._key = sensor.key
 
     @property
     def native_value(self):

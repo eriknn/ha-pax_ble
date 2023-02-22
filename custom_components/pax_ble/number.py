@@ -1,18 +1,12 @@
 import logging
-import struct
-import datetime
-import subprocess
 
-from datetime import timedelta
-
-from homeassistant.core import callback
 from homeassistant.components.number import NumberEntity
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from homeassistant.const import TEMP_CELSIUS, DEVICE_CLASS_TEMPERATURE
 
 from .const import DOMAIN, CONF_NAME, CONF_MAC
+from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,34 +60,22 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
         ha_entities.append(PaxCalimaNumberEntity(coordinator,sensor))
     async_add_devices(ha_entities, True)
 
-class PaxCalimaNumberEntity(CoordinatorEntity, NumberEntity):
+class PaxCalimaNumberEntity(PaxCalimaEntity, NumberEntity):
     """Representation of a Number."""
 
     def __init__(self, coordinator, sensor):
-        """Pass coordinator to CoordinatorEntity."""
-        super().__init__(coordinator)
+        """Pass coordinator to PaxCalimaEntity."""
+        super().__init__(coordinator, sensor)
 
-        """Generic Entity properties"""
+        """Number Entity properties"""
         self._attr_device_class = sensor.deviceClass
-        self._attr_entity_category = sensor.category        
-        self._attr_name = '{} {}'.format(self.coordinator.calimaApi.name, sensor.entityName)
-        self._attr_unique_id = '{}-{}'.format(self.coordinator.calimaApi.mac, self.name)
-        self._attr_device_info = {
-            "identifiers": { (DOMAIN, self.coordinator.calimaApi.mac) },
-            "name": self.coordinator.calimaApi.name,
-            "manufacturer": "Pax",
-            "model": "Calima"
-        }
-
-        """Number Entity properties"""    
         self._attr_mode = "box"
         self._attr_native_max_value = sensor.options[0]
         self._attr_native_min_value = sensor.options[1]
         self._attr_native_step = sensor.options[2]
         self._attr_native_unit_of_measurement = sensor.units
 
-        """Initialize the number."""
-        self._key = sensor.key
+        """Custom properties."""
         self._write_type = sensor.writeType
 
     @property

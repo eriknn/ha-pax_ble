@@ -5,7 +5,7 @@ from .Calima import Calima
 
 _LOGGER = logging.getLogger(__name__)
 
-class CalimaApi:
+class CalimaApi: 
     def __init__(self, hass, name, mac, pin):
         self._name = name
         self._mac = mac
@@ -79,6 +79,32 @@ class CalimaApi:
     @property
     def pin(self):
         return self._pin
+
+    async def read_deviceinfo(self):
+        _LOGGER.debug('Reading device information')
+        try:
+            # Make sure we are connected
+            await self._fan.connect()
+
+            # Abort if we're not able to connect
+            if not self._fan.isConnected():
+                raise Exception('Not connected!')
+
+            # Fetch data
+            self._state['manufacturer'] = await self._fan.getManufacturer()
+            self._state['model'] = await self._fan.getDeviceName()
+            self._state['fw_rev'] = await self._fan.getFirmwareRevision()
+            self._state['hw_rev'] = await self._fan.getHardwareRevision()
+            self._state['sw_rev'] = await self._fan.getSoftwareRevision()
+
+            _LOGGER.debug('Device information read successfully!')
+        except Exception as e:
+            _LOGGER.warning("Error when fetching Device information: " + str(e))
+            return False
+        finally:
+            await self._fan.disconnect()
+
+        return True
 
     async def update_data(self):
         FanState = await self._fan.getState()                             # Sensors
