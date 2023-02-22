@@ -1,0 +1,37 @@
+{
+	"title": "Pax",
+	"config": {
+		"step": {
+			"add_device": {
+				"title": "Pax: Lägg till enhet",
+				"description": "Ange information om enhet.",
+				"data": {
+					"name": "Namn på enhet",
+					"mac": "MAC-adress",
+					"pin": "PIN-kod",
+					"scan_interval": "Sökintervall i sekunder"
+				}
+			}
+		},
+		"error": {
+			"cannot_connect": "Anslutning misslyckades"
+		},
+		"abort": {
+			"already_configured": "Enheten är redan konfigurerad"
+		}
+	},
+	"options": {
+		"step": {
+			"configure_device": {
+				"title": "Pax: Konfigurera enhet",
+				"description": "Ange information om enhet.",
+				"data": {
+					"name": "Namn på enhet",
+					"mac": "MAC-adress",
+					"pin": "PIN-kod",
+					"scan_interval": "Sökintervall i sekunder"
+				}
+			}
+		}
+	}
+}
