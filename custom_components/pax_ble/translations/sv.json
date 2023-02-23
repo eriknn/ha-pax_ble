@@ -14,7 +14,7 @@
 			}
 		},
 		"error": {
-			"cannot_connect": "Anslutning misslyckades"
+			"cannot_connect": "Anslutning misslyckades",
 			"wrong_pin": "Fel PIN"
 		},
 		"abort": {
