@@ -3,11 +3,13 @@ import logging
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.entity import EntityCategory
 
+from homeassistant.components.sensor import SensorDeviceClass
+
+from homeassistant.const import UnitOfVolumeFlowRate, UnitOfTemperature
 from homeassistant.const import (
-    TEMP_CELSIUS,
-    DEVICE_CLASS_HUMIDITY,
-    DEVICE_CLASS_TEMPERATURE,
-    DEVICE_CLASS_ILLUMINANCE,
+    LIGHT_LUX,
+    PERCENTAGE,
+    REVOLUTIONS_PER_MINUTE,
 )
 
 from .const import DOMAIN, CONF_NAME, CONF_MAC
@@ -26,10 +28,11 @@ class Sensor:
 
 
 SENSOR_TYPES = [
-    Sensor("humidity", "Humidity", "%", DEVICE_CLASS_HUMIDITY, None),
-    Sensor("temperature", "Temperature", TEMP_CELSIUS, DEVICE_CLASS_TEMPERATURE, None),
-    Sensor("light", "Light", "lx", DEVICE_CLASS_ILLUMINANCE, None),
-    Sensor("rpm", "RPM", "rpm", None, None),
+    Sensor("humidity", "Humidity", PERCENTAGE, SensorDeviceClass.HUMIDITY, None),
+    Sensor("temperature", "Temperature", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, None),
+    Sensor("light", "Light", LIGHT_LUX, SensorDeviceClass.ILLUMINANCE, None),
+    Sensor("rpm", "RPM", REVOLUTIONS_PER_MINUTE, None, None),
+    Sensor("flow", "Flow", UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR, None, None),
     Sensor("state", "State", None, None, None),
     Sensor("mode", "Mode", None, None, EntityCategory.CONFIG),
 ]

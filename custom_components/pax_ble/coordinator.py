@@ -176,6 +176,10 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             self._state["temperature"] = FanState.Temp
             self._state["light"] = FanState.Light
             self._state["rpm"] = FanState.RPM
+            if FanState.RPM > 400:
+                self._state["flow"] = int(FanState.RPM*0.05076 - 14)
+            else:
+                self._state["flow"] = 0
             self._state["state"] = FanState.Mode
 
             self._state["boostmode"] = BoostMode.OnOff
