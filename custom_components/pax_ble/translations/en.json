@@ -14,7 +14,8 @@
             }
         },
 		"error": {
-			"cannot_connect": "Connection failed"
+			"cannot_connect": "Connection failed",
+			"wrong_pin": "Wrong PIN"
 		},
 		"abort": {
 			"already_configured": "Device is already configured"

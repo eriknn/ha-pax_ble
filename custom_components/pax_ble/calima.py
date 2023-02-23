@@ -180,7 +180,8 @@ class Calima:
         await self._writeUUID(CHARACTERISTIC_PIN_CODE, pack("<I", int(pin)))
 
     async def checkAuth(self):
-        return bool(unpack("<I", await self._readUUID(CHARACTERISTIC_PIN_CONFIRMATION)))
+        v = unpack("<b", await self._readUUID(CHARACTERISTIC_PIN_CONFIRMATION))
+        return bool(v[0])
 
     async def setAlias(self, name):
         await self._writeUUID(

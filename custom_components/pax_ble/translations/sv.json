@@ -15,6 +15,7 @@
 		},
 		"error": {
 			"cannot_connect": "Anslutning misslyckades"
+			"wrong_pin": "Fel PIN"
 		},
 		"abort": {
 			"already_configured": "Enheten är redan konfigurerad"

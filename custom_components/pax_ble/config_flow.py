@@ -65,13 +65,20 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             await fan.connect()
 
             if fan.isConnected():
+                await fan.setAuth(user_input[CONF_PIN])
+                pinVerified = await fan.checkAuth()
                 await fan.disconnect()
-                return self.async_create_entry(
-                    title=user_input[CONF_NAME], data=user_input
-                )
+
+                if pinVerified:
+                    return self.async_create_entry(
+                        title=user_input[CONF_NAME], data=user_input
+                    )
+                else:
+                    errors["base"] = "wrong_pin"
+                    # Store values for new attempt
+                    self.context = user_input
             else:
                 errors["base"] = "cannot_connect"
-
                 # Store values for new attempt
                 self.context = user_input
 

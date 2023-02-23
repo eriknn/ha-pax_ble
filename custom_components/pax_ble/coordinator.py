@@ -26,12 +26,13 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         self._pin = pin
         self._state = {}
         self._fan = Calima(hass, mac, pin)
+        self._initialized = False
 
     async def _async_update_data(self):
         _LOGGER.debug("Coordinator updating data!!")
 
         """ Load initial data (model name etc) """
-        if "manufacturer" not in self._state:
+        if not self._initialized:
             try:
                 async with async_timeout.timeout(20):
                     await self.read_deviceinfo()
@@ -155,6 +156,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             self._state["sw_rev"] = await self._fan.getSoftwareRevision()
 
             _LOGGER.debug("Device information read successfully!")
+            self._initialized = True
         except Exception as e:
             _LOGGER.warning("Error when fetching Device information: " + str(e))
             return False
