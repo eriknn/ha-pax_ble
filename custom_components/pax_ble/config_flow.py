@@ -21,8 +21,7 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     def __init__(self):
-        # Context stores the data used for the flows
-        context = {}
+        self.currInput = {}
 
     def async_get_options_flow(config_entry):
         """Get the options flow for this handler."""
@@ -30,7 +29,7 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""
-        self.setContext("", "", "", DEFAULT_SCAN_INTERVAL)
+        self.setCurrInput("", "", "", DEFAULT_SCAN_INTERVAL)
 
         return await self.async_step_add_device()
 
@@ -39,7 +38,7 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(dr.format_mac(discovery_info.address))
         self._abort_if_unique_id_configured()
 
-        self.setContext(
+        self.setCurrInput(
             discovery_info.name,
             dr.format_mac(discovery_info.address),
             "",
@@ -76,22 +75,22 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 else:
                     errors["base"] = "wrong_pin"
                     # Store values for new attempt
-                    self.context = user_input
+                    self.currInput = user_input
             else:
                 errors["base"] = "cannot_connect"
                 # Store values for new attempt
-                self.context = user_input
+                self.currInput = user_input
 
-        data_schema = getDeviceSchema(self.context)
+        data_schema = getDeviceSchema(self.currInput)
         return self.async_show_form(
             step_id="add_device", data_schema=data_schema, errors=errors
         )
 
-    def setContext(self, name, mac, pin, scan_interval):
-        self.context[CONF_NAME] = name
-        self.context[CONF_MAC] = mac
-        self.context[CONF_PIN] = pin
-        self.context[CONF_SCAN_INTERVAL] = scan_interval
+    def setCurrInput(self, name, mac, pin, scan_interval):
+        self.currInput[CONF_NAME] = name
+        self.currInput[CONF_MAC] = mac
+        self.currInput[CONF_PIN] = pin
+        self.currInput[CONF_SCAN_INTERVAL] = scan_interval
 
 
 class PaxOptionsFlowHandler(config_entries.OptionsFlow):
