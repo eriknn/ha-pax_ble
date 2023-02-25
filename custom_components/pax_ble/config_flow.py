@@ -61,9 +61,8 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
 
             fan = Calima(self.hass, user_input[CONF_MAC], user_input[CONF_PIN])
-            await fan.connect()
 
-            if fan.isConnected():
+            if await fan.connect():
                 await fan.setAuth(user_input[CONF_PIN])
                 pinVerified = await fan.checkAuth()
                 await fan.disconnect()

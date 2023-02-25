@@ -3,7 +3,10 @@ import logging
 from homeassistant.components.number import NumberEntity
 from homeassistant.helpers.entity import EntityCategory
 
-from homeassistant.const import TEMP_CELSIUS, DEVICE_CLASS_TEMPERATURE
+from homeassistant.components.number import NumberDeviceClass
+
+from homeassistant.const import UnitOfTemperature, UnitOfTime
+from homeassistant.const import REVOLUTIONS_PER_MINUTE
 
 from .const import DOMAIN, CONF_NAME, CONF_MAC
 from .entity import PaxCalimaEntity
@@ -40,7 +43,7 @@ SENSOR_TYPES = [
     Sensor(
         "fanspeed_humidity",
         "Fanspeed Humidity",
-        "rpm",
+        REVOLUTIONS_PER_MINUTE,
         None,
         EntityCategory.CONFIG,
         OPTIONS["fanspeed"],
@@ -49,7 +52,7 @@ SENSOR_TYPES = [
     Sensor(
         "fanspeed_light",
         "Fanspeed Light",
-        "rpm",
+        REVOLUTIONS_PER_MINUTE,
         None,
         EntityCategory.CONFIG,
         OPTIONS["fanspeed"],
@@ -58,7 +61,7 @@ SENSOR_TYPES = [
     Sensor(
         "fanspeed_trickle",
         "Fanspeed Trickle",
-        "rpm",
+        REVOLUTIONS_PER_MINUTE,
         None,
         EntityCategory.CONFIG,
         OPTIONS["fanspeed"],
@@ -67,7 +70,7 @@ SENSOR_TYPES = [
     Sensor(
         "boostmodespeed",
         "BoostMode Speed",
-        "rpm",
+        REVOLUTIONS_PER_MINUTE,
         None,
         EntityCategory.CONFIG,
         OPTIONS["fanspeed"],
@@ -76,7 +79,7 @@ SENSOR_TYPES = [
     Sensor(
         "boostmodesec",
         "BoostMode Time",
-        "s",
+        UnitOfTime.SECONDS,
         None,
         EntityCategory.CONFIG,
         OPTIONS["boostmodesec"],
@@ -85,8 +88,8 @@ SENSOR_TYPES = [
     Sensor(
         "heatdistributorsettings_temperaturelimit",
         "HeatDistributorSettings TemperatureLimit",
-        TEMP_CELSIUS,
-        DEVICE_CLASS_TEMPERATURE,
+        UnitOfTemperature.CELSIUS,
+        NumberDeviceClass.TEMPERATURE,
         EntityCategory.CONFIG,
         OPTIONS["fanspeed"],
         WT_REMOTE,
@@ -94,7 +97,7 @@ SENSOR_TYPES = [
     Sensor(
         "heatdistributorsettings_fanspeedbelow",
         "HeatDistributorSettings FanSpeedBelow",
-        "rpm",
+        REVOLUTIONS_PER_MINUTE,
         None,
         EntityCategory.CONFIG,
         OPTIONS["fanspeed"],
@@ -103,7 +106,7 @@ SENSOR_TYPES = [
     Sensor(
         "heatdistributorsettings_fanspeedabove",
         "HeatDistributorSettings FanSpeedAbove",
-        "rpm",
+        REVOLUTIONS_PER_MINUTE,
         None,
         EntityCategory.CONFIG,
         OPTIONS["fanspeed"],
@@ -112,7 +115,7 @@ SENSOR_TYPES = [
     Sensor(
         "silenthours_startinghour",
         "SilentHours StartingHour",
-        "H",
+        UnitOfTime.HOURS,
         None,
         EntityCategory.CONFIG,
         OPTIONS["hour"],
@@ -121,7 +124,7 @@ SENSOR_TYPES = [
     Sensor(
         "silenthours_startingminute",
         "SilentHours StartingMinute",
-        "Min",
+        UnitOfTime.MINUTES,
         None,
         EntityCategory.CONFIG,
         OPTIONS["min"],
@@ -130,7 +133,7 @@ SENSOR_TYPES = [
     Sensor(
         "silenthours_endinghour",
         "SilentHours EndingHour",
-        "H",
+        UnitOfTime.HOURS,
         None,
         EntityCategory.CONFIG,
         OPTIONS["hour"],
@@ -139,7 +142,7 @@ SENSOR_TYPES = [
     Sensor(
         "silenthours_endingminute",
         "SilentHours EndingMinute",
-        "Min",
+        UnitOfTime.MINUTES,
         None,
         EntityCategory.CONFIG,
         OPTIONS["min"],

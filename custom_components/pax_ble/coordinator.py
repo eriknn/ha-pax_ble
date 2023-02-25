@@ -8,8 +8,12 @@ from .calima import Calima
 
 _LOGGER = logging.getLogger(__name__)
 
-
 class PaxCalimaCoordinator(DataUpdateCoordinator):
+    _fast_poll_enabled = False
+    _fast_poll_count = 0
+    _normal_poll_interval = 60
+    _fast_poll_interval = 10
+    
     def __init__(self, hass, devicename, mac, pin, scanInterval):
         """Initialize coordinator parent"""
         super().__init__(
@@ -21,6 +25,8 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=scanInterval),
         )
 
+        self._normal_poll_interval = scanInterval
+
         self._devicename = devicename
         self._mac = mac
         self._pin = pin
@@ -28,23 +34,42 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         self._fan = Calima(hass, mac, pin)
         self._initialized = False
 
+    def setFastPollMode(self):
+        _LOGGER.debug("Enabling fast poll mode")
+        self._fast_poll_enabled = True
+        self._fast_poll_count = 0
+        self.update_interval=timedelta(seconds=self._fast_poll_interval)
+        self._schedule_refresh()
+
+    async def setNormalPollMode(self):
+        _LOGGER.debug("Enabling normal poll mode")
+        self._fast_poll_enabled = False
+        self.update_interval=timedelta(seconds=self._normal_poll_interval)
+
     async def _async_update_data(self):
         _LOGGER.debug("Coordinator updating data!!")
+
+        """ Counter for fast polling """
+        if self._fast_poll_enabled:
+            self._fast_poll_count += 1
+            if self._fast_poll_count > 10:
+                await self.setNormalPollMode()
 
         """ Load initial data (model name etc) """
         if not self._initialized:
             try:
                 async with async_timeout.timeout(20):
-                    await self.read_deviceinfo()
+                    await self.read_deviceinfo(disconnect=False)
+                
             except Exception as err:
                 _LOGGER.debug("Failed when loading initdata: " + str(err))
 
         """ Fetch data from device. """
         try:
             async with async_timeout.timeout(30):
-                return await self.async_fetch_data()
-        except Exception as err:
-            return False
+                await self.async_fetch_data(disconnect=not self._fast_poll_enabled)
+        except:
+            _LOGGER.debug("Failed when fetching sensordata: " + str(err))
 
     def get_data(self, key):
         if key in self._state:
@@ -60,12 +85,9 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
 
         try:
             # Make sure we are connected and authorized
-            await self._fan.connect()
-            await self._fan.authorize()
-
-            # Abort if we're not able to connect
-            if not self._fan.isConnected():
+            if not await self._fan.connect():
                 raise Exception("Not connected!")
+            await self._fan.authorize()
 
             # Write data
             match key:
@@ -121,9 +143,8 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         except Exception as e:
             _LOGGER.debug("Not connected: " + str(e))
             return False
-        finally:
-            await self._fan.disconnect()
-
+            
+        self.setFastPollMode()
         return True
 
     @property
@@ -138,22 +159,34 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
     def pin(self):
         return self._pin
 
-    async def read_deviceinfo(self):
+    async def read_deviceinfo(self, disconnect=True):
         _LOGGER.debug("Reading device information")
         try:
             # Make sure we are connected
-            await self._fan.connect()
-
-            # Abort if we're not able to connect
-            if not self._fan.isConnected():
+            if not await self._fan.connect():
                 raise Exception("Not connected!")
 
-            # Fetch data
-            self._state["manufacturer"] = await self._fan.getManufacturer()
-            self._state["model"] = await self._fan.getDeviceName()
-            self._state["fw_rev"] = await self._fan.getFirmwareRevision()
-            self._state["hw_rev"] = await self._fan.getHardwareRevision()
-            self._state["sw_rev"] = await self._fan.getSoftwareRevision()
+            # Fetch data. Some data may not be availiable, that's okay.
+            try:
+                self._state["manufacturer"] = await self._fan.getManufacturer()
+            except Exception as err:
+                _LOGGER.debug("Couldn't read manufacturer! " + str(err))
+            try:
+                self._state["model"] = await self._fan.getDeviceName()
+            except Exception as err:
+                _LOGGER.debug("Couldn't read device name! " + str(err))
+            try:
+                self._state["fw_rev"] = await self._fan.getFirmwareRevision()
+            except Exception as err:
+                _LOGGER.debug("Couldn't read firmware revision! " + str(err))
+            try:
+                self._state["hw_rev"] = await self._fan.getHardwareRevision()
+            except Exception as err:
+                _LOGGER.debug("Couldn't read hardware revision! " + str(err))
+            try:
+                self._state["sw_rev"] = await self._fan.getSoftwareRevision()
+            except Exception as err:
+                _LOGGER.debug("Couldn't read software revision! " + str(err))
 
             _LOGGER.debug("Device information read successfully!")
             self._initialized = True
@@ -161,7 +194,8 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             _LOGGER.warning("Error when fetching Device information: " + str(e))
             return False
         finally:
-            await self._fan.disconnect()
+            if disconnect:
+                await self._fan.disconnect()
 
         return True
 
@@ -236,13 +270,10 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
 
             self._state["automatic_cycles"] = AutomaticCycles
 
-    async def async_fetch_data(self):
+    async def async_fetch_data(self, disconnect=True) -> bool:
         try:
             # Make sure we are connected
-            await self._fan.connect()
-
-            # Abort if we're not able to connect
-            if not self._fan.isConnected():
+            if not await self._fan.connect():
                 raise Exception("Not connected!")
 
             # Fetch data and config
@@ -252,6 +283,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             _LOGGER.warning("Error when fetching data: " + str(e))
             return False
         finally:
-            await self._fan.disconnect()
+            if disconnect:
+                await self._fan.disconnect()
 
         return True

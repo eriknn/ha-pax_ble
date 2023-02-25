@@ -89,17 +89,12 @@ class Calima:
     async def __del__(self):
         await self.disconnect()
 
-    def isConnected(self):
-        if self._dev is None:
-            return False
-        else:
-            return self._dev.is_connected
-
     async def authorize(self):
         await self.setAuth(self._pin)
 
-    async def connect(self, retries=1):
-        await self.disconnect()
+    async def connect(self, retries=1) -> bool:
+        if self._dev is not None and self._dev.is_connected:
+            return True
 
         tries = 0
         while tries < retries:
@@ -125,6 +120,11 @@ class Calima:
                     )
                 else:
                     _LOGGER.debug("Retrying {}".format(self._mac))
+
+        if self._dev is None:
+            return False
+        else:
+            return self._dev.is_connected
 
     async def disconnect(self):
         if self._dev is not None:
