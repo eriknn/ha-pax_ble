@@ -131,4 +131,4 @@ class PaxCalimaSelectEntity(PaxCalimaEntity, SelectEntity):
         if not ret:
             """Restore value"""
             self.coordinator.set_data(self._key, oldValue)
-        self.async_schedule_update_ha_state()
+        self.async_schedule_update_ha_state(force_refresh = False)

@@ -92,7 +92,7 @@ class Calima:
     async def authorize(self):
         await self.setAuth(self._pin)
 
-    async def connect(self, retries=1) -> bool:
+    async def connect(self, retries=3) -> bool:
         if self._dev is not None and self._dev.is_connected:
             return True
 

@@ -209,4 +209,4 @@ class PaxCalimaNumberEntity(PaxCalimaEntity, NumberEntity):
             if not await self.coordinator.write_data(self._key):
                 """Restore value"""
                 self.coordinator.set_data(self._key, oldValue)
-        self.async_schedule_update_ha_state()
+        self.async_schedule_update_ha_state(force_refresh = False)

@@ -9,7 +9,8 @@
                     "name": "Laitteen nimi",                     
                     "mac": "MAC-osoite",                                
                     "pin": "PIN-koodi",    
-                    "scan_interval": "Päivitysväli sekunneissa"  					
+                    "scan_interval": "Päivitysväli sekunneissa",
+					"scan_interval_fast": "Fast Scan Interval in seconds"   					
                 }                                                            
             }
         },
@@ -30,7 +31,8 @@
                     "name": "Laitteen nimi",                     
                     "mac": "MAC-osoite",                                
                     "pin": "PIN-koodi",    
-                    "scan_interval": "Päivitysväli sekunneissa"                                      
+                    "scan_interval": "Päivitysväli sekunneissa",
+					"scan_interval_fast": "Fast Scan Interval in seconds"                                     
                 }                                     
             }             
         }     

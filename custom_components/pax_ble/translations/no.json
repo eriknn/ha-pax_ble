@@ -9,7 +9,8 @@
                     "name": "Navn på enhet",                     
                     "mac": "MAC-adresse",                                
                     "pin": "PIN-kode",    
-                    "scan_interval": "Pollinterval i sekunder"  					
+                    "scan_interval": "Pollinterval i sekunder",
+					"scan_interval_fast": "Hurtig Scan Interval i sekunder"   					
                 }                                                            
             }
         },
@@ -30,7 +31,8 @@
                     "name": "Navn på enhet",                     
                     "mac": "MAC-adresse",                                
                     "pin": "PIN-kode",    
-                    "scan_interval": "Pollinterval i sekunder"                                      
+                    "scan_interval": "Pollinterval i sekunder",
+					"scan_interval_fast": "Hurtig Scan Interval i sekunder"                                       
                 }                                     
             }             
         }     

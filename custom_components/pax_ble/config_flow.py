@@ -8,8 +8,8 @@ import voluptuous as vol
 from homeassistant import config_entries
 from datetime import timedelta
 
-from .const import DOMAIN, CONF_NAME, CONF_MAC, CONF_PIN, CONF_SCAN_INTERVAL
-from .const import DEFAULT_SCAN_INTERVAL
+from .const import DOMAIN, CONF_NAME, CONF_MAC, CONF_PIN, CONF_SCAN_INTERVAL, CONF_SCAN_INTERVAL_FAST
+from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_FAST
 
 from .calima import Calima
 
@@ -29,7 +29,7 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""
-        self.setCurrInput("", "", "", DEFAULT_SCAN_INTERVAL)
+        self.setCurrInput("", "", "", DEFAULT_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_FAST)
 
         return await self.async_step_add_device()
 
@@ -43,6 +43,7 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             dr.format_mac(discovery_info.address),
             "",
             DEFAULT_SCAN_INTERVAL,
+            DEFAULT_SCAN_INTERVAL_FAST
         )
 
         return await self.async_step_add_device()
@@ -85,12 +86,13 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="add_device", data_schema=data_schema, errors=errors
         )
 
-    def setCurrInput(self, name, mac, pin, scan_interval):
+    def setCurrInput(self, name, mac, pin, scan_interval, scan_interval_fast):
         self.currInput[CONF_NAME] = name
         self.currInput[CONF_MAC] = mac
         self.currInput[CONF_PIN] = pin
         self.currInput[CONF_SCAN_INTERVAL] = scan_interval
-
+        self.currInput[CONF_SCAN_INTERVAL_FAST] = scan_interval_fast
+        
 
 class PaxOptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, config_entry):
@@ -112,7 +114,8 @@ class PaxOptionsFlowHandler(config_entries.OptionsFlow):
             # Add data from original config entry
             user_input[CONF_NAME] = self.config_entry.data[CONF_NAME]
             user_input[CONF_MAC] = self.config_entry.data[CONF_MAC]
-
+            user_input[CONF_PIN] = self.config_entry.data[CONF_PIN]
+            
             # Update config entry
             self.hass.config_entries.async_update_entry(
                 self.config_entry, data=user_input, options=self.config_entry.options
@@ -144,7 +147,10 @@ def getDeviceSchema(user_input):
             ): cv.string,
             vol.Optional(
                 CONF_SCAN_INTERVAL, default=user_input[CONF_SCAN_INTERVAL]
-            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=999)),
+            ): vol.All(vol.Coerce(int), vol.Range(min=5, max=999)),
+            vol.Optional(
+                CONF_SCAN_INTERVAL_FAST, default=user_input[CONF_SCAN_INTERVAL_FAST]
+            ): vol.All(vol.Coerce(int), vol.Range(min=5, max=999)),
         }
     )
 
@@ -154,12 +160,12 @@ def getDeviceSchema(user_input):
 def getDeviceSchemaOptions(user_input):
     data_schema = vol.Schema(
         {
-            vol.Required(
-                CONF_PIN, description="Pin Code", default=user_input[CONF_PIN]
-            ): cv.string,
             vol.Optional(
                 CONF_SCAN_INTERVAL, default=user_input[CONF_SCAN_INTERVAL]
-            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=999)),
+            ): vol.All(vol.Coerce(int), vol.Range(min=5, max=999)),
+            vol.Optional(
+                CONF_SCAN_INTERVAL_FAST, default=user_input[CONF_SCAN_INTERVAL_FAST]
+            ): vol.All(vol.Coerce(int), vol.Range(min=5, max=999)),
         }
     )
 

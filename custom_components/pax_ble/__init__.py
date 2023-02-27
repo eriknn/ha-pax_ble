@@ -9,7 +9,7 @@ from .const import (
     CONF_MAC,
     CONF_PIN,
     CONF_SCAN_INTERVAL,
-    DEFAULT_SCAN_INTERVAL,
+    CONF_SCAN_INTERVAL_FAST
 )
 from .coordinator import PaxCalimaCoordinator
 
@@ -27,17 +27,18 @@ async def async_setup_entry(hass, config_entry):
     mac = config_entry.data[CONF_MAC]
     pin = config_entry.data[CONF_PIN]
     scan_interval = config_entry.data[CONF_SCAN_INTERVAL]
+    scan_interval_fast = config_entry.data[CONF_SCAN_INTERVAL_FAST]
 
     # Set up coordinator
-    coordinator = PaxCalimaCoordinator(hass, name, mac, pin, scan_interval)
+    coordinator = PaxCalimaCoordinator(hass, name, mac, pin, scan_interval, scan_interval_fast)
     hass.data[DOMAIN][config_entry.entry_id] = coordinator
 
-    # Load initial data (model name etc)
+    # Load device information data (model name etc)
     try:
         async with async_timeout.timeout(20):
-            await coordinator.read_deviceinfo()
+            await coordinator.read_deviceinfo(disconnect=False)
     except Exception as err:
-        _LOGGER.debug("Failed when loading initdata: " + str(err))
+        _LOGGER.debug("Failed when loading device information: " + str(err))
 
     # Forward the setup to the platforms.
     hass.async_create_task(
@@ -58,6 +59,12 @@ async def update_listener(hass, config_entry):
 async def async_unload_entry(hass, config_entry):
     """Unload a config entry."""
     _LOGGER.debug("Unload entry: %s", config_entry.data[CONF_NAME])
+
+    # Make sure we are disconnected
+    coordinator = hass.data[DOMAIN][config_entry.entry_id]
+    await coordinator.disconnect()
+
+    # Unload entries
     unload_ok = await hass.config_entries.async_unload_platforms(
         config_entry, PLATFORMS
     )

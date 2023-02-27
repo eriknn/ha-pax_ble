@@ -9,7 +9,8 @@
                     "name": "Name of device",                     
                     "mac": "MAC Address",                                
                     "pin": "PIN Code",    
-                    "scan_interval": "Scan Interval in seconds"  					
+                    "scan_interval": "Scan Interval in seconds",
+                    "scan_interval_fast": "Fast Scan Interval in seconds"  						
                 }                                                            
             }
         },
@@ -30,7 +31,8 @@
                     "name": "Name of device",                     
                     "mac": "MAC Address",                                
                     "pin": "PIN Code",    
-                    "scan_interval": "Scan Interval in seconds"                                      
+                    "scan_interval": "Scan Interval in seconds",
+                    "scan_interval_fast": "Fast Scan Interval in seconds"  	
                 }                                     
             }             
         }     

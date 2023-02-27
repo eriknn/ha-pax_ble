@@ -14,7 +14,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
     _normal_poll_interval = 60
     _fast_poll_interval = 10
     
-    def __init__(self, hass, devicename, mac, pin, scanInterval):
+    def __init__(self, hass, devicename, mac, pin, scanInterval, scanIntervalFast):
         """Initialize coordinator parent"""
         super().__init__(
             hass,
@@ -26,13 +26,13 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         )
 
         self._normal_poll_interval = scanInterval
+        self._fast_poll_interval = scanIntervalFast
 
         self._devicename = devicename
         self._mac = mac
         self._pin = pin
         self._state = {}
         self._fan = Calima(hass, mac, pin)
-        self._initialized = False
 
     def setFastPollMode(self):
         _LOGGER.debug("Enabling fast poll mode")
@@ -41,10 +41,13 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         self.update_interval=timedelta(seconds=self._fast_poll_interval)
         self._schedule_refresh()
 
-    async def setNormalPollMode(self):
+    def setNormalPollMode(self):
         _LOGGER.debug("Enabling normal poll mode")
         self._fast_poll_enabled = False
         self.update_interval=timedelta(seconds=self._normal_poll_interval)
+
+    async def disconnect(self):
+        await self._fan.disconnect()
 
     async def _async_update_data(self):
         _LOGGER.debug("Coordinator updating data!!")
@@ -53,16 +56,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         if self._fast_poll_enabled:
             self._fast_poll_count += 1
             if self._fast_poll_count > 10:
-                await self.setNormalPollMode()
-
-        """ Load initial data (model name etc) """
-        if not self._initialized:
-            try:
-                async with async_timeout.timeout(20):
-                    await self.read_deviceinfo(disconnect=False)
-                
-            except Exception as err:
-                _LOGGER.debug("Failed when loading initdata: " + str(err))
+                self.setNormalPollMode()
 
         """ Fetch data from device. """
         try:
@@ -141,7 +135,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
                 case _:
                     return False
         except Exception as e:
-            _LOGGER.debug("Not connected: " + str(e))
+            _LOGGER.debug("Not able to write command: " + str(e))
             return False
             
         self.setFastPollMode()
@@ -159,7 +153,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
     def pin(self):
         return self._pin
 
-    async def read_deviceinfo(self, disconnect=True):
+    async def read_deviceinfo(self, disconnect=True) -> bool:
         _LOGGER.debug("Reading device information")
         try:
             # Make sure we are connected
@@ -189,7 +183,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Couldn't read software revision! " + str(err))
 
             _LOGGER.debug("Device information read successfully!")
-            self._initialized = True
+            return True
         except Exception as e:
             _LOGGER.warning("Error when fetching Device information: " + str(e))
             return False
@@ -197,9 +191,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             if disconnect:
                 await self._fan.disconnect()
 
-        return True
-
-    async def update_data(self):
+    async def read_sensordata(self):
         FanState = await self._fan.getState()  # Sensors
         BoostMode = await self._fan.getBoostMode()  # Sensors?
 
@@ -220,7 +212,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             self._state["boostmodespeed"] = BoostMode.Speed
             self._state["boostmodesec"] = BoostMode.Seconds
 
-    async def update_config(self):
+    async def read_configdata(self):
         FanMode = await self._fan.getMode()  # Configuration
         FanSpeeds = await self._fan.getFanSpeedSettings()  # Configuration
         Sensitivity = await self._fan.getSensorsSensitivity()  # Configuration
@@ -277,13 +269,12 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
                 raise Exception("Not connected!")
 
             # Fetch data and config
-            await self.update_data()
-            await self.update_config()
+            await self.read_sensordata()
+            await self.read_configdata()
+            return True
         except Exception as e:
             _LOGGER.warning("Error when fetching data: " + str(e))
             return False
         finally:
             if disconnect:
                 await self._fan.disconnect()
-
-        return True
