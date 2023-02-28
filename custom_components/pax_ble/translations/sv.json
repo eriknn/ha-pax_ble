@@ -10,12 +10,12 @@
 					"mac": "MAC-adress",
 					"pin": "PIN-kod",
 					"scan_interval": "Sökintervall i sekunder",
-					"scan_interval_fast": "Snabbt skanningsintervall i sekunder" 
+					"scan_interval_fast": "Snabbt skanningsintervall i sekunder"
 				}
 			}
 		},
 		"error": {
-			"cannot_connect": "Anslutning misslyckades"
+			"cannot_connect": "Anslutning misslyckades",
 			"wrong_pin": "Fel PIN-kod"
 		},
 		"abort": {
@@ -32,7 +32,7 @@
 					"mac": "MAC-adress",
 					"pin": "PIN-kod",
 					"scan_interval": "Sökintervall i sekunder",
-					"scan_interval_fast": "Snabbt skanningsintervall i sekunder" 
+					"scan_interval_fast": "Snabbt skanningsintervall i sekunder"
 				}
 			}
 		}
