@@ -62,7 +62,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         try:
             async with async_timeout.timeout(30):
                 await self.async_fetch_data(disconnect=not self._fast_poll_enabled)
-        except:
+        except Exception as err:
             _LOGGER.debug("Failed when fetching sensordata: " + str(err))
 
     def get_data(self, key):
