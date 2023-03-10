@@ -1,5 +1,6 @@
 import logging
 
+from collections import namedtuple
 from homeassistant.components.select import SelectEntity
 from homeassistant.helpers.entity import EntityCategory
 
@@ -7,15 +8,6 @@ from .const import DOMAIN, CONF_NAME, CONF_MAC
 from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
-
-
-class Sensor:
-    def __init__(self, key, entityName, category, options):
-        self.key = key
-        self.entityName = entityName
-        self.category = category
-        self.options = options
-
 
 # Creating nested dictionary of key/pairs
 OPTIONS = {
@@ -36,35 +28,41 @@ OPTIONS = {
     },
 }
 
-SENSOR_TYPES = [
-    Sensor(
+PaxEntity = namedtuple('PaxEntity', ['key', 'entityName', 'category', 'icon', 'options'])
+ENTITIES = [
+    PaxEntity(
         "automatic_cycles",
         "Automatic Cycles",
         EntityCategory.CONFIG,
+        "mdi:fan-auto",
         OPTIONS["automatic_cycles"],
     ),
-    Sensor(
+    PaxEntity(
         "lightsensorsettings_delayedstart",
         "LightSensorSettings DelayedStart",
         EntityCategory.CONFIG,
+        "mdi:timer-outline",
         OPTIONS["lightsensorsettings_delayedstart"],
     ),
-    Sensor(
+    PaxEntity(
         "lightsensorsettings_runningtime",
         "LightSensorSettings Runningtime",
         EntityCategory.CONFIG,
+        "mdi:timer-outline",
         OPTIONS["lightsensorsettings_runningtime"],
     ),
-    Sensor(
+    PaxEntity(
         "sensitivity_humidity",
         "Sensitivity Humidity",
         EntityCategory.CONFIG,
+        "mdi:water-percent",
         OPTIONS["sensitivity"],
     ),
-    Sensor(
+    PaxEntity(
         "sensitivity_light",
         "Sensitivity Light",
         EntityCategory.CONFIG,
+        "mdi:brightness-5",
         OPTIONS["sensitivity"],
     ),
 ]
@@ -79,20 +77,20 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
 
     # Create entities
     ha_entities = []
-    for sensor in SENSOR_TYPES:
-        ha_entities.append(PaxCalimaSelectEntity(coordinator, sensor))
+    for paxentity in ENTITIES:
+        ha_entities.append(PaxCalimaSelectEntity(coordinator, paxentity))
     async_add_devices(ha_entities, True)
 
 
 class PaxCalimaSelectEntity(PaxCalimaEntity, SelectEntity):
     """Representation of a Select."""
 
-    def __init__(self, coordinator, sensor):
+    def __init__(self, coordinator, paxentity):
         """Pass coordinator to PaxCalimaEntity."""
-        super().__init__(coordinator, sensor)
+        super().__init__(coordinator, paxentity)
 
         """Select Entity properties"""
-        self._options = sensor.options
+        self._options = paxentity.options
 
     @property
     def current_option(self):
@@ -109,7 +107,7 @@ class PaxCalimaSelectEntity(PaxCalimaEntity, SelectEntity):
 
     async def async_select_option(self, option):
         """Save old value"""
-        oldValue = self.coordinator.get_data(self._key)
+        old_value = self.coordinator.get_data(self._key)
 
         """ Find new value """
         value = None
@@ -130,5 +128,5 @@ class PaxCalimaSelectEntity(PaxCalimaEntity, SelectEntity):
         """ Update HA value """
         if not ret:
             """Restore value"""
-            self.coordinator.set_data(self._key, oldValue)
-        self.async_schedule_update_ha_state(force_refresh = False)
+            self.coordinator.set_data(self._key, old_value)
+        self.async_schedule_update_ha_state(force_refresh=False)

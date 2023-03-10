@@ -1,158 +1,106 @@
 import logging
 
-from homeassistant.components.number import NumberEntity
-from homeassistant.helpers.entity import EntityCategory
-
-from homeassistant.components.number import NumberDeviceClass
-
+from collections import namedtuple
+from homeassistant.components.number import NumberDeviceClass, NumberEntity
 from homeassistant.const import UnitOfTemperature, UnitOfTime
 from homeassistant.const import REVOLUTIONS_PER_MINUTE
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN, CONF_NAME, CONF_MAC
 from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
-# Writetype - Local will not send data to device (because it will be sent with some other value).
-WT_REMOTE = 0
-WT_LOCAL = 1
-
+OptionsTuple = namedtuple('options', ['min_value', 'max_value', 'step'])
 OPTIONS = {}
-# OPTIONS['key'] = [MaxValue, MinValue, Step]
-OPTIONS["fanspeed"] = [2400, 0, 1]
-OPTIONS["boostmodespeed"] = [2400, 1000, 1]
-OPTIONS["boostmodesec"] = [3600, 60, 1]
-OPTIONS["hour"] = [23, 0, 1]
-OPTIONS["min"] = [59, 0, 1]
+OPTIONS["fanspeed"] = OptionsTuple(800, 2400, 25)
+OPTIONS["temperature"] = OptionsTuple(15, 30, 1)
+OPTIONS["boostmodesec"] = OptionsTuple(60, 3600, 1)
+OPTIONS["boostmodespeed"] = OptionsTuple(1000, 2400, 25)
 
-
-class Sensor:
-    def __init__(
-        self, key, entityName, units, deviceClass, category, options, writeType
-    ):
-        self.key = key
-        self.entityName = entityName
-        self.units = units
-        self.deviceClass = deviceClass
-        self.category = category
-        self.options = options
-        self.writeType = writeType
-
-
-SENSOR_TYPES = [
-    Sensor(
+PaxEntity = namedtuple('PaxEntity', ['key', 'entityName', 'units', 'deviceClass', 'category', 'icon', 'options'])
+ENTITIES = [
+    PaxEntity(
         "fanspeed_humidity",
         "Fanspeed Humidity",
         REVOLUTIONS_PER_MINUTE,
         None,
         EntityCategory.CONFIG,
+        "mdi:engine",
         OPTIONS["fanspeed"],
-        WT_REMOTE,
     ),
-    Sensor(
+    PaxEntity(
         "fanspeed_light",
         "Fanspeed Light",
         REVOLUTIONS_PER_MINUTE,
         None,
         EntityCategory.CONFIG,
+        "mdi:engine",
         OPTIONS["fanspeed"],
-        WT_REMOTE,
     ),
-    Sensor(
+    PaxEntity(
         "fanspeed_trickle",
         "Fanspeed Trickle",
         REVOLUTIONS_PER_MINUTE,
         None,
         EntityCategory.CONFIG,
+        "mdi:engine",
         OPTIONS["fanspeed"],
-        WT_REMOTE,
     ),
-    Sensor(
-        "boostmodespeed",
-        "BoostMode Speed",
-        REVOLUTIONS_PER_MINUTE,
-        None,
-        EntityCategory.CONFIG,
-        OPTIONS["fanspeed"],
-        WT_LOCAL,
-    ),
-    Sensor(
-        "boostmodesec",
-        "BoostMode Time",
-        UnitOfTime.SECONDS,
-        None,
-        EntityCategory.CONFIG,
-        OPTIONS["boostmodesec"],
-        WT_LOCAL,
-    ),
-    Sensor(
+    PaxEntity(
         "heatdistributorsettings_temperaturelimit",
         "HeatDistributorSettings TemperatureLimit",
         UnitOfTemperature.CELSIUS,
         NumberDeviceClass.TEMPERATURE,
         EntityCategory.CONFIG,
-        OPTIONS["fanspeed"],
-        WT_REMOTE,
+        None,
+        OPTIONS["temperature"],
     ),
-    Sensor(
+    PaxEntity(
         "heatdistributorsettings_fanspeedbelow",
         "HeatDistributorSettings FanSpeedBelow",
         REVOLUTIONS_PER_MINUTE,
         None,
         EntityCategory.CONFIG,
+        "mdi:engine",
         OPTIONS["fanspeed"],
-        WT_REMOTE,
     ),
-    Sensor(
+    PaxEntity(
         "heatdistributorsettings_fanspeedabove",
         "HeatDistributorSettings FanSpeedAbove",
         REVOLUTIONS_PER_MINUTE,
         None,
         EntityCategory.CONFIG,
+        "mdi:engine",
         OPTIONS["fanspeed"],
-        WT_REMOTE,
-    ),
-    Sensor(
-        "silenthours_startinghour",
-        "SilentHours StartingHour",
-        UnitOfTime.HOURS,
-        None,
-        EntityCategory.CONFIG,
-        OPTIONS["hour"],
-        WT_REMOTE,
-    ),
-    Sensor(
-        "silenthours_startingminute",
-        "SilentHours StartingMinute",
-        UnitOfTime.MINUTES,
-        None,
-        EntityCategory.CONFIG,
-        OPTIONS["min"],
-        WT_REMOTE,
-    ),
-    Sensor(
-        "silenthours_endinghour",
-        "SilentHours EndingHour",
-        UnitOfTime.HOURS,
-        None,
-        EntityCategory.CONFIG,
-        OPTIONS["hour"],
-        WT_REMOTE,
-    ),
-    Sensor(
-        "silenthours_endingminute",
-        "SilentHours EndingMinute",
-        UnitOfTime.MINUTES,
-        None,
-        EntityCategory.CONFIG,
-        OPTIONS["min"],
-        WT_REMOTE,
     ),
 ]
 
+RESTOREENTITIES = [
+    PaxEntity(
+        "boostmodesecwrite",
+        "BoostMode Time",
+        UnitOfTime.SECONDS,
+        None,
+        EntityCategory.CONFIG,
+        "mdi:timer-outline",
+        OPTIONS["boostmodesec"],
+    ),
+    PaxEntity(
+        "boostmodespeedwrite",
+        "BoostMode Speed",
+        REVOLUTIONS_PER_MINUTE,
+        None,
+        EntityCategory.CONFIG,
+        "mdi:engine",
+        OPTIONS["boostmodespeed"],
+    ),
+]
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
-    """Setup sensors from a config entry created in the integrations UI."""
+    """Setup numbers from a config entry created in the integrations UI."""
     _LOGGER.debug("Starting paxcalima numbers: %s", config_entry.data[CONF_NAME])
 
     # Load coordinator and create entities
@@ -160,53 +108,63 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
 
     # Create entities
     ha_entities = []
-    for sensor in SENSOR_TYPES:
-        ha_entities.append(PaxCalimaNumberEntity(coordinator, sensor))
+    for paxentity in ENTITIES:
+        ha_entities.append(PaxCalimaNumberEntity(coordinator, paxentity))
+    for paxentity in RESTOREENTITIES:
+        ha_entities.append(PaxCalimaRestoreNumberEntity(coordinator, paxentity))
     async_add_devices(ha_entities, True)
 
 
 class PaxCalimaNumberEntity(PaxCalimaEntity, NumberEntity):
     """Representation of a Number."""
 
-    def __init__(self, coordinator, sensor):
+    def __init__(self, coordinator, paxentity):
         """Pass coordinator to PaxCalimaEntity."""
-        super().__init__(coordinator, sensor)
+        super().__init__(coordinator, paxentity)
 
         """Number Entity properties"""
-        self._attr_device_class = sensor.deviceClass
+        self._attr_device_class = paxentity.deviceClass
         self._attr_mode = "box"
-        self._attr_native_max_value = sensor.options[0]
-        self._attr_native_min_value = sensor.options[1]
-        self._attr_native_step = sensor.options[2]
-        self._attr_native_unit_of_measurement = sensor.units
-
-        """Custom properties."""
-        self._write_type = sensor.writeType
+        self._attr_native_min_value = paxentity.options.min_value
+        self._attr_native_max_value = paxentity.options.max_value
+        self._attr_native_step = paxentity.options.step
+        self._attr_native_unit_of_measurement = paxentity.units
 
     @property
-    def native_value(self):
+    def native_value(self) -> float | None:
         """Return number value."""
-        retVal = self.coordinator.get_data(self._key)
-
         try:
-            retVal = int(retVal)
+            return int(self.coordinator.get_data(self._key))
         except:
-            pass
-
-        return retVal
+            return None
 
     async def async_set_native_value(self, value):
-        if self._write_type == WT_LOCAL:
-            self.coordinator.set_data(self._key, value)
-        else:
-            """Save old value"""
-            oldValue = self.coordinator.get_data(self._key)
+        """Save old value"""
+        old_value = self.coordinator.get_data(self._key)
 
-            """ Write new value to our storage """
-            self.coordinator.set_data(self._key, int(value))
+        """ Write new value to our storage """
+        self.coordinator.set_data(self._key, int(value))
 
-            """ Write value to device """
-            if not await self.coordinator.write_data(self._key):
-                """Restore value"""
-                self.coordinator.set_data(self._key, oldValue)
-        self.async_schedule_update_ha_state(force_refresh = False)
+        """ Write value to device """
+        if not await self.coordinator.write_data(self._key):
+            """Restore value"""
+            self.coordinator.set_data(self._key, old_value)
+
+        self.async_schedule_update_ha_state(force_refresh=False)
+
+class PaxCalimaRestoreNumberEntity(PaxCalimaNumberEntity, RestoreEntity):
+    """Representation of a Number with restore ability (and only local storage)."""
+    def __init__(self, coordinator, paxentity):
+        super().__init__(coordinator, paxentity)
+
+    async def async_added_to_hass(self) -> None:
+        """Restore last state."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+
+        if (last_state is not None) and (last_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)):
+            self.coordinator.set_data(self._key, last_state.state)
+
+    async def async_set_native_value(self, value):
+        self.coordinator.set_data(self._key, int(value))
+        self.async_schedule_update_ha_state(force_refresh=False)

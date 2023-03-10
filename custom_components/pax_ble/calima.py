@@ -86,17 +86,16 @@ class Calima:
         self._mac = mac
         self._pin = pin
 
-    async def __del__(self):
-        await self.disconnect()
-
     async def authorize(self):
         await self.setAuth(self._pin)
 
     async def connect(self, retries=3) -> bool:
-        if self._dev is not None and self._dev.is_connected:
+        if self.isConnected():
             return True
 
         tries = 0
+
+        _LOGGER.debug("Connecting to %s", self._mac)
         while tries < retries:
             tries += 1
 
@@ -111,90 +110,89 @@ class Calima:
                 self._dev = BleakClient(d)
                 ret = await self._dev.connect()
                 if ret:
-                    _LOGGER.debug("Connected to {}".format(self._mac))
+                    _LOGGER.debug("Connected to %s", self._mac)
                     break
             except Exception as e:
                 if tries == retries:
-                    _LOGGER.info(
-                        "Not able to connect to {}! ".format(self._mac) + str(e)
-                    )
+                    _LOGGER.info("Not able to connect to %s! %s", self._mac, str(e))
                 else:
-                    _LOGGER.debug("Retrying {}".format(self._mac))
+                    _LOGGER.debug("Retrying %s", self._mac)
 
-        if self._dev is None:
-            return False
-        else:
-            return self._dev.is_connected
+        return self.isConnected()
 
-    async def disconnect(self):
+    async def disconnect(self) -> None:
         if self._dev is not None:
             try:
                 await self._dev.disconnect()
             except Exception as e:
-                _LOGGER.info(
-                    "Error disconnecting from {}! ".format(self._mac) + str(e)
-                )
+                _LOGGER.info("Error disconnecting from %s! %s", self._mac, str(e))
             self._dev = None
 
-    def _bToStr(self, val):
+    def isConnected(self) -> bool:
+        if self._dev is not None and self._dev.is_connected:
+            return True
+        else:
+            return False
+
+    def _bToStr(self, val) -> str:
         return binascii.b2a_hex(val).decode("utf-8")
 
-    async def _readUUID(self, uuid):
+    async def _readUUID(self, uuid) -> bytearray:
         val = await self._dev.read_gatt_char(uuid)
         return val
 
-    async def _readHandle(self, handle):
+    async def _readHandle(self, handle) -> bytearray:
         val = await self._dev.read_gatt_char(char_specifier=handle)
         return val
 
-    async def _writeUUID(self, uuid, val):
+    async def _writeUUID(self, uuid, val) -> None:
         await self._dev.write_gatt_char(char_specifier=uuid, data=val, response=True)
 
     # --- Generic GATT Characteristics
 
-    async def getDeviceName(self):
+    async def getDeviceName(self) -> str:
         # Why does UUID "0x2" fail here? Doesn't when testing from my PC...
         return (await self._readHandle(CHARACTERISTIC_MODEL_NAME)).decode("ascii")
 
-    async def getModelNumber(self):
+    async def getModelNumber(self) -> str:
         return (await self._readHandle(0xD)).decode("ascii")
 
-    async def getSerialNumber(self):
+    async def getSerialNumber(self) -> str:
         return (await self._readHandle(0xB)).decode("ascii")
 
-    async def getHardwareRevision(self):
+    async def getHardwareRevision(self) -> str:
         return (await self._readHandle(0xF)).decode("ascii")
 
-    async def getFirmwareRevision(self):
+    async def getFirmwareRevision(self) -> str:
         return (await self._readHandle(0x11)).decode("ascii")
 
-    async def getSoftwareRevision(self):
+    async def getSoftwareRevision(self) -> str:
         return (await self._readHandle(0x13)).decode("ascii")
 
-    async def getManufacturer(self):
+    async def getManufacturer(self) -> str:
         return (await self._readHandle(0x15)).decode("ascii")
 
     # --- Onwards to PAX characteristics
 
-    async def setAuth(self, pin):
+    async def setAuth(self, pin) -> None:
         await self._writeUUID(CHARACTERISTIC_PIN_CODE, pack("<I", int(pin)))
 
-    async def checkAuth(self):
+    async def checkAuth(self) -> bool:
         v = unpack("<b", await self._readUUID(CHARACTERISTIC_PIN_CONFIRMATION))
         return bool(v[0])
 
-    async def setAlias(self, name):
+    async def setAlias(self, name) -> None:
         await self._writeUUID(
             CHARACTERISTIC_FAN_DESCRIPTION, pack("20s", bytearray(name, "utf-8"))
         )
 
-    async def getAlias(self):
+    async def getAlias(self)-> str:
         return await self._readUUID(CHARACTERISTIC_FAN_DESCRIPTION).decode("utf-8")
 
-    async def getIsClockSet(self):
+    async def getIsClockSet(self) -> str:
         return self._bToStr(await self._readUUID(CHARACTERISTIC_STATUS))
 
-    async def getState(self):
+    async def getState(self) -> FanState:
         # Short Short Short Short    Byte Short Byte
         # Hum   Temp  Light FanSpeed Mode Tbd   Tbd
         v = unpack("<4HBHB", await self._readUUID(CHARACTERISTIC_SENSOR_DATA))
@@ -222,12 +220,11 @@ class Calima:
             trigger,
         )
 
-    async def getFactorySettingsChanged(self):
-        return unpack(
-            "<?", await self._readUUID(CHARACTERISTIC_FACTORY_SETTINGS_CHANGED)
-        )
+    async def getFactorySettingsChanged(self) -> bool:
+        v = unpack("<?", await self._readUUID(CHARACTERISTIC_FACTORY_SETTINGS_CHANGED))
+        return v[0]
 
-    async def getMode(self):
+    async def getMode(self) -> str:
         v = unpack("<B", await self._readUUID(CHARACTERISTIC_MODE))
         if v[0] == 0:
             return "MultiMode"
@@ -240,7 +237,7 @@ class Calima:
         elif v[0] == 4:
             return "HeatDistributionMode"
 
-    async def setFanSpeedSettings(self, humidity=2250, light=1625, trickle=1000):
+    async def setFanSpeedSettings(self, humidity=2250, light=1625, trickle=1000) -> None:
         for val in (humidity, light, trickle):
             if val % 25 != 0:
                 raise ValueError("Speeds should be multiples of 25")
@@ -253,12 +250,12 @@ class Calima:
             CHARACTERISTIC_LEVEL_OF_FAN_SPEED, pack("<HHH", humidity, light, trickle)
         )
 
-    async def getFanSpeedSettings(self):
+    async def getFanSpeedSettings(self) -> Fanspeeds:
         return Fanspeeds._make(
             unpack("<HHH", await self._readUUID(CHARACTERISTIC_LEVEL_OF_FAN_SPEED))
         )
 
-    async def setSensorsSensitivity(self, humidity, light):
+    async def setSensorsSensitivity(self, humidity, light) -> None:
         if humidity > 3 or humidity < 0:
             raise ValueError("Humidity sensitivity must be between 0-3")
         if light > 3 or light < 0:
@@ -267,7 +264,7 @@ class Calima:
         value = pack("<4B", bool(humidity), humidity, bool(light), light)
         await self._writeUUID(CHARACTERISTIC_SENSITIVITY, value)
 
-    async def getSensorsSensitivity(self):
+    async def getSensorsSensitivity(self) -> Sensitivity:
         # Hum Active | Hum Sensitivity | Light Active | Light Sensitivity
         # We fix so that Sensitivity = 0 if active = 0
         l = Sensitivity._make(
@@ -288,7 +285,7 @@ class Calima:
             )
         )
 
-    async def setLightSensorSettings(self, delayed, running):
+    async def setLightSensorSettings(self, delayed, running) -> None:
         if delayed not in (0, 5, 10):
             raise ValueError("Delayed must be 0, 5 or 10 minutes")
         if running not in (5, 10, 15, 30, 60):
@@ -298,17 +295,17 @@ class Calima:
             CHARACTERISTIC_TIME_FUNCTIONS, pack("<2B", delayed, running)
         )
 
-    async def getLightSensorSettings(self):
+    async def getLightSensorSettings(self) -> LightSensorSettings:
         return LightSensorSettings._make(
             unpack("<2B", await self._readUUID(CHARACTERISTIC_TIME_FUNCTIONS))
         )
 
-    async def getHeatDistributor(self):
+    async def getHeatDistributor(self) -> HeatDistributorSettings:
         return HeatDistributorSettings._make(
             unpack("<BHH", await self._readUUID(CHARACTERISTIC_TEMP_HEAT_DISTRIBUTOR))
         )
 
-    async def setBoostMode(self, on, speed, seconds):
+    async def setBoostMode(self, on, speed, seconds) -> None:
         if speed % 25:
             raise ValueError("Speed must be a multiple of 25")
         if not on:
@@ -317,24 +314,24 @@ class Calima:
 
         await self._writeUUID(CHARACTERISTIC_BOOST, pack("<BHH", on, speed, seconds))
 
-    async def getBoostMode(self):
-        return BoostMode._make(
-            unpack("<BHH", await self._readUUID(CHARACTERISTIC_BOOST))
-        )
+    async def getBoostMode(self) -> BoostMode:
+        v = unpack("<BHH", await self._readUUID(CHARACTERISTIC_BOOST))
+        return BoostMode._make(v)
 
-    async def getLed(self):
+    async def getLed(self) -> str:
         return self._bToStr(awaitself._readUUID(CHARACTERISTIC_LED))
 
-    async def setAutomaticCycles(self, setting):
+    async def setAutomaticCycles(self, setting: int) -> None:
         if setting < 0 or setting > 3:
             raise ValueError("Setting must be between 0-3")
 
         await self._writeUUID(CHARACTERISTIC_AUTOMATIC_CYCLES, pack("<B", setting))
 
-    async def getAutomaticCycles(self):
-        return unpack("<B", await self._readUUID(CHARACTERISTIC_AUTOMATIC_CYCLES))[0]
+    async def getAutomaticCycles(self) -> int:
+        v = unpack("<B", await self._readUUID(CHARACTERISTIC_AUTOMATIC_CYCLES))
+        return v[0]
 
-    async def setTime(self, dayofweek, hour, minute, second):
+    async def setTime(self, dayofweek, hour, minute, second) -> None:
         await self._writeUUID(
             CHARACTERISTIC_CLOCK, pack("<4B", dayofweek, hour, minute, second)
         )
@@ -342,38 +339,28 @@ class Calima:
     async def getTime(self):
         return Time._make(unpack("<BBBB", await self._readUUID(CHARACTERISTIC_CLOCK)))
 
-    async def setTimeToNow(self):
+    async def setTimeToNow(self) -> None:
         now = datetime.datetime.now()
         await self.setTime(now.isoweekday(), now.hour, now.minute, now.second)
 
-    async def setSilentHours(
-        self, on, startingHours, startingMinutes, endingHours, endingMinutes
-    ):
-        if startingHours < 0 or startingHours > 23:
-            raise ValueError("Starting hour is an invalid number")
-        if endingHours < 0 or endingHours > 23:
-            raise ValueError("Ending hour is an invalid number")
-        if startingMinutes < 0 or startingMinutes > 59:
-            raise ValueError("Starting minute is an invalid number")
-        if endingMinutes < 0 or endingMinutes > 59:
-            raise ValueError("Ending minute is an invalid number")
-
+    async def setSilentHours(self, on: bool, startingTime: datetime.time, endingTime: datetime.time) -> None:
+        _LOGGER.debug("Writing silent hours %s %s %s %s", startingTime.hour, startingTime.minute, endingTime.hour, endingTime.minute)
         value = pack(
-            "<5B", int(on), startingHours, startingMinutes, endingHours, endingMinutes
+            "<5B", int(on), startingTime.hour, startingTime.minute, endingTime.hour, endingTime.minute
         )
         await self._writeUUID(CHARACTERISTIC_NIGHT_MODE, value)
 
-    async def getSilentHours(self):
+    async def getSilentHours(self) -> SilentHours:
         return SilentHours._make(
             unpack("<5B", await self._readUUID(CHARACTERISTIC_NIGHT_MODE))
         )
 
-    async def setTrickleDays(self, weekdays, weekends):
+    async def setTrickleDays(self, weekdays, weekends) -> None:
         await self._writeUUID(
             CHARACTERISTIC_BASIC_VENTILATION, pack("<2B", weekdays, weekends)
         )
 
-    async def getTrickleDays(self):
+    async def getTrickleDays(self) -> TrickleDays:
         return TrickleDays._make(
             unpack("<2B", await self._readUUID(CHARACTERISTIC_BASIC_VENTILATION))
         )

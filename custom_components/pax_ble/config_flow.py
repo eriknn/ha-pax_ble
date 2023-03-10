@@ -1,39 +1,43 @@
 """Config flow to configure Pax integration"""
-
 import logging
-
-import homeassistant.helpers.config_validation as cv
-import homeassistant.helpers.device_registry as dr
 import voluptuous as vol
-from homeassistant import config_entries
-from datetime import timedelta
 
-from .const import DOMAIN, CONF_NAME, CONF_MAC, CONF_PIN, CONF_SCAN_INTERVAL, CONF_SCAN_INTERVAL_FAST
-from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_FAST
+from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
+from typing import Any
 
 from .calima import Calima
+from .const import DOMAIN, CONF_NAME, CONF_MAC, CONF_PIN, CONF_SCAN_INTERVAL, CONF_SCAN_INTERVAL_FAST
+from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_FAST
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     def __init__(self):
         self.currInput = {}
 
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         """Get the options flow for this handler."""
         return PaxOptionsFlowHandler(config_entry)
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Handle a flow initialized by the user."""
         self.setCurrInput("", "", "", DEFAULT_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_FAST)
 
         return await self.async_step_add_device()
 
-    async def async_step_bluetooth(self, discovery_info):
+    async def async_step_bluetooth(
+        self, discovery_info: BluetoothServiceInfoBleak
+    ) -> FlowResult:
         """Handle a flow initialized by bluetooth discovery."""
         await self.async_set_unique_id(dr.format_mac(discovery_info.address))
         self._abort_if_unique_id_configured()
@@ -65,10 +69,10 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
             if await fan.connect():
                 await fan.setAuth(user_input[CONF_PIN])
-                pinVerified = await fan.checkAuth()
+                pin_verified = await fan.checkAuth()
                 await fan.disconnect()
 
-                if pinVerified:
+                if pin_verified:
                     return self.async_create_entry(
                         title=user_input[CONF_NAME], data=user_input
                     )
@@ -86,7 +90,7 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="add_device", data_schema=data_schema, errors=errors
         )
 
-    def setCurrInput(self, name, mac, pin, scan_interval, scan_interval_fast):
+    def setCurrInput(self, name: str, mac: str, pin: str, scan_interval: int, scan_interval_fast: int):
         self.currInput[CONF_NAME] = name
         self.currInput[CONF_MAC] = mac
         self.currInput[CONF_PIN] = pin
@@ -94,11 +98,11 @@ class PaxConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self.currInput[CONF_SCAN_INTERVAL_FAST] = scan_interval_fast
         
 
-class PaxOptionsFlowHandler(config_entries.OptionsFlow):
+class PaxOptionsFlowHandler(OptionsFlow):
     def __init__(self, config_entry):
         self.config_entry = config_entry
 
-    async def async_step_init(self, user_input=None):
+    async def async_step_init(self, user_input: dict[str, Any] | None = None):
         # Manage the options for the custom component."""
         return await self.async_step_configure_device()
 
@@ -133,7 +137,7 @@ class PaxOptionsFlowHandler(config_entries.OptionsFlow):
 """ Schema Helper functions """
 
 
-def getDeviceSchema(user_input):
+def getDeviceSchema(user_input: dict[str, Any] | None = None) -> vol.Schema:
     data_schema = vol.Schema(
         {
             vol.Required(
@@ -157,7 +161,7 @@ def getDeviceSchema(user_input):
     return data_schema
 
 
-def getDeviceSchemaOptions(user_input):
+def getDeviceSchemaOptions(user_input: dict[str, Any] | None = None) -> vol.Schema:
     data_schema = vol.Schema(
         {
             vol.Optional(

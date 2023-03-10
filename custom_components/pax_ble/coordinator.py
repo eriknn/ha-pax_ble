@@ -1,20 +1,26 @@
-import logging
 import async_timeout
+import datetime as dt
+import logging
 
-from datetime import timedelta
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .calima import Calima
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class PaxCalimaCoordinator(DataUpdateCoordinator):
     _fast_poll_enabled = False
     _fast_poll_count = 0
     _normal_poll_interval = 60
     _fast_poll_interval = 10
-    
-    def __init__(self, hass, devicename, mac, pin, scanInterval, scanIntervalFast):
+
+    _deviceInfoLoaded = False
+    _last_config_timestamp = None
+
+    def __init__(self, hass, entry_id, devicename, mac, pin, scanInterval, scanIntervalFast):
         """Initialize coordinator parent"""
         super().__init__(
             hass,
@@ -22,29 +28,34 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             # Name of the data. For logging purposes.
             name="Pax Calima",
             # Polling interval. Will only be polled if there are subscribers.
-            update_interval=timedelta(seconds=scanInterval),
+            update_interval=dt.timedelta(seconds=scanInterval),
         )
 
         self._normal_poll_interval = scanInterval
         self._fast_poll_interval = scanIntervalFast
 
+        self._entry_id = entry_id
         self._devicename = devicename
         self._mac = mac
         self._pin = pin
-        self._state = {}
         self._fan = Calima(hass, mac, pin)
+
+        # Initialize state in case of new integration
+        self._state = {}
+        self._state["boostmodespeedwrite"] = 2400
+        self._state["boostmodesecwrite"] = 600
 
     def setFastPollMode(self):
         _LOGGER.debug("Enabling fast poll mode")
         self._fast_poll_enabled = True
         self._fast_poll_count = 0
-        self.update_interval=timedelta(seconds=self._fast_poll_interval)
+        self.update_interval = dt.timedelta(seconds=self._fast_poll_interval)
         self._schedule_refresh()
 
     def setNormalPollMode(self):
         _LOGGER.debug("Enabling normal poll mode")
         self._fast_poll_enabled = False
-        self.update_interval=timedelta(seconds=self._normal_poll_interval)
+        self.update_interval = dt.timedelta(seconds=self._normal_poll_interval)
 
     async def disconnect(self):
         await self._fan.disconnect()
@@ -53,17 +64,51 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("Coordinator updating data!!")
 
         """ Counter for fast polling """
+        self._update_poll_counter()
+
+        """ Fetch device info if not already fetched """
+        if not self._deviceInfoLoaded:
+            try:
+                async with async_timeout.timeout(20):
+                    if await self.read_deviceinfo(disconnect=False):
+                        await self._async_create_pax_device()
+                        self._deviceInfoLoaded = True
+            except Exception as err:
+                _LOGGER.debug("Failed when loading device information: %s", str(err))
+
+        """ Fetch config data if we have no/old values """
+        if  dt.datetime.now().date() != self._last_config_timestamp:
+            try:
+                async with async_timeout.timeout(20):
+                    if await self.read_configdata(disconnect=False):
+                        self._last_config_timestamp = dt.datetime.now().date()
+            except Exception as err:
+                _LOGGER.debug("Failed when loading config data: %s", str(err))
+
+        """ Fetch sensor data """
+        try:
+            async with async_timeout.timeout(20):
+                await self.read_sensordata(disconnect=not self._fast_poll_enabled)
+        except Exception as err:
+            _LOGGER.debug("Failed when fetching sensordata: %s", str(err))
+
+    async def _async_create_pax_device(self) -> None:
+        device_registry = dr.async_get(self.hass)
+        device_registry.async_get_or_create(
+            config_entry_id=self._entry_id,
+            identifiers={(DOMAIN, self._mac)},
+            name=self._devicename,
+            manufacturer=self.get_data("manufacturer"),
+            model=self.get_data("model"),
+            hw_version=self.get_data("hw_rev"),
+            sw_version=self.get_data("sw_rev"),
+        )
+
+    def _update_poll_counter(self):
         if self._fast_poll_enabled:
             self._fast_poll_count += 1
             if self._fast_poll_count > 10:
                 self.setNormalPollMode()
-
-        """ Fetch data from device. """
-        try:
-            async with async_timeout.timeout(30):
-                await self.async_fetch_data(disconnect=not self._fast_poll_enabled)
-        except:
-            _LOGGER.debug("Failed when fetching sensordata: " + str(err))
 
     def get_data(self, key):
         if key in self._state:
@@ -74,15 +119,32 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("Set_Data: %s %s", key, value)
         self._state[key] = value
 
-    async def write_data(self, key):
-        _LOGGER.debug("Write_Data: %s", key)
+    @property
+    def devicename(self):
+        return self._devicename
 
+    @property
+    def mac(self):
+        return self._mac
+
+    @property
+    def pin(self):
+        return self._pin
+
+    async def write_data(self, key) -> bool:
+        _LOGGER.debug("Write_Data: %s", key)
         try:
-            # Make sure we are connected and authorized
+            # Make sure we are connected
             if not await self._fan.connect():
                 raise Exception("Not connected!")
-            await self._fan.authorize()
+        except Exception as e:
+            _LOGGER.warning("Error when writing data: %s", str(e))
+            return False
 
+        # Authorize
+        await self._fan.setAuth(self._pin)
+
+        try:
             # Write data
             match key:
                 case "automatic_cycles":
@@ -91,13 +153,13 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
                     )
                 case "boostmode":
                     # Use default values if not set up
-                    if int(self._state["boostmodesec"]) == 0:
-                        self._state["boostmodespeed"] = 2400
-                        self._state["boostmodesec"] = 600
+                    if int(self._state["boostmodesecwrite"]) == 0:
+                        self._state["boostmodespeedwrite"] = 2400
+                        self._state["boostmodesecwrite"] = 600
                     await self._fan.setBoostMode(
                         int(self._state["boostmode"]),
-                        int(self._state["boostmodespeed"]),
-                        int(self._state["boostmodesec"]),
+                        int(self._state["boostmodespeedwrite"]),
+                        int(self._state["boostmodesecwrite"]),
                     )
                 case "lightsensorsettings_delayedstart" | "lightsensorsettings_runningtime":
                     await self._fan.setLightSensorSettings(
@@ -123,96 +185,105 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
                     )
                 case "heatdistributorsettings_temperaturelimit" | "heatdistributorsettings_fanspeedbelow" | "heatdistributorsettings_fanspeedabove":
                     """Not implemented"""
-                case "silenthours_on" | "silenthours_startinghour" | "silenthours_startingminute" | "silenthours_endinghour" | "silenthours_endingminute":
+                case "silenthours_on" | "silenthours_starttime" | "silenthours_endtime":
                     await self._fan.setSilentHours(
-                        int(self._state["silenthours_on"]),
-                        int(self._state["silenthours_startinghour"]),
-                        int(self._state["silenthours_startingminute"]),
-                        int(self._state["silenthours_endinghour"]),
-                        int(self._state["silenthours_endingminute"]),
+                        bool(int(self._state["silenthours_on"])),
+                        self._state["silenthours_starttime"],
+                        self._state["silenthours_endtime"],
                     )
 
                 case _:
                     return False
         except Exception as e:
-            _LOGGER.debug("Not able to write command: " + str(e))
+            _LOGGER.debug("Not able to write command: %s", str(e))
             return False
-            
+
         self.setFastPollMode()
         return True
 
-    @property
-    def devicename(self):
-        return self._devicename
-
-    @property
-    def mac(self):
-        return self._mac
-
-    @property
-    def pin(self):
-        return self._pin
-
-    async def read_deviceinfo(self, disconnect=True) -> bool:
+    async def read_deviceinfo(self, disconnect=False) -> bool:
         _LOGGER.debug("Reading device information")
         try:
             # Make sure we are connected
             if not await self._fan.connect():
                 raise Exception("Not connected!")
-
-            # Fetch data. Some data may not be availiable, that's okay.
-            try:
-                self._state["manufacturer"] = await self._fan.getManufacturer()
-            except Exception as err:
-                _LOGGER.debug("Couldn't read manufacturer! " + str(err))
-            try:
-                self._state["model"] = await self._fan.getDeviceName()
-            except Exception as err:
-                _LOGGER.debug("Couldn't read device name! " + str(err))
-            try:
-                self._state["fw_rev"] = await self._fan.getFirmwareRevision()
-            except Exception as err:
-                _LOGGER.debug("Couldn't read firmware revision! " + str(err))
-            try:
-                self._state["hw_rev"] = await self._fan.getHardwareRevision()
-            except Exception as err:
-                _LOGGER.debug("Couldn't read hardware revision! " + str(err))
-            try:
-                self._state["sw_rev"] = await self._fan.getSoftwareRevision()
-            except Exception as err:
-                _LOGGER.debug("Couldn't read software revision! " + str(err))
-
-            _LOGGER.debug("Device information read successfully!")
-            return True
         except Exception as e:
-            _LOGGER.warning("Error when fetching Device information: " + str(e))
+            _LOGGER.warning("Error when fetching device info: %s", str(e))
             return False
-        finally:
-            if disconnect:
-                await self._fan.disconnect()
 
-    async def read_sensordata(self):
+        # Fetch data. Some data may not be availiable, that's okay.
+        try:
+            self._state["manufacturer"] = await self._fan.getManufacturer()
+        except Exception as err:
+            _LOGGER.debug("Couldn't read manufacturer! %s", str(err))
+        try:
+            self._state["model"] = await self._fan.getDeviceName()
+        except Exception as err:
+            _LOGGER.debug("Couldn't read device name! %s", str(err))
+        try:
+            self._state["fw_rev"] = await self._fan.getFirmwareRevision()
+        except Exception as err:
+            _LOGGER.debug("Couldn't read firmware revision! %s", str(err))
+        try:
+            self._state["hw_rev"] = await self._fan.getHardwareRevision()
+        except Exception as err:
+            _LOGGER.debug("Couldn't read hardware revision! %s", str(err))
+        try:
+            self._state["sw_rev"] = await self._fan.getSoftwareRevision()
+        except Exception as err:
+            _LOGGER.debug("Couldn't read software revision! %s", str(err))
+
+        if not self._fan.isConnected():
+            return False
+        elif disconnect:
+            await self._fan.disconnect()
+        return True
+
+    async def read_sensordata(self, disconnect=False) -> bool:
+        _LOGGER.debug("Reading sensor data")
+        try:
+            # Make sure we are connected
+            if not await self._fan.connect():
+                raise Exception("Not connected!")
+        except Exception as e:
+            _LOGGER.warning("Error when fetching config data: %s", str(e))
+            return False
+
         FanState = await self._fan.getState()  # Sensors
         BoostMode = await self._fan.getBoostMode()  # Sensors?
 
         if FanState is None:
             _LOGGER.debug("Could not read data")
+            return False
         else:
             self._state["humidity"] = FanState.Humidity
             self._state["temperature"] = FanState.Temp
             self._state["light"] = FanState.Light
             self._state["rpm"] = FanState.RPM
             if FanState.RPM > 400:
-                self._state["flow"] = int(FanState.RPM*0.05076 - 14)
+                self._state["flow"] = int(FanState.RPM * 0.05076 - 14)
             else:
                 self._state["flow"] = 0
             self._state["state"] = FanState.Mode
 
             self._state["boostmode"] = BoostMode.OnOff
-            self._state["boostmodespeed"] = BoostMode.Speed
-            self._state["boostmodesec"] = BoostMode.Seconds
+            self._state["boostmodespeedread"] = BoostMode.Speed
+            self._state["boostmodesecread"] = BoostMode.Seconds
 
-    async def read_configdata(self):
+        if disconnect:
+            await self._fan.disconnect()
+        return True
+
+    async def read_configdata(self, disconnect=False) -> bool:
+        _LOGGER.debug("Reading config data")
+        try:
+            # Make sure we are connected
+            if not await self._fan.connect():
+                raise Exception("Not connected!")
+        except Exception as e:
+            _LOGGER.warning("Error when fetching config data: %s", str(e))
+            return False
+
         FanMode = await self._fan.getMode()  # Configuration
         FanSpeeds = await self._fan.getFanSpeedSettings()  # Configuration
         Sensitivity = await self._fan.getSensorsSensitivity()  # Configuration
@@ -224,6 +295,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
 
         if FanMode is None:
             _LOGGER.debug("Could not read config")
+            return False
         else:
             self._state["mode"] = FanMode
 
@@ -252,29 +324,14 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             ] = HeatDistributorSettings.FanSpeedAbove
 
             self._state["silenthours_on"] = SilentHours.On
-            self._state["silenthours_startinghour"] = SilentHours.StartingHour
-            self._state["silenthours_startingminute"] = SilentHours.StartingMinute
-            self._state["silenthours_endinghour"] = SilentHours.EndingHour
-            self._state["silenthours_endingminute"] = SilentHours.EndingMinute
+            self._state["silenthours_starttime"] = dt.time(SilentHours.StartingHour, SilentHours.StartingMinute)
+            self._state["silenthours_endtime"] = dt.time(SilentHours.EndingHour, SilentHours.EndingMinute)
 
             self._state["trickledays_weekdays"] = TrickleDays.Weekdays
             self._state["trickledays_weekends"] = TrickleDays.Weekends
 
             self._state["automatic_cycles"] = AutomaticCycles
 
-    async def async_fetch_data(self, disconnect=True) -> bool:
-        try:
-            # Make sure we are connected
-            if not await self._fan.connect():
-                raise Exception("Not connected!")
-
-            # Fetch data and config
-            await self.read_sensordata()
-            await self.read_configdata()
-            return True
-        except Exception as e:
-            _LOGGER.warning("Error when fetching data: " + str(e))
-            return False
-        finally:
-            if disconnect:
-                await self._fan.disconnect()
+        if disconnect:
+            await self._fan.disconnect()
+        return True

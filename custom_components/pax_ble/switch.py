@@ -1,5 +1,6 @@
 import logging
 
+from collections import namedtuple
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.helpers.entity import EntityCategory
 
@@ -8,19 +9,15 @@ from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
+PaxAttribute = namedtuple('PaxAttribute', ['key', 'descriptor', 'unit'])
+boostmode_attribute = PaxAttribute('boostmodesecread', 'Boost time remaining', ' s')
 
-class Sensor:
-    def __init__(self, key, entityName, category):
-        self.key = key
-        self.entityName = entityName
-        self.category = category
-
-
-SENSOR_TYPES = [
-    Sensor("boostmode", "BoostMode", None),
-    Sensor("silenthours_on", "SilentHours On", EntityCategory.CONFIG),
-    Sensor("trickledays_weekdays", "TrickleDays Weekdays", EntityCategory.CONFIG),
-    Sensor("trickledays_weekends", "TrickleDays Weekends", EntityCategory.CONFIG),
+PaxEntity = namedtuple('PaxEntity', ['key', 'entityName', 'category', 'icon', 'attributes'])
+ENTITIES = [
+    PaxEntity("boostmode", "BoostMode", None, "mdi:wind-power", boostmode_attribute),
+    PaxEntity("silenthours_on", "SilentHours On", EntityCategory.CONFIG, "mdi:volume-off", None),
+    PaxEntity("trickledays_weekdays", "TrickleDays Weekdays", EntityCategory.CONFIG, "mdi:calendar", None),
+    PaxEntity("trickledays_weekends", "TrickleDays Weekends", EntityCategory.CONFIG, "mdi:calendar", None),
 ]
 
 
@@ -33,22 +30,36 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
 
     # Create entities
     ha_entities = []
-    for sensor in SENSOR_TYPES:
-        ha_entities.append(PaxCalimaSwitchEntity(coordinator, sensor))
+    for paxentity in ENTITIES:
+        ha_entities.append(PaxCalimaSwitchEntity(coordinator, paxentity))
     async_add_devices(ha_entities, True)
 
 
 class PaxCalimaSwitchEntity(PaxCalimaEntity, SwitchEntity):
-    """Representation of a Command."""
+    """Representation of a Switch."""
 
-    def __init__(self, coordinator, sensor):
+    def __init__(self, coordinator, paxentity):
         """Pass coordinator to PaxCalimaEntity."""
-        super().__init__(coordinator, sensor)
+        super().__init__(coordinator, paxentity)
+        self._paxattr = paxentity.attributes
 
     @property
     def is_on(self):
         """Return the state of the switch."""
         return self.coordinator.get_data(self._key)
+
+    @property
+    def extra_state_attributes(self):
+        if self._paxattr is not None:
+            """Return entity specific state attributes."""
+            descriptor = self._paxattr.descriptor
+            key = self.coordinator.get_data(self._paxattr.key)
+            unit = self._paxattr.unit
+            attrs = {descriptor:str(key) + unit}
+            attrs.update(super().extra_state_attributes)
+            return attrs
+        else:
+            return None
 
     async def async_turn_on(self, **kwargs):
         _LOGGER.debug("Enabling Boost Mode")
@@ -60,7 +71,7 @@ class PaxCalimaSwitchEntity(PaxCalimaEntity, SwitchEntity):
 
     async def writeVal(self, val):
         """Save old value"""
-        oldValue = self.coordinator.get_data(self._key)
+        old_value = self.coordinator.get_data(self._key)
         
         """Write new value to our storage"""
         self.coordinator.set_data(self._key, val)
@@ -71,5 +82,5 @@ class PaxCalimaSwitchEntity(PaxCalimaEntity, SwitchEntity):
         """ Update HA value """
         if not ret:
             """Restore value"""
-            self.coordinator.set_data(self._key, oldValue)
-        self.async_schedule_update_ha_state(force_refresh = False)
+            self.coordinator.set_data(self._key, old_value)
+        self.async_schedule_update_ha_state(force_refresh=False)
