@@ -1,0 +1,86 @@
+{    
+	"title": "Pax",
+    "config": {         
+        "step": {                    
+            "add_device": { 
+				"title": "Pax: Legg til enhet",
+                "description": "Angi informasjon om enhet.", 
+                "data": {                     
+                    "name": "Navn på enhet",                     
+                    "mac": "MAC-adresse",                                
+                    "pin": "PIN-kode",    
+                    "scan_interval": "Pollinterval i sekunder",
+					"scan_interval_fast": "Hurtig Scan Interval i sekunder"   					
+                }                                                            
+            }
+        },
+		"error": {
+			"cannot_connect": "Tilkobling feilet",
+			"wrong_pin": "Feil PIN"
+		},
+		"abort": {
+            "add_success": "Enheten {dev_name} ble lagt til",
+			"already_configured": "Integrasjonen eksisterer allerede",
+            "device_already_configured": "Enheten {dev_name} er allerede konfigurert"
+        }
+    },   
+    "options": {         
+        "step": {
+            "init": {
+				"title": "Pax BLE Konfigurasjon",
+                "description": "Vennligst velg aksjon."
+            },
+            "add_device": {
+				"title": "Pax BLE: Legg til enhet",
+                "description": "Angi informasjon om enhet.",
+                "data": {
+                    "name": "Navn på enhet",
+                    "mac": "MAC-adresse",
+                    "pin": "PIN-kode",
+                    "scan_interval": "Pollinterval i sekunder",
+					"scan_interval_fast": "Hurtig Scan Interval i sekunder"
+                }
+            },
+            "edit_device": {
+				"title": "Pax BLE: Rediger enhet",
+                "description": "Angi ny informasjon for {dev_name}",
+                "data": {
+                    "name": "Navn på enhet",
+                    "mac": "MAC-adresse",
+                    "pin": "PIN-kode",
+                    "scan_interval": "Pollinterval i sekunder",
+					"scan_interval_fast": "Hurtig Scan Interval i sekunder"
+                }
+            },
+            "remove_device": {
+				"title": "Pax BLE: Fjern enhet",
+                "description": "Velg enhet som skal fjernes",
+                "data": {}
+            },
+            "select_edit_device": {
+				"title": "Pax BLE: Rediger enhet",
+                "description": "Velg enhet som skal redigeres",
+                "data": {}
+            }
+        },
+		"error": {
+			"cannot_connect": "Tilkobling feilet",
+			"wrong_pin": "Feil PIN"
+		},
+		"abort": {
+            "add_success": "Enheten {dev_name} ble lagt til",
+			"already_configured": "Enheten {dev_name} er allerede konfigurert",
+            "edit_success": "Enhet {dev_name} redigert",
+            "remove_success": "Enhet {dev_name} fjernet"
+		}
+    },
+    "selector": {
+        "action": {
+            "options": {
+                "add_device": "Legg til enhet",
+                "edit_device": "Rediger enhet",
+                "remove_device": "Fjern enhet"
+            }
+        }
+    }
+}

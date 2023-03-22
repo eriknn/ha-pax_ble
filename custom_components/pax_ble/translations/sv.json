@@ -19,22 +19,68 @@
 			"wrong_pin": "Fel PIN-kod"
 		},
 		"abort": {
-			"already_configured": "Enheten är redan konfigurerad"
+            "add_success": "Device {dev_name} successfully added",
+			"already_configured": "Integration already exists",
+            "device_already_configured": "Enheten {dev_name} är redan konfigurerad"
 		}
 	},
-	"options": {
-		"step": {
-			"configure_device": {
-				"title": "Pax: Konfigurera enhet",
-				"description": "Ange information om enhet.",
-				"data": {
+    "options": {
+        "step": {
+            "init": {
+				"title": "Pax BLE Configuration",
+                "description": "Please select the desired action."
+            },
+            "add_device": {
+				"title": "Pax BLE: Add device",
+                "description": "Enter your device details.",
+                "data": {
 					"name": "Namn på enhet",
 					"mac": "MAC-adress",
 					"pin": "PIN-kod",
 					"scan_interval": "Sökintervall i sekunder",
 					"scan_interval_fast": "Snabbt skanningsintervall i sekunder"
-				}
-			}
+                }
+            },
+            "edit_device": {
+				"title": "Pax BLE: Edit device",
+                "description": "Enter new device details.",
+                "data": {
+					"name": "Namn på enhet",
+					"mac": "MAC-adress",
+					"pin": "PIN-kod",
+					"scan_interval": "Sökintervall i sekunder",
+					"scan_interval_fast": "Snabbt skanningsintervall i sekunder"
+                }
+            },
+            "remove_device": {
+				"title": "Pax BLE: Remove device",
+                "description": "Select device to remove.",
+                "data": {}
+            },
+            "select_edit_device": {
+				"title": "Pax BLE: Edit Device",
+                "description": "Select device to edit.",
+                "data": {}
+            }
+        },
+		"error": {
+			"cannot_connect": "Failed to connect",
+			"wrong_pin": "Wrong PIN"
+		},
+		"abort": {
+            "add_success": "Successfully added device",
+			"already_configured": "Device is already configured",
+            "edit_success": "Device edited",
+            "remove_success": "Device removed"
 		}
-	}
+    },
+    "selector": {
+        "action": {
+            "options": {
+                "add_device": "Add device",
+                "edit_device": "Edit device",
+                "remove_device": "Remove device"
+            }
+        }
+    }
 }

@@ -2,6 +2,7 @@ import logging
 
 from collections import namedtuple
 from homeassistant.components.number import NumberDeviceClass, NumberEntity
+from homeassistant.const import CONF_DEVICES
 from homeassistant.const import UnitOfTemperature, UnitOfTime
 from homeassistant.const import REVOLUTIONS_PER_MINUTE
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
@@ -101,19 +102,22 @@ RESTOREENTITIES = [
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
     """Setup numbers from a config entry created in the integrations UI."""
-    _LOGGER.debug("Starting paxcalima numbers: %s", config_entry.data[CONF_NAME])
-
-    # Load coordinator and create entities
-    coordinator = hass.data[DOMAIN][config_entry.entry_id]
-
     # Create entities
     ha_entities = []
-    for paxentity in ENTITIES:
-        ha_entities.append(PaxCalimaNumberEntity(coordinator, paxentity))
-    for paxentity in RESTOREENTITIES:
-        ha_entities.append(PaxCalimaRestoreNumberEntity(coordinator, paxentity))
-    async_add_devices(ha_entities, True)
 
+    for device_id in config_entry.data[CONF_DEVICES]:
+        _LOGGER.debug("Starting paxcalima numbers: %s", config_entry.data[CONF_DEVICES][device_id][CONF_NAME])
+
+        # Find coordinator for this device
+        coordinator = hass.data[DOMAIN][CONF_DEVICES][device_id]
+
+        # Create entities for this device
+        for paxentity in ENTITIES:
+            ha_entities.append(PaxCalimaNumberEntity(coordinator, paxentity))
+        for paxentity in RESTOREENTITIES:
+            ha_entities.append(PaxCalimaRestoreNumberEntity(coordinator, paxentity))
+
+    async_add_devices(ha_entities, True)
 
 class PaxCalimaNumberEntity(PaxCalimaEntity, NumberEntity):
     """Representation of a Number."""

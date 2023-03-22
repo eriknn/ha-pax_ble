@@ -20,21 +20,22 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
     _deviceInfoLoaded = False
     _last_config_timestamp = None
 
-    def __init__(self, hass, entry_id, devicename, mac, pin, scanInterval, scanIntervalFast):
+    def __init__(self, hass, entry_id, dev_id, devicename, mac, pin, scan_interval, scan_interval_fast):
         """Initialize coordinator parent"""
         super().__init__(
             hass,
             _LOGGER,
             # Name of the data. For logging purposes.
-            name="Pax Calima",
+            name="Pax Calima: " + devicename,
             # Polling interval. Will only be polled if there are subscribers.
-            update_interval=dt.timedelta(seconds=scanInterval),
+            update_interval=dt.timedelta(seconds=scan_interval),
         )
 
-        self._normal_poll_interval = scanInterval
-        self._fast_poll_interval = scanIntervalFast
+        self._normal_poll_interval = scan_interval
+        self._fast_poll_interval = scan_interval_fast
 
         self._entry_id = entry_id
+        self._dev_id = dev_id
         self._devicename = devicename
         self._mac = mac
         self._pin = pin
@@ -71,7 +72,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             try:
                 async with async_timeout.timeout(20):
                     if await self.read_deviceinfo(disconnect=False):
-                        await self._async_create_pax_device()
+                        await self._async_update_pax_device()
                         self._deviceInfoLoaded = True
             except Exception as err:
                 _LOGGER.debug("Failed when loading device information: %s", str(err))
@@ -92,17 +93,16 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         except Exception as err:
             _LOGGER.debug("Failed when fetching sensordata: %s", str(err))
 
-    async def _async_create_pax_device(self) -> None:
+    async def _async_update_pax_device(self) -> None:
         device_registry = dr.async_get(self.hass)
-        device_registry.async_get_or_create(
-            config_entry_id=self._entry_id,
-            identifiers={(DOMAIN, self._mac)},
-            name=self._devicename,
+        device_registry.async_update_device(
+            self._dev_id,
             manufacturer=self.get_data("manufacturer"),
             model=self.get_data("model"),
             hw_version=self.get_data("hw_rev"),
             sw_version=self.get_data("sw_rev"),
         )
+        _LOGGER.debug("Updated device data for: %s", self._devicename)
 
     def _update_poll_counter(self):
         if self._fast_poll_enabled:

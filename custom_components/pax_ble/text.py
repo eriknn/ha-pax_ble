@@ -3,6 +3,7 @@ import logging
 
 from collections import namedtuple
 from homeassistant.components.text import TextEntity
+from homeassistant.const import CONF_DEVICES
 from homeassistant.helpers.entity import EntityCategory
 
 from .const import DOMAIN, CONF_NAME, CONF_MAC
@@ -35,15 +36,19 @@ ENTITIES = [
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
     """Setup texts from a config entry created in the integrations UI."""
-    _LOGGER.debug("Starting paxcalima texts: %s", config_entry.data[CONF_NAME])
-
-    # Load coordinator and create entities
-    coordinator = hass.data[DOMAIN][config_entry.entry_id]
-
     # Create entities
     ha_entities = []
-    for paxentity in ENTITIES:
-        ha_entities.append(PaxCalimaTextEntity(coordinator, paxentity))
+
+    for device_id in config_entry.data[CONF_DEVICES]:
+        _LOGGER.debug("Starting paxcalima texts: %s", config_entry.data[CONF_DEVICES][device_id][CONF_NAME])
+
+        # Find coordinator for this device
+        coordinator = hass.data[DOMAIN][CONF_DEVICES][device_id]
+
+        # Create entities for this device
+        for paxentity in ENTITIES:
+            ha_entities.append(PaxCalimaTextEntity(coordinator, paxentity))
+
     async_add_devices(ha_entities, True)
 
 

@@ -5,6 +5,12 @@ DOMAIN: str = "pax_ble"
 PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.NUMBER, Platform.SELECT, Platform.TEXT]
 
 # Configuration Constants
+CONF_ACTION = "action"
+CONF_ADD_DEVICE = "add_device"
+CONF_EDIT_DEVICE = "edit_device"
+CONF_REMOVE_DEVICE = "remove_device"
+
+# Configuration Device Constants
 CONF_NAME: str = "name"
 CONF_MAC: str = "mac"
 CONF_PIN: str = "pin"
