@@ -25,6 +25,10 @@ logger:
 
 Speed and duration for boostmode are local variables in home assistant, and as such will not influence boostmode from the app. These variables will also be reset to default if you re-add a device.
 
+Configuration parameters are read only on Home Assistant startup, and subsequently once every day, to get any changes made from elsewhere.
+
+Fast scan interval refers to the interval after a write has been made. This allows for quick feedback when the fan is controlled, and does not disconnect between reads. This fast interval will remain for 10 reads.
+
 ## Thanks
 
 @PatrickE94 for the Calima driver:
