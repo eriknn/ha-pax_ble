@@ -21,6 +21,10 @@ logger:
     custom_components.pax_ble: debug
 ```
 
+## Good to know
+
+Speed and duration for boostmode are local variables in home assistant, and as such will not influence boostmode from the app. These variables will also be reset to default if you re-add a device.
+
 ## Thanks
 
 @PatrickE94 for the Calima driver:
