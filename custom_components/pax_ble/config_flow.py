@@ -37,7 +37,7 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     VERSION = 2
 
     def __init__(self):
-        self.device_data = DEVICE_DATA  # Data of "current" device
+        self.device_data = DEVICE_DATA.copy()  # Data of "current" device
         self.config_entry = None
 
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
@@ -155,7 +155,7 @@ class PaxOptionsFlowHandler(OptionsFlow):
     def __init__(self, config_entry):
         self.config_entry = config_entry
         self.selected_device = None             # Mac address / key
-        self.device_data = DEVICE_DATA          # Data of "current" device
+        self.device_data = DEVICE_DATA.copy()   # Data of "current" device
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         # Manage the options for the custom component."""
