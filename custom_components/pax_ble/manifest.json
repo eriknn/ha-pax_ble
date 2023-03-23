@@ -1,18 +1,18 @@
 {
 	"domain": "pax_ble",
 	"name": "Pax Bluetooth",
-	"config_flow": true,
-	"version": "1.0.0",
-	"documentation": "https://github.com/eriknn/ha-pax",
-	"issue_tracker": "https://github.com/eriknn/ha-pax/issues",
-	"dependencies": ["bluetooth"],
-	"requirements": [],
-	"codeowners": ["@eriknn"],
 	"bluetooth": [
 		{
 			"local_name": "PAX Calima"
 		}
 	],
+	"codeowners": ["@eriknn"],
+	"config_flow": true,
+	"dependencies": ["bluetooth"],
+	"documentation": "https://github.com/eriknn/ha-pax",
 	"iot_class": "local_polling",
-	"loggers": ["custom_components.pax_ble"]
+	"issue_tracker": "https://github.com/eriknn/ha-pax/issues",
+	"loggers": ["custom_components.pax_ble"],
+	"requirements": [],
+	"version": "1.0.0"
 }
