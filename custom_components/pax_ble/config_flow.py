@@ -129,6 +129,8 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                         new_data[CONF_DEVICES][user_input[CONF_MAC]] = user_input
 
                         self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+                        self.hass.config_entries._async_schedule_save()
+
                         await self.hass.config_entries.async_reload(self.config_entry.entry_id)
 
                         return self.async_abort(
@@ -204,6 +206,7 @@ class PaxOptionsFlowHandler(OptionsFlow):
                     new_data[CONF_DEVICES][user_input[CONF_MAC]] = user_input
 
                     self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+                    self.hass.config_entries._async_schedule_save()
                     await self.hass.config_entries.async_reload(self.config_entry.entry_id)
 
                     return self.async_abort(reason="add_success",
@@ -260,6 +263,7 @@ class PaxOptionsFlowHandler(OptionsFlow):
             new_data[CONF_DEVICES][self.selected_device][CONF_SCAN_INTERVAL_FAST] = user_input[CONF_SCAN_INTERVAL_FAST]
 
             self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+            self.hass.config_entries._async_schedule_save()
             await self.hass.config_entries.async_reload(self.config_entry.entry_id)
 
             return self.async_abort(
@@ -295,6 +299,7 @@ class PaxOptionsFlowHandler(OptionsFlow):
 
             await self.async_remove_device(self.config_entry.entry_id, self.selected_device)
             self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+            self.hass.config_entries._async_schedule_save()
 
             return self.async_abort(
                 reason="remove_success",

@@ -112,5 +112,6 @@ async def async_remove_config_entry_device(
         # Remove device from config entry
         new_data[CONF_DEVICES].pop(dev)
     hass.config_entries.async_update_entry(config_entry, data=new_data)
+    hass.config_entries._async_schedule_save()
 
     return True
