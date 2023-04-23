@@ -19,20 +19,20 @@
 			"wrong_pin": "Fel PIN-kod"
 		},
 		"abort": {
-            "add_success": "Device {dev_name} successfully added",
-			"already_configured": "Integration already exists",
+            "add_success": "enhet {dev_name} lades till",
+			"already_configured": "Integrationen existerar redan",
             "device_already_configured": "Enheten {dev_name} är redan konfigurerad"
 		}
 	},
     "options": {
         "step": {
             "init": {
-				"title": "Pax BLE Configuration",
-                "description": "Please select the desired action."
+				"title": "Pax BLE Konfiguration",
+                "description": "Var god välj önskad åtgärd."
             },
             "add_device": {
-				"title": "Pax BLE: Add device",
-                "description": "Enter your device details.",
+				"title": "Pax BLE: Lägg till enhet",
+                "description": "Ange uppgifter om din enhet.",
                 "data": {
 					"name": "Namn på enhet",
 					"mac": "MAC-adress",
@@ -42,8 +42,8 @@
                 }
             },
             "edit_device": {
-				"title": "Pax BLE: Edit device",
-                "description": "Enter new device details.",
+				"title": "Pax BLE: Redigera enhet",
+                "description": "Ange nya enhetsdetaljer",
                 "data": {
 					"name": "Namn på enhet",
 					"mac": "MAC-adress",
@@ -53,33 +53,33 @@
                 }
             },
             "remove_device": {
-				"title": "Pax BLE: Remove device",
-                "description": "Select device to remove.",
+				"title": "Pax BLE: Ta bort enhet",
+                "description": "Ange enhet att ta bort.",
                 "data": {}
             },
             "select_edit_device": {
-				"title": "Pax BLE: Edit Device",
-                "description": "Select device to edit.",
+				"title": "Pax BLE: Redigera enhet",
+                "description": "Ange enhet att redigera.",
                 "data": {}
             }
         },
 		"error": {
-			"cannot_connect": "Failed to connect",
-			"wrong_pin": "Wrong PIN"
+			"cannot_connect": "Anslutning misslyckades",
+			"wrong_pin": "Fel PIN-kod"
 		},
 		"abort": {
-            "add_success": "Successfully added device",
-			"already_configured": "Device is already configured",
-            "edit_success": "Device edited",
-            "remove_success": "Device removed"
+            "add_success": "Enheten anslöts",
+			"already_configured": "Enheten är redan konfigurerad",
+            "edit_success": "Enhet redigerad",
+            "remove_success": "Enhet borttagen"
 		}
     },
     "selector": {
         "action": {
             "options": {
-                "add_device": "Add device",
-                "edit_device": "Edit device",
-                "remove_device": "Remove device"
+                "add_device": "Lägg till enhet",
+                "edit_device": "Redigera enhet",
+                "remove_device": "Ta bort enhet"
             }
         }
     }
