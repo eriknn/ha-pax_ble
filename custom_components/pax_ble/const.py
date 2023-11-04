@@ -2,7 +2,7 @@ from homeassistant.const import Platform
 
 # Global Constants
 DOMAIN: str = "pax_ble"
-PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.NUMBER, Platform.SELECT, Platform.TEXT]
+PLATFORMS = [Platform.TIME, Platform.SENSOR, Platform.SWITCH, Platform.NUMBER, Platform.SELECT]
 
 # Configuration Constants
 CONF_ACTION = "action"

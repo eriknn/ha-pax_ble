@@ -20,7 +20,7 @@ ENTITIES = [
     PaxEntity("rpm", "RPM", REVOLUTIONS_PER_MINUTE, None, None, "mdi:engine"),
     PaxEntity("flow", "Flow", UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR, None, None, "mdi:weather-windy"),
     PaxEntity("state", "State", None, None, None, None),
-    PaxEntity("mode", "Mode", None, None, EntityCategory.CONFIG, None)
+    PaxEntity("mode", "Mode", None, None, EntityCategory.DIAGNOSTIC, None)
 ]
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
