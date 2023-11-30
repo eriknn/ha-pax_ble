@@ -24,6 +24,8 @@ Configuration parameters are read only on Home Assistant startup, and subsequent
 
 Fast scan interval refers to the interval after a write has been made. This allows for quick feedback when the fan is controlled, and does not disconnect between reads. This fast interval will remain for 10 reads.
 
+Setting speed to less than 900 RPM might stall the fan, depending on the specific application. I don't know if stalling like this could damage the fan/motor, so do this with care.
+
 ## Thanks
 
 @PatrickE94 for the Calima driver:
