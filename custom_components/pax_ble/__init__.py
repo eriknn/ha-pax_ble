@@ -46,7 +46,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
         # Set up coordinator
-        coordinator = PaxCalimaCoordinator(hass, entry.entry_id, dev.id, name, mac, pin, scan_interval, scan_interval_fast)
+        coordinator = PaxCalimaCoordinator(hass, dev, mac, pin, scan_interval, scan_interval_fast)
         hass.data[DOMAIN][CONF_DEVICES][device_id] = coordinator
     
     # Forward the setup to the platforms.

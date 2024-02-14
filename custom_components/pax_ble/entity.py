@@ -19,9 +19,9 @@ class PaxCalimaEntity(CoordinatorEntity):
         self._attr_entity_category = paxentity.category
         self._attr_icon = paxentity.icon
         self._attr_name = "{} {}".format(self.coordinator.devicename, paxentity.entityName)
-        self._attr_unique_id = "{}-{}".format(self.coordinator.mac, self.name)
+        self._attr_unique_id = "{}-{}".format(self.coordinator.device_id, self.name)
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, self.coordinator.mac)},
+            "identifiers": self.coordinator.identifiers,
         }
         self._extra_state_attributes = {}
         

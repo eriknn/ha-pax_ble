@@ -7,7 +7,7 @@
 				"description": "Ange information om enhet.",
 				"data": {
 					"name": "Namn på enhet",
-					"mac": "MAC-adress",
+					"mac": "MAC-adress (aa:bb:cc:dd:ee:ff)",
 					"pin": "PIN-kod",
 					"scan_interval": "Sökintervall i sekunder",
 					"scan_interval_fast": "Snabbt skanningsintervall i sekunder"
@@ -19,67 +19,67 @@
 			"wrong_pin": "Fel PIN-kod"
 		},
 		"abort": {
-            "add_success": "enhet {dev_name} lades till",
-			"already_configured": "Integrationen existerar redan",
+            "add_success": "Device {dev_name} successfully added",
+			"already_configured": "Integration already exists",
             "device_already_configured": "Enheten {dev_name} är redan konfigurerad"
 		}
 	},
     "options": {
         "step": {
             "init": {
-				"title": "Pax BLE Konfiguration",
-                "description": "Var god välj önskad åtgärd."
+				"title": "Pax BLE Configuration",
+                "description": "Please select the desired action."
             },
             "add_device": {
-				"title": "Pax BLE: Lägg till enhet",
-                "description": "Ange uppgifter om din enhet.",
+				"title": "Pax BLE: Add device",
+                "description": "Enter your device details.",
                 "data": {
 					"name": "Namn på enhet",
-					"mac": "MAC-adress",
+					"mac": "MAC-adress (aa:bb:cc:dd:ee:ff)",
 					"pin": "PIN-kod",
 					"scan_interval": "Sökintervall i sekunder",
 					"scan_interval_fast": "Snabbt skanningsintervall i sekunder"
                 }
             },
             "edit_device": {
-				"title": "Pax BLE: Redigera enhet",
-                "description": "Ange nya enhetsdetaljer",
+				"title": "Pax BLE: Edit device",
+                "description": "Enter new device details.",
                 "data": {
 					"name": "Namn på enhet",
-					"mac": "MAC-adress",
+					"mac": "MAC-adress (aa:bb:cc:dd:ee:ff)",
 					"pin": "PIN-kod",
 					"scan_interval": "Sökintervall i sekunder",
 					"scan_interval_fast": "Snabbt skanningsintervall i sekunder"
                 }
             },
             "remove_device": {
-				"title": "Pax BLE: Ta bort enhet",
-                "description": "Ange enhet att ta bort.",
+				"title": "Pax BLE: Remove device",
+                "description": "Select device to remove.",
                 "data": {}
             },
             "select_edit_device": {
-				"title": "Pax BLE: Redigera enhet",
-                "description": "Ange enhet att redigera.",
+				"title": "Pax BLE: Edit Device",
+                "description": "Select device to edit.",
                 "data": {}
             }
         },
 		"error": {
-			"cannot_connect": "Anslutning misslyckades",
-			"wrong_pin": "Fel PIN-kod"
+			"cannot_connect": "Failed to connect",
+			"wrong_pin": "Wrong PIN"
 		},
 		"abort": {
-            "add_success": "Enheten anslöts",
-			"already_configured": "Enheten är redan konfigurerad",
-            "edit_success": "Enhet redigerad",
-            "remove_success": "Enhet borttagen"
+            "add_success": "Successfully added device",
+			"already_configured": "Device is already configured",
+            "edit_success": "Device edited",
+            "remove_success": "Device removed"
 		}
     },
     "selector": {
         "action": {
             "options": {
-                "add_device": "Lägg till enhet",
-                "edit_device": "Redigera enhet",
-                "remove_device": "Ta bort enhet"
+                "add_device": "Add device",
+                "edit_device": "Edit device",
+                "remove_device": "Remove device"
             }
         }
     }

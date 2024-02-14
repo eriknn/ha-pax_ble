@@ -7,7 +7,7 @@
                 "description": "Angi informasjon om enhet.", 
                 "data": {                     
                     "name": "Navn på enhet",                     
-                    "mac": "MAC-adresse",                                
+                    "mac": "MAC-adresse (aa:bb:cc:dd:ee:ff)",                                
                     "pin": "PIN-kode",    
                     "scan_interval": "Pollinterval i sekunder",
 					"scan_interval_fast": "Hurtig Scan Interval i sekunder"   					
@@ -35,7 +35,7 @@
                 "description": "Angi informasjon om enhet.",
                 "data": {
                     "name": "Navn på enhet",
-                    "mac": "MAC-adresse",
+                    "mac": "MAC-adresse (aa:bb:cc:dd:ee:ff)",
                     "pin": "PIN-kode",
                     "scan_interval": "Pollinterval i sekunder",
 					"scan_interval_fast": "Hurtig Scan Interval i sekunder"
@@ -46,7 +46,7 @@
                 "description": "Angi ny informasjon for {dev_name}",
                 "data": {
                     "name": "Navn på enhet",
-                    "mac": "MAC-adresse",
+                    "mac": "MAC-adresse (aa:bb:cc:dd:ee:ff)",
                     "pin": "PIN-kode",
                     "scan_interval": "Pollinterval i sekunder",
 					"scan_interval_fast": "Hurtig Scan Interval i sekunder"

@@ -20,13 +20,13 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
     _deviceInfoLoaded = False
     _last_config_timestamp = None
 
-    def __init__(self, hass, entry_id, dev_id, devicename, mac, pin, scan_interval, scan_interval_fast):
+    def __init__(self, hass, device, mac, pin, scan_interval, scan_interval_fast):
         """Initialize coordinator parent"""
         super().__init__(
             hass,
             _LOGGER,
             # Name of the data. For logging purposes.
-            name="Pax Calima: " + devicename,
+            name="Pax Calima: " + device.name,
             # Polling interval. Will only be polled if there are subscribers.
             update_interval=dt.timedelta(seconds=scan_interval),
         )
@@ -34,9 +34,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         self._normal_poll_interval = scan_interval
         self._fast_poll_interval = scan_interval_fast
 
-        self._entry_id = entry_id
-        self._dev_id = dev_id
-        self._devicename = devicename
+        self._device = device
         self._mac = mac
         self._pin = pin
         self._fan = Calima(hass, mac, pin)
@@ -45,6 +43,26 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         self._state = {}
         self._state["boostmodespeedwrite"] = 2400
         self._state["boostmodesecwrite"] = 600
+
+    @property
+    def device_id(self):
+        return self._device.id
+
+    @property
+    def devicename(self):
+        return self._device.name
+
+    @property
+    def identifiers(self):
+        return self._device.identifiers
+
+    @property
+    def mac(self):
+        return self._mac
+
+    @property
+    def pin(self):
+        return self._pin
 
     def setFastPollMode(self):
         _LOGGER.debug("Enabling fast poll mode")
@@ -72,7 +90,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             try:
                 async with async_timeout.timeout(20):
                     if await self.read_deviceinfo(disconnect=False):
-                        await self._async_update_pax_device()
+                        await self._async_update_device_info()
                         self._deviceInfoLoaded = True
             except Exception as err:
                 _LOGGER.debug("Failed when loading device information: %s", str(err))
@@ -93,16 +111,16 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         except Exception as err:
             _LOGGER.debug("Failed when fetching sensordata: %s", str(err))
 
-    async def _async_update_pax_device(self) -> None:
+    async def _async_update_device_info(self) -> None:
         device_registry = dr.async_get(self.hass)
         device_registry.async_update_device(
-            self._dev_id,
+            self.device_id,
             manufacturer=self.get_data("manufacturer"),
             model=self.get_data("model"),
             hw_version=self.get_data("hw_rev"),
             sw_version=self.get_data("sw_rev"),
         )
-        _LOGGER.debug("Updated device data for: %s", self._devicename)
+        _LOGGER.debug("Updated device data for: %s", self.devicename)
 
     def _update_poll_counter(self):
         if self._fast_poll_enabled:
@@ -118,18 +136,6 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
     def set_data(self, key, value):
         _LOGGER.debug("Set_Data: %s %s", key, value)
         self._state[key] = value
-
-    @property
-    def devicename(self):
-        return self._devicename
-
-    @property
-    def mac(self):
-        return self._mac
-
-    @property
-    def pin(self):
-        return self._pin
 
     async def write_data(self, key) -> bool:
         _LOGGER.debug("Write_Data: %s", key)

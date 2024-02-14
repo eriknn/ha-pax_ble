@@ -7,7 +7,7 @@
                 "description": "Anna laitteesi tiedot.", 
                 "data": {                     
                     "name": "Laitteen nimi",                     
-                    "mac": "MAC-osoite",                                
+                    "mac": "MAC-osoite (aa:bb:cc:dd:ee:ff)",                                
                     "pin": "PIN-koodi",    
                     "scan_interval": "Päivitysväli sekunneissa",
 					"scan_interval_fast": "Fast Scan Interval in seconds"   					
@@ -35,7 +35,7 @@
                 "description": "Enter your device details.",
                 "data": {
                     "name": "Laitteen nimi",
-                    "mac": "MAC-osoite",
+                    "mac": "MAC-osoite (aa:bb:cc:dd:ee:ff)",
                     "pin": "PIN-koodi",
                     "scan_interval": "Päivitysväli sekunneissa",
 		            "scan_interval_fast": "Fast Scan Interval in seconds"
@@ -46,7 +46,7 @@
                 "description": "Enter new device details.",
                 "data": {
                     "name": "Laitteen nimi",
-                    "mac": "MAC-osoite",
+                    "mac": "MAC-osoite (aa:bb:cc:dd:ee:ff)",
                     "pin": "PIN-koodi",
                     "scan_interval": "Päivitysväli sekunneissa",
 		            "scan_interval_fast": "Fast Scan Interval in seconds"

@@ -95,12 +95,13 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            if self.device_exists(dr.format_mac(user_input[CONF_MAC])):
+            dev_mac = dr.format_mac(user_input[CONF_MAC])
+            if self.device_exists(dev_mac):
                 return self.async_abort(reason="device_already_configured",
-                                        description_placeholders={"dev_name": user_input[CONF_MAC]}
+                                        description_placeholders={"dev_name": dev_mac}
                                         )
 
-            fan = Calima(self.hass, user_input[CONF_MAC], user_input[CONF_PIN])
+            fan = Calima(self.hass, dev_mac, user_input[CONF_PIN])
 
             if await fan.connect():
                 await fan.setAuth(user_input[CONF_PIN])
@@ -114,19 +115,19 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                         # No integration installed, add entry with new device
                         await self.async_set_unique_id(CONFIG_ENTRY_NAME)
                         new_data = {CONF_DEVICES: {}}
-                        new_data[CONF_DEVICES][user_input[CONF_MAC]] = user_input
+                        new_data[CONF_DEVICES][dev_mac] = user_input
                         _LOGGER.debug("Creating config entry: %s", new_data)
 
                         return self.async_create_entry(title=CONFIG_ENTRY_NAME,
                                                        data=new_data,
                                                        description_placeholders={
-                                                           "dev_name": new_data[CONF_DEVICES][user_input[CONF_MAC]][CONF_NAME]
+                                                           "dev_name": new_data[CONF_DEVICES][dev_mac][CONF_NAME]
                                                        }
                                                        )
                     else:
                         # Integration found, update with new device
                         new_data = self.config_entry.data.copy()
-                        new_data[CONF_DEVICES][user_input[CONF_MAC]] = user_input
+                        new_data[CONF_DEVICES][dev_mac] = user_input
 
                         self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
                         self.hass.config_entries._async_schedule_save()
