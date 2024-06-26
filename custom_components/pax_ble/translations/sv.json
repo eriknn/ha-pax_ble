@@ -43,7 +43,7 @@
             },
             "edit_device": {
 				"title": "Pax BLE: Redigera enhet",
-                "description": "Ange nya enhetsdetaljer",
+                "description": "Ange nya enhetsdetaljer för {dev_name}",
                 "data": {
 					"name": "Namn på enhet",
 					"mac": "MAC-adress (aa:bb:cc:dd:ee:ff)",
@@ -68,10 +68,10 @@
 			"wrong_pin": "Fel PIN-kod"
 		},
 		"abort": {
-            "add_success": "Enheten anslöts",
-			"already_configured": "Enheten är redan konfigurerad",
-            "edit_success": "Enhet redigerad",
-            "remove_success": "Enhet borttagen"
+            "add_success": "Enhet {dev_name} lades till",
+			"already_configured": "Enhet {dev_name} är redan konfigurerad",
+            "edit_success": "Enhet {dev_name} redigerad",
+            "remove_success": "Enhet {dev_name} borttagen"
 		}
     },
     "selector": {
