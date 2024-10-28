@@ -6,7 +6,8 @@
 				"title": "Pax: Add device",
                 "description": "Enter your device details.", 
                 "data": {                     
-                    "name": "Name of device",                     
+                    "name": "Name of device",     
+                    "model": "Device model",                
                     "mac": "MAC Address (aa:bb:cc:dd:ee:ff)",                                
                     "pin": "PIN Code",    
                     "scan_interval": "Scan Interval in seconds",
@@ -28,13 +29,16 @@
         "step": {
             "init": {
 				"title": "Pax BLE Configuration",
-                "description": "Please select the desired action."
+                "data": { 
+                    "action": "Please select the desired action."
+                }
             },
             "add_device": {
 				"title": "Pax BLE: Add device",
                 "description": "Enter your device details.",
                 "data": {
                     "name": "Name of device",
+                    "model": "Device model",  
                     "mac": "MAC Address (aa:bb:cc:dd:ee:ff)",
                     "pin": "PIN Code",
                     "scan_interval": "Scan Interval in seconds",
@@ -45,7 +49,8 @@
 				"title": "Pax BLE: Edit device",
                 "description": "Enter new device details for {dev_name}",
                 "data": {                     
-                    "name": "Name of device",                     
+                    "name": "Name of device",  
+                    "model": "Device model",              
                     "mac": "MAC Address (aa:bb:cc:dd:ee:ff)",                                
                     "pin": "PIN Code",    
                     "scan_interval": "Scan Interval in seconds",

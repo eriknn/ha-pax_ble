@@ -5,8 +5,7 @@ import logging
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .calima import Calima
-from .const import DOMAIN
+from .ble_fan import BleFan
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
     _deviceInfoLoaded = False
     _last_config_timestamp = None
 
-    def __init__(self, hass, device, mac, pin, scan_interval, scan_interval_fast):
+    def __init__(self, hass, device, model, mac, pin, scan_interval, scan_interval_fast):
         """Initialize coordinator parent"""
         super().__init__(
             hass,
@@ -37,7 +36,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         self._device = device
         self._mac = mac
         self._pin = pin
-        self._fan = Calima(hass, mac, pin)
+        self._fan = BleFan(hass, model, mac, pin)
 
         # Initialize state in case of new integration
         self._state = {}

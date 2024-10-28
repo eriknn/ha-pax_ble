@@ -1,6 +1,5 @@
 """Support for Pax fans."""
 import logging
-import async_timeout
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -13,6 +12,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
     CONF_NAME,
+    CONF_MODEL,
     CONF_MAC,
     CONF_PIN,
     CONF_SCAN_INTERVAL,
@@ -32,6 +32,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create one coordinator for each device
     for device_id in entry.data[CONF_DEVICES]:
         name = entry.data[CONF_DEVICES][device_id][CONF_NAME]
+        model = entry.data[CONF_DEVICES][device_id].get(CONF_MODEL, "Calima")
         mac = entry.data[CONF_DEVICES][device_id][CONF_MAC]
         pin = entry.data[CONF_DEVICES][device_id][CONF_PIN]
         scan_interval = entry.data[CONF_DEVICES][device_id][CONF_SCAN_INTERVAL]
@@ -46,7 +47,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
         # Set up coordinator
-        coordinator = PaxCalimaCoordinator(hass, dev, mac, pin, scan_interval, scan_interval_fast)
+        coordinator = PaxCalimaCoordinator(hass, dev, model, mac, pin, scan_interval, scan_interval_fast)
         hass.data[DOMAIN][CONF_DEVICES][device_id] = coordinator
     
     # Forward the setup to the platforms.

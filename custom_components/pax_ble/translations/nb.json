@@ -6,7 +6,8 @@
 				"title": "Pax: Legg til enhet",
                 "description": "Angi informasjon om enhet.", 
                 "data": {                     
-                    "name": "Navn på enhet",                     
+                    "name": "Navn på enhet",   
+                    "model": "Modell",                  
                     "mac": "MAC-adresse (aa:bb:cc:dd:ee:ff)",                                
                     "pin": "PIN-kode",    
                     "scan_interval": "Pollinterval i sekunder",
@@ -28,13 +29,16 @@
         "step": {
             "init": {
 				"title": "Pax BLE Konfigurasjon",
-                "description": "Vennligst velg aksjon."
+                "data": { 
+                    "action": "Vennligst velg aksjon."
+                }
             },
             "add_device": {
 				"title": "Pax BLE: Legg til enhet",
                 "description": "Angi informasjon om enhet.",
                 "data": {
                     "name": "Navn på enhet",
+                    "model": "Modell",  
                     "mac": "MAC-adresse (aa:bb:cc:dd:ee:ff)",
                     "pin": "PIN-kode",
                     "scan_interval": "Pollinterval i sekunder",
@@ -46,6 +50,7 @@
                 "description": "Angi ny informasjon for {dev_name}",
                 "data": {
                     "name": "Navn på enhet",
+                    "model": "Modell",  
                     "mac": "MAC-adresse (aa:bb:cc:dd:ee:ff)",
                     "pin": "PIN-kode",
                     "scan_interval": "Pollinterval i sekunder",
