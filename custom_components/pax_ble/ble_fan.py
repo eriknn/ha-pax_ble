@@ -31,6 +31,7 @@ from .const import DeviceModel
 from .devices.characteristics import *
 from .devices.calima import Calima
 from .devices.svara import Svara
+from .devices.svensa import Svensa
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,6 +67,8 @@ class BleFan:
                 self.device = Calima()
             case DeviceModel.SVARA.value:
                 self.device = Svara()
+            case DeviceModel.SVENSA.value:
+                self.device = Svensa()
             case _:
                 raise ValueError(f"Unsupported device model: {model}")
 
