@@ -7,5 +7,6 @@ class Svara(BaseDevice):
 
         # Specific to Svara
         self.chars.update({
-            CHARACTERISTIC_MODEL_NAME: "updated-calima-led-uuid"
+            # This is same as base class, just an example on how to update value
+            CHARACTERISTIC_MODEL_NAME: "00002a00-0000-1000-8000-00805f9b34fb"
         })
