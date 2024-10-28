@@ -25,7 +25,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             # Name of the data. For logging purposes.
-            name="Pax Calima: " + device.name,
+            name=model + ": " + device.name,
             # Polling interval. Will only be polled if there are subscribers.
             update_interval=dt.timedelta(seconds=scan_interval),
         )

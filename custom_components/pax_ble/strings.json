@@ -48,7 +48,7 @@
             "edit_device": {
 				"title": "Pax BLE: Edit device",
                 "description": "Enter new device details for {dev_name}",
-                "data": {                     
+                "data": {                 
                     "name": "Name of device",  
                     "model": "Device model",              
                     "mac": "MAC Address (aa:bb:cc:dd:ee:ff)",                                
@@ -59,13 +59,15 @@
             },
             "remove_device": {
                 "title": "Pax BLE: Remove device",
-                "description": "Select device to remove.",
-                "data": {}
+                "data": {
+                    "selected_device": "Select device to remove."   
+                }
             },
             "select_edit_device": {
 				"title": "Pax BLE: Edit Device",
-                "description": "Select device to edit.",
-                "data": {}
+                "data": {
+                    "selected_device": "Select device to edit."    
+                }
             }
         },
 		"error": {
