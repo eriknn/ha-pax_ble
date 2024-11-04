@@ -5,7 +5,10 @@ import logging
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .ble_fan import BleFan
+from .const import DeviceModel
+from .devices.calima import Calima
+from .devices.svara import Svara
+from .devices.svensa import Svensa
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,9 +37,17 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
         self._fast_poll_interval = scan_interval_fast
 
         self._device = device
-        self._mac = mac
-        self._pin = pin
-        self._fan = BleFan(hass, model, mac, pin)
+
+        # Initialize correct fan
+        match model:
+            case DeviceModel.CALIMA.value:
+                self._fan = Calima(hass, mac, pin)
+            case DeviceModel.SVARA.value:
+                self._fan = Svara(hass, mac, pin)
+            case DeviceModel.SVENSA.value:
+                self._fan = Svensa(hass, mac, pin)
+            case _:
+                raise ValueError(f"Unsupported device model: {model}")
 
         # Initialize state in case of new integration
         self._state = {}
@@ -54,14 +65,6 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
     @property
     def identifiers(self):
         return self._device.identifiers
-
-    @property
-    def mac(self):
-        return self._mac
-
-    @property
-    def pin(self):
-        return self._pin
 
     def setFastPollMode(self):
         _LOGGER.debug("Enabling fast poll mode")
@@ -147,7 +150,7 @@ class PaxCalimaCoordinator(DataUpdateCoordinator):
             return False
 
         # Authorize
-        await self._fan.setAuth(self._pin)
+        await self._fan.authorize()
 
         try:
             # Write data

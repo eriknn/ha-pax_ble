@@ -12,7 +12,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
 from typing import Any
 
-from .ble_fan import BleFan
+from .devices.base_device import BaseDevice
 
 from homeassistant.const import CONF_DEVICES
 from .const import CONF_ACTION, CONF_ADD_DEVICE, CONF_EDIT_DEVICE, CONF_REMOVE_DEVICE
@@ -104,7 +104,7 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                                         description_placeholders={"dev_name": dev_mac}
                                         )
 
-            fan = BleFan(self.hass, dev_model, dev_mac, user_input[CONF_PIN])
+            fan = BaseDevice(self.hass, dev_model, dev_mac, user_input[CONF_PIN])
 
             if await fan.connect():
                 await fan.setAuth(user_input[CONF_PIN])
@@ -196,7 +196,7 @@ class PaxOptionsFlowHandler(OptionsFlow):
                     }
                 )
 
-            fan = BleFan(self.hass, user_input[CONF_MODEL], user_input[CONF_MAC], user_input[CONF_PIN])
+            fan = BaseDevice(self.hass, user_input[CONF_MODEL], user_input[CONF_MAC], user_input[CONF_PIN])
 
             if await fan.connect():
                 await fan.setAuth(user_input[CONF_PIN])

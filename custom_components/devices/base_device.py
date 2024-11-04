@@ -1,21 +1,4 @@
-#!/usr/bin/env python3.6
-
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
+from .characteristics import *
 
 from homeassistant.components import bluetooth
 from struct import pack, unpack
@@ -27,50 +10,55 @@ import math
 from collections import namedtuple
 import logging
 
-from .const import DeviceModel
-from .devices.characteristics import *
-from .devices.calima import Calima
-from .devices.svara import Svara
-from .devices.svensa import Svensa
-
 _LOGGER = logging.getLogger(__name__)
 
-Fanspeeds = namedtuple("Fanspeeds", "Humidity Light Trickle")
-Fanspeeds.__new__.__defaults__ = (2250, 1625, 1000)
+Fanspeeds = namedtuple("Fanspeeds", "Humidity Light Trickle", defaults=(2250, 1625, 1000))
 Time = namedtuple("Time", "DayOfWeek Hour Minute Second")
 Sensitivity = namedtuple("Sensitivity", "HumidityOn Humidity LightOn Light")
 LightSensorSettings = namedtuple("LightSensorSettings", "DelayedStart RunningTime")
-HeatDistributorSettings = namedtuple(
-    "HeatDistributorSettings", "TemperatureLimit FanSpeedBelow FanSpeedAbove"
-)
-SilentHours = namedtuple(
-    "SilentHours", "On StartingHour StartingMinute EndingHour EndingMinute"
-)
+HeatDistributorSettings = namedtuple("HeatDistributorSettings", "TemperatureLimit FanSpeedBelow FanSpeedAbove")
+SilentHours = namedtuple("SilentHours", "On StartingHour StartingMinute EndingHour EndingMinute")
 TrickleDays = namedtuple("TrickleDays", "Weekdays Weekends")
 BoostMode = namedtuple("BoostMode", "OnOff Speed Seconds")
-
 FanState = namedtuple("FanState", "Humidity Temp Light RPM Mode")
 
-class BleFan:
-    device = {}
+class BaseDevice():
+    chars = {}
 
-    def __init__(self, hass, model:str, mac, pin):
+    def __init__(self, hass, mac, pin):
         self._hass = hass
-        self._dev = None
-
-        self._model = model
         self._mac = mac
         self._pin = pin
+        self._dev = None
 
-        match model:
-            case DeviceModel.CALIMA.value:
-                self.device = Calima()
-            case DeviceModel.SVARA.value:
-                self.device = Svara()
-            case DeviceModel.SVENSA.value:
-                self.device = Svensa()
-            case _:
-                raise ValueError(f"Unsupported device model: {model}")
+        self.chars[CHARACTERISTIC_APPEARANCE] = "00002a01-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_AUTOMATIC_CYCLES] = "f508408a-508b-41c6-aa57-61d1fd0d5c39"
+        self.chars[CHARACTERISTIC_BASIC_VENTILATION] = "faa49e09-a79c-4725-b197-bdc57c67dc32"
+        self.chars[CHARACTERISTIC_BOOST] = "118c949c-28c8-4139-b0b3-36657fd055a9"
+        self.chars[CHARACTERISTIC_CLOCK] = "6dec478e-ae0b-4186-9d82-13dda03c0682"
+        self.chars[CHARACTERISTIC_DEVICE_NAME] = "00002a00-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_FACTORY_SETTINGS_CHANGED] = "63b04af9-24c0-4e5d-a69c-94eb9c5707b4"
+        self.chars[CHARACTERISTIC_FAN_DESCRIPTION] = "b85fa07a-9382-4838-871c-81d045dcc2ff"
+        self.chars[CHARACTERISTIC_FIRMWARE_REVISION] = "00002a26-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_HARDWARE_REVISION] = "00002a27-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_SOFTWARE_REVISION] = "00002a28-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_LED] = "8b850c04-dc18-44d2-9501-7662d65ba36e"
+        self.chars[CHARACTERISTIC_LEVEL_OF_FAN_SPEED] = "1488a757-35bc-4ec8-9a6b-9ecf1502778e"
+        self.chars[CHARACTERISTIC_MANUFACTURER_NAME] = "00002a29-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_MODE] = "90cabcd1-bcda-4167-85d8-16dcd8ab6a6b"
+        self.chars[CHARACTERISTIC_MODEL_NAME] = "00002a00-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_MODEL_NUMBER] = "00002a24-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_NIGHT_MODE] = "b5836b55-57bd-433e-8480-46e4993c5ac0"
+        self.chars[CHARACTERISTIC_PIN_CODE] = "4cad343a-209a-40b7-b911-4d9b3df569b2"
+        self.chars[CHARACTERISTIC_PIN_CONFIRMATION] = "d1ae6b70-ee12-4f6d-b166-d2063dcaffe1"
+        self.chars[CHARACTERISTIC_RESET] = "ff5f7c4f-2606-4c69-b360-15aaea58ad5f"
+        self.chars[CHARACTERISTIC_SENSITIVITY] = "e782e131-6ce1-4191-a8db-f4304d7610f1"
+        self.chars[CHARACTERISTIC_SENSOR_DATA] = "528b80e8-c47a-4c0a-bdf1-916a7748f412"
+        self.chars[CHARACTERISTIC_SERIAL_NUMBER] = "00002a25-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_SOFTWARE_REVISION] = "00002a28-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_STATUS] = "25a824ad-3021-4de9-9f2f-60cf8d17bded"
+        self.chars[CHARACTERISTIC_TEMP_HEAT_DISTRIBUTOR] = "a22eae12-dba8-49f3-9c69-1721dcff1d96"
+        self.chars[CHARACTERISTIC_TIME_FUNCTIONS] = "49c616de-02b1-4b67-b237-90f66793a6f2"
 
     async def authorize(self):
         await self.setAuth(self._pin)
@@ -115,10 +103,7 @@ class BleFan:
             self._dev = None
 
     def isConnected(self) -> bool:
-        if self._dev is not None and self._dev.is_connected:
-            return True
-        else:
-            return False
+        return self._dev is not None and self._dev.is_connected
 
     def _bToStr(self, val) -> str:
         return binascii.b2a_hex(val).decode("utf-8")
@@ -322,7 +307,7 @@ class BleFan:
             self.device.chars[CHARACTERISTIC_CLOCK], pack("<4B", dayofweek, hour, minute, second)
         )
 
-    async def getTime(self):
+    async def getTime(self) -> Time:
         return Time._make(unpack("<BBBB", await self._readUUID(self.device.chars[CHARACTERISTIC_CLOCK])))
 
     async def setTimeToNow(self) -> None:
@@ -352,10 +337,10 @@ class BleFan:
         )
 
     async def getReset(self):  # Should be write
-        return await self._readUUID(    self.device.chars[CHARACTERISTIC_RESET])
+        return await self._readUUID(self.device.chars[CHARACTERISTIC_RESET])
 
     async def resetDevice(self):  # Dangerous
         await self._writeUUID(self.device.chars[CHARACTERISTIC_RESET], pack("<I", 120))
 
-    async def resetValues(self):  # Danguerous
+    async def resetValues(self):  # Dangerous
         await self._writeUUID(self.device.chars[CHARACTERISTIC_RESET], pack("<I", 85))

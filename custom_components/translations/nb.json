@@ -59,13 +59,15 @@
             },
             "remove_device": {
 				"title": "Pax BLE: Fjern enhet",
-                "description": "Velg enhet som skal fjernes",
-                "data": {}
+                "data": {
+                    "selected_device": "Velg enhet som skal fjernes"
+                }
             },
             "select_edit_device": {
 				"title": "Pax BLE: Rediger enhet",
-                "description": "Velg enhet som skal redigeres",
-                "data": {}
+                "data": {
+                    "selected_device": "Velg enhet som skal redigeres"    
+                }
             }
         },
 		"error": {
