@@ -97,14 +97,13 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            dev_model = user_input[CONF_MODEL]
             dev_mac = dr.format_mac(user_input[CONF_MAC])
             if self.device_exists(dev_mac):
                 return self.async_abort(reason="device_already_configured",
                                         description_placeholders={"dev_name": dev_mac}
                                         )
 
-            fan = BaseDevice(self.hass, dev_model, dev_mac, user_input[CONF_PIN])
+            fan = BaseDevice(self.hass, dev_mac, user_input[CONF_PIN])
 
             if await fan.connect():
                 await fan.setAuth(user_input[CONF_PIN])
@@ -196,7 +195,7 @@ class PaxOptionsFlowHandler(OptionsFlow):
                     }
                 )
 
-            fan = BaseDevice(self.hass, user_input[CONF_MODEL], user_input[CONF_MAC], user_input[CONF_PIN])
+            fan = BaseDevice(self.hass, user_input[CONF_MAC], user_input[CONF_PIN])
 
             if await fan.connect():
                 await fan.setAuth(user_input[CONF_PIN])
