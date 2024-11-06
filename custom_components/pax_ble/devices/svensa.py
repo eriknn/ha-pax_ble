@@ -28,7 +28,7 @@ class Svensa(BaseDevice):
 
         # Byte  Byte    Short Short Short Short    Byte Byte Byte Byte  Byte
         # Trg1  Trg2    Hum   Gas   Light FanSpeed Tbd  Tbd  Tbd  Temp? Tbd
-        v = unpack("<2B4HBBBBB", await self._readUUID(self.device.chars[CHARACTERISTIC_SENSOR_DATA]))
+        v = unpack("<2B4HBBBBB", await self._readUUID(self.chars[CHARACTERISTIC_SENSOR_DATA]))
         _LOGGER.debug("Read Fan States: %s", v)
 
         # Found in package com.component.svara.views.calima.SkyModeView
@@ -59,7 +59,7 @@ class Svensa(BaseDevice):
 
         # FanState = namedtuple("FanState", "Humidity Temp Light RPM Mode")
         return FanState(
-            round(math.log2(v[2] - 30) * 10, 2) if v[2] > 30 else 0,
+            round(15*math.log2(v[2]) - 75, 2) if v[2] > 35 else 0,
             v[9],
             v[4],
             v[5],

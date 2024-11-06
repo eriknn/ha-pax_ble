@@ -31,31 +31,30 @@ class BaseDevice():
         self._pin = pin
         self._dev = None
 
-        self.chars[CHARACTERISTIC_APPEARANCE] = "00002a01-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_APPEARANCE] = "00002a01-0000-1000-8000-00805f9b34fb"          # Not used
         self.chars[CHARACTERISTIC_AUTOMATIC_CYCLES] = "f508408a-508b-41c6-aa57-61d1fd0d5c39"
         self.chars[CHARACTERISTIC_BASIC_VENTILATION] = "faa49e09-a79c-4725-b197-bdc57c67dc32"
         self.chars[CHARACTERISTIC_BOOST] = "118c949c-28c8-4139-b0b3-36657fd055a9"
         self.chars[CHARACTERISTIC_CLOCK] = "6dec478e-ae0b-4186-9d82-13dda03c0682"
-        self.chars[CHARACTERISTIC_DEVICE_NAME] = "00002a00-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_DEVICE_NAME] = "00002a00-0000-1000-8000-00805f9b34fb"         # Not used
         self.chars[CHARACTERISTIC_FACTORY_SETTINGS_CHANGED] = "63b04af9-24c0-4e5d-a69c-94eb9c5707b4"
         self.chars[CHARACTERISTIC_FAN_DESCRIPTION] = "b85fa07a-9382-4838-871c-81d045dcc2ff"
-        self.chars[CHARACTERISTIC_FIRMWARE_REVISION] = "00002a26-0000-1000-8000-00805f9b34fb"
-        self.chars[CHARACTERISTIC_HARDWARE_REVISION] = "00002a27-0000-1000-8000-00805f9b34fb"
-        self.chars[CHARACTERISTIC_SOFTWARE_REVISION] = "00002a28-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_FIRMWARE_REVISION] = "00002a26-0000-1000-8000-00805f9b34fb"   # Not used
+        self.chars[CHARACTERISTIC_HARDWARE_REVISION] = "00002a27-0000-1000-8000-00805f9b34fb"   # Not used
+        self.chars[CHARACTERISTIC_SOFTWARE_REVISION] = "00002a28-0000-1000-8000-00805f9b34fb"   # Not used
         self.chars[CHARACTERISTIC_LED] = "8b850c04-dc18-44d2-9501-7662d65ba36e"
         self.chars[CHARACTERISTIC_LEVEL_OF_FAN_SPEED] = "1488a757-35bc-4ec8-9a6b-9ecf1502778e"
-        self.chars[CHARACTERISTIC_MANUFACTURER_NAME] = "00002a29-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_MANUFACTURER_NAME] = "00002a29-0000-1000-8000-00805f9b34fb"   # Not used
         self.chars[CHARACTERISTIC_MODE] = "90cabcd1-bcda-4167-85d8-16dcd8ab6a6b"
         self.chars[CHARACTERISTIC_MODEL_NAME] = "00002a00-0000-1000-8000-00805f9b34fb"
-        self.chars[CHARACTERISTIC_MODEL_NUMBER] = "00002a24-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_MODEL_NUMBER] = "00002a24-0000-1000-8000-00805f9b34fb"        # Not used
         self.chars[CHARACTERISTIC_NIGHT_MODE] = "b5836b55-57bd-433e-8480-46e4993c5ac0"
         self.chars[CHARACTERISTIC_PIN_CODE] = "4cad343a-209a-40b7-b911-4d9b3df569b2"
         self.chars[CHARACTERISTIC_PIN_CONFIRMATION] = "d1ae6b70-ee12-4f6d-b166-d2063dcaffe1"
         self.chars[CHARACTERISTIC_RESET] = "ff5f7c4f-2606-4c69-b360-15aaea58ad5f"
         self.chars[CHARACTERISTIC_SENSITIVITY] = "e782e131-6ce1-4191-a8db-f4304d7610f1"
         self.chars[CHARACTERISTIC_SENSOR_DATA] = "528b80e8-c47a-4c0a-bdf1-916a7748f412"
-        self.chars[CHARACTERISTIC_SERIAL_NUMBER] = "00002a25-0000-1000-8000-00805f9b34fb"
-        self.chars[CHARACTERISTIC_SOFTWARE_REVISION] = "00002a28-0000-1000-8000-00805f9b34fb"
+        self.chars[CHARACTERISTIC_SERIAL_NUMBER] = "00002a25-0000-1000-8000-00805f9b34fb"       # Not used
         self.chars[CHARACTERISTIC_STATUS] = "25a824ad-3021-4de9-9f2f-60cf8d17bded"
         self.chars[CHARACTERISTIC_TEMP_HEAT_DISTRIBUTOR] = "a22eae12-dba8-49f3-9c69-1721dcff1d96"
         self.chars[CHARACTERISTIC_TIME_FUNCTIONS] = "49c616de-02b1-4b67-b237-90f66793a6f2"
@@ -120,53 +119,58 @@ class BaseDevice():
         await self._dev.write_gatt_char(char_specifier=uuid, data=val, response=True)
 
     # --- Generic GATT Characteristics
-
     async def getDeviceName(self) -> str:
-        # Why does UUID "0x2" fail here? Doesn't when testing from my PC...
-        return (await self._readHandle(self.device.chars[CHARACTERISTIC_MODEL_NAME])).decode("ascii")
+        #return (await self._readHandle(0x2)).decode("ascii")
+        return (await self._readUUID(self.chars[CHARACTERISTIC_MODEL_NAME])).decode("ascii")
 
     async def getModelNumber(self) -> str:
-        return (await self._readHandle(0xD)).decode("ascii")
+        #return (await self._readHandle(0xD)).decode("ascii")
+        return (await self._readUUID(self.chars[CHARACTERISTIC_MODEL_NUMBER])).decode("ascii")
 
     async def getSerialNumber(self) -> str:
-        return (await self._readHandle(0xB)).decode("ascii")
+        #return (await self._readHandle(0xB)).decode("ascii")
+        return (await self._readUUID(self.chars[CHARACTERISTIC_SERIAL_NUMBER])).decode("ascii")
 
     async def getHardwareRevision(self) -> str:
-        return (await self._readHandle(0xF)).decode("ascii")
+        #return (await self._readHandle(0xF)).decode("ascii")
+        return (await self._readUUID(self.chars[CHARACTERISTIC_HARDWARE_REVISION])).decode("ascii")
 
     async def getFirmwareRevision(self) -> str:
-        return (await self._readHandle(0x11)).decode("ascii")
+        #return (await self._readHandle(0x11)).decode("ascii")
+        return (await self._readUUID(self.chars[CHARACTERISTIC_FIRMWARE_REVISION])).decode("ascii")
 
     async def getSoftwareRevision(self) -> str:
-        return (await self._readHandle(0x13)).decode("ascii")
+        #return (await self._readHandle(0x13)).decode("ascii")
+        return (await self._readUUID(self.chars[CHARACTERISTIC_SOFTWARE_REVISION])).decode("ascii")
 
     async def getManufacturer(self) -> str:
-        return (await self._readHandle(0x15)).decode("ascii")
+        #return (await self._readHandle(0x15)).decode("ascii")
+        return (await self._readUUID(self.chars[CHARACTERISTIC_MANUFACTURER_NAME])).decode("ascii")
 
     # --- Onwards to PAX characteristics
 
     async def setAuth(self, pin) -> None:
-        await self._writeUUID(self.chars.CHARACTERISTIC_PIN_CODE, pack("<I", int(pin)))
+        await self._writeUUID(self.chars[CHARACTERISTIC_PIN_CODE], pack("<I", int(pin)))
 
     async def checkAuth(self) -> bool:
-        v = unpack("<b", await self._readUUID(self.device.chars[CHARACTERISTIC_PIN_CONFIRMATION]))
+        v = unpack("<b", await self._readUUID(self.chars[CHARACTERISTIC_PIN_CONFIRMATION]))
         return bool(v[0])
 
     async def setAlias(self, name) -> None:
         await self._writeUUID(
-            self.device.chars[CHARACTERISTIC_FAN_DESCRIPTION], pack("20s", bytearray(name, "utf-8"))
+            self.chars[CHARACTERISTIC_FAN_DESCRIPTION], pack("20s", bytearray(name, "utf-8"))
         )
 
     async def getAlias(self)-> str:
-        return await self._readUUID(self.device.chars[CHARACTERISTIC_FAN_DESCRIPTION]).decode("utf-8")
+        return await self._readUUID(self.chars[CHARACTERISTIC_FAN_DESCRIPTION]).decode("utf-8")
 
     async def getIsClockSet(self) -> str:
-        return self._bToStr(await self._readUUID(self.device.chars[CHARACTERISTIC_STATUS]))
+        return self._bToStr(await self._readUUID(self.chars[CHARACTERISTIC_STATUS]))
 
     async def getState(self) -> FanState:
         # Short Short Short Short    Byte Short Byte
         # Hum   Temp  Light FanSpeed Mode Tbd   Tbd
-        v = unpack("<4HBHB", await self._readUUID(self.device.chars[CHARACTERISTIC_SENSOR_DATA]))
+        v = unpack("<4HBHB", await self._readUUID(self.chars[CHARACTERISTIC_SENSOR_DATA]))
         _LOGGER.debug("Read Fan States: %s", v)
 
         trigger = "No trigger"
@@ -192,11 +196,11 @@ class BaseDevice():
         )
 
     async def getFactorySettingsChanged(self) -> bool:
-        v = unpack("<?", await self._readUUID(self.device.chars[CHARACTERISTIC_FACTORY_SETTINGS_CHANGED]))
+        v = unpack("<?", await self._readUUID(self.chars[CHARACTERISTIC_FACTORY_SETTINGS_CHANGED]))
         return v[0]
 
     async def getMode(self) -> str:
-        v = unpack("<B", await self._readUUID(self.device.chars[CHARACTERISTIC_MODE]))
+        v = unpack("<B", await self._readUUID(self.chars[CHARACTERISTIC_MODE]))
         if v[0] == 0:
             return "MultiMode"
         elif v[0] == 1:
@@ -218,12 +222,12 @@ class BaseDevice():
         _LOGGER.debug("Calima setFanSpeedSettings: %s %s %s", humidity, light, trickle)
 
         await self._writeUUID(
-            self.device.chars[CHARACTERISTIC_LEVEL_OF_FAN_SPEED], pack("<HHH", humidity, light, trickle)
+            self.chars[CHARACTERISTIC_LEVEL_OF_FAN_SPEED], pack("<HHH", humidity, light, trickle)
         )
 
     async def getFanSpeedSettings(self) -> Fanspeeds:
         return Fanspeeds._make(
-            unpack("<HHH", await self._readUUID(self.device.chars[CHARACTERISTIC_LEVEL_OF_FAN_SPEED]))
+            unpack("<HHH", await self._readUUID(self.chars[CHARACTERISTIC_LEVEL_OF_FAN_SPEED]))
         )
 
     async def setSensorsSensitivity(self, humidity, light) -> None:
@@ -283,32 +287,32 @@ class BaseDevice():
             speed = 0
             seconds = 0
 
-        await self._writeUUID(self.device.chars[CHARACTERISTIC_BOOST], pack("<BHH", on, speed, seconds))
+        await self._writeUUID(self.chars[CHARACTERISTIC_BOOST], pack("<BHH", on, speed, seconds))
 
     async def getBoostMode(self) -> BoostMode:
-        v = unpack("<BHH", await self._readUUID(self.device.chars[CHARACTERISTIC_BOOST]))
+        v = unpack("<BHH", await self._readUUID(self.chars[CHARACTERISTIC_BOOST]))
         return BoostMode._make(v)
 
     async def getLed(self) -> str:
-        return self._bToStr(await self._readUUID(self.device.chars[CHARACTERISTIC_LED]))
+        return self._bToStr(await self._readUUID(self.chars[CHARACTERISTIC_LED]))
 
     async def setAutomaticCycles(self, setting: int) -> None:
         if setting < 0 or setting > 3:
             raise ValueError("Setting must be between 0-3")
 
-        await self._writeUUID(self.device.chars[CHARACTERISTIC_AUTOMATIC_CYCLES], pack("<B", setting))
+        await self._writeUUID(self.chars[CHARACTERISTIC_AUTOMATIC_CYCLES], pack("<B", setting))
 
     async def getAutomaticCycles(self) -> int:
-        v = unpack("<B", await self._readUUID(self.device.chars[CHARACTERISTIC_AUTOMATIC_CYCLES]))
+        v = unpack("<B", await self._readUUID(self.chars[CHARACTERISTIC_AUTOMATIC_CYCLES]))
         return v[0]
 
     async def setTime(self, dayofweek, hour, minute, second) -> None:
         await self._writeUUID(
-            self.device.chars[CHARACTERISTIC_CLOCK], pack("<4B", dayofweek, hour, minute, second)
+            self.chars[CHARACTERISTIC_CLOCK], pack("<4B", dayofweek, hour, minute, second)
         )
 
     async def getTime(self) -> Time:
-        return Time._make(unpack("<BBBB", await self._readUUID(self.device.chars[CHARACTERISTIC_CLOCK])))
+        return Time._make(unpack("<BBBB", await self._readUUID(self.chars[CHARACTERISTIC_CLOCK])))
 
     async def setTimeToNow(self) -> None:
         now = datetime.datetime.now()
@@ -319,28 +323,28 @@ class BaseDevice():
         value = pack(
             "<5B", int(on), startingTime.hour, startingTime.minute, endingTime.hour, endingTime.minute
         )
-        await self._writeUUID(self.device.chars[CHARACTERISTIC_NIGHT_MODE], value)
+        await self._writeUUID(self.chars[CHARACTERISTIC_NIGHT_MODE], value)
 
     async def getSilentHours(self) -> SilentHours:
         return SilentHours._make(
-            unpack("<5B", await self._readUUID(self.device.chars[CHARACTERISTIC_NIGHT_MODE]))
+            unpack("<5B", await self._readUUID(self.chars[CHARACTERISTIC_NIGHT_MODE]))
         )
 
     async def setTrickleDays(self, weekdays, weekends) -> None:
         await self._writeUUID(
-            self.device.chars[CHARACTERISTIC_BASIC_VENTILATION], pack("<2B", weekdays, weekends)
+            self.chars[CHARACTERISTIC_BASIC_VENTILATION], pack("<2B", weekdays, weekends)
         )
 
     async def getTrickleDays(self) -> TrickleDays:
         return TrickleDays._make(
-            unpack("<2B", await self._readUUID(self.device.chars[CHARACTERISTIC_BASIC_VENTILATION]))
+            unpack("<2B", await self._readUUID(self.chars[CHARACTERISTIC_BASIC_VENTILATION]))
         )
 
     async def getReset(self):  # Should be write
-        return await self._readUUID(self.device.chars[CHARACTERISTIC_RESET])
+        return await self._readUUID(self.chars[CHARACTERISTIC_RESET])
 
     async def resetDevice(self):  # Dangerous
-        await self._writeUUID(self.device.chars[CHARACTERISTIC_RESET], pack("<I", 120))
+        await self._writeUUID(self.chars[CHARACTERISTIC_RESET], pack("<I", 120))
 
     async def resetValues(self):  # Dangerous
-        await self._writeUUID(self.device.chars[CHARACTERISTIC_RESET], pack("<I", 85))
+        await self._writeUUID(self.chars[CHARACTERISTIC_RESET], pack("<I", 85))
