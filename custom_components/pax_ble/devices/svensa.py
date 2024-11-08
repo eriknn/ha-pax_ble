@@ -18,7 +18,8 @@ class Svensa(BaseDevice):
             CHARACTERISTIC_AUTOMATIC_CYCLES: "7c4adc05-2f33-11e7-93ae-92361f002671",
             CHARACTERISTIC_BOOST: "7c4adc07-2f33-11e7-93ae-92361f002671",
             CHARACTERISTIC_MODE: "7c4adc0d-2f33-11e7-93ae-92361f002671",
-            CHARACTERISTIC_MODEL_NUMBER: "00002a24-0000-1000-8000-00805f9b34fb"         # Not used
+            CHARACTERISTIC_MODEL_NUMBER: "00002a24-0000-1000-8000-00805f9b34fb",         # Not used
+            CHARACTERISTIC_LEVEL_OF_FAN_SPEED: None
         })
 
     @override

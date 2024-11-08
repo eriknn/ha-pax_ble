@@ -148,9 +148,12 @@ class BaseDevice():
         return (await self._readUUID(self.chars[CHARACTERISTIC_MANUFACTURER_NAME])).decode("ascii")
 
     # --- Onwards to PAX characteristics
-
     async def setAuth(self, pin) -> None:
+        _LOGGER.debug(f"Connecting with pin: {pin}")
         await self._writeUUID(self.chars[CHARACTERISTIC_PIN_CODE], pack("<I", int(pin)))
+
+        result = await self.checkAuth()
+        _LOGGER.debug(f"Authorized: {result}")
 
     async def checkAuth(self) -> bool:
         v = unpack("<b", await self._readUUID(self.chars[CHARACTERISTIC_PIN_CONFIRMATION]))
@@ -226,9 +229,10 @@ class BaseDevice():
         )
 
     async def getFanSpeedSettings(self) -> Fanspeeds:
-        return Fanspeeds._make(
-            unpack("<HHH", await self._readUUID(self.chars[CHARACTERISTIC_LEVEL_OF_FAN_SPEED]))
-        )
+        if self.chars[CHARACTERISTIC_LEVEL_OF_FAN_SPEED] is not None:
+            return Fanspeeds._make(unpack("<HHH", await self._readUUID(self.chars[CHARACTERISTIC_LEVEL_OF_FAN_SPEED])))
+        else:
+            return Fanspeeds._make((None, None, None))
 
     async def setSensorsSensitivity(self, humidity, light) -> None:
         if humidity > 3 or humidity < 0:
