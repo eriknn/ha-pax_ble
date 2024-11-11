@@ -2,7 +2,7 @@ import logging
 import math
 
 from .characteristics import *
-from .base_device import BaseDevice, FanState
+from .base_device import BaseDevice, FanState, ConstantOperation, Humidity, TimeFunctions
 
 from struct import pack, unpack
 from typing import override
@@ -13,15 +13,23 @@ class Svensa(BaseDevice):
     def __init__(self, hass, mac, pin):
         super().__init__(hass, mac, pin)
 
-        # Specific to Svansa
+        # Charateristics with different UUIDs for Svensa
         self.chars.update({
             CHARACTERISTIC_AUTOMATIC_CYCLES: "7c4adc05-2f33-11e7-93ae-92361f002671",
             CHARACTERISTIC_BOOST: "7c4adc07-2f33-11e7-93ae-92361f002671",
             CHARACTERISTIC_MODE: "7c4adc0d-2f33-11e7-93ae-92361f002671",
             CHARACTERISTIC_MODEL_NUMBER: "00002a24-0000-1000-8000-00805f9b34fb",         # Not used
-            CHARACTERISTIC_LEVEL_OF_FAN_SPEED: None
+            CHARACTERISTIC_TIME_FUNCTIONS: "7c4adc04-2f33-11e7-93ae-92361f002671"
         })
+        # Characteristics that only Svensa has
+        self.chars.update({
+            CHARACTERISTIC_HUMIDITY: "7c4adc01-2f33-11e7-93ae-92361f002671",             # humActive, humLevel, fanSpeed
+            CHARACTERISTIC_CONSTANT_OPERATION: "7c4adc03-2f33-11e7-93ae-92361f002671"
+        })        
 
+    ################################################
+    ############## OVERRIDES FOR SVENSA ############
+    ################################################
     @override
     async def getState(self) -> FanState:
         # We probably have to modify the FanState object as the fans have different sensors....
@@ -65,4 +73,59 @@ class Svensa(BaseDevice):
             v[4],
             v[5],
             trigger
+        )
+        
+    ################################################
+    ########### FUNCTIONS JUST FOR SVENSA ##########
+    ################################################
+    async def getHumidity(self) -> Humidity:
+        v = unpack("<BBH", await self._readUUID(self.chars[CHARACTERISTIC_HUMIDITY]))
+        _LOGGER.debug("Read Fan Humidity settings: %s", v)
+
+        # Humidity = namedtuple("Humidity", "Active Level Speed")
+        return Humidity(v[0], v[1], v[2])
+    
+    async def setHumidity(self, active:bool, level:int, speed:int) -> None:
+        _LOGGER.debug("Write Fan Humidity settings")
+
+        if speed % 25:
+            raise ValueError("Speed must be a multiple of 25")
+        if not active:
+            level = 0
+            speed = 0
+
+        await self._writeUUID(self.chars[CHARACTERISTIC_HUMIDITY], pack("<BBH", active, level, speed))
+
+    async def getConstantOperation(self) -> ConstantOperation:
+        v = unpack("<BH", await self._readUUID(self.chars[CHARACTERISTIC_CONSTANT_OPERATION]))
+        _LOGGER.debug("Read Constant Operation settings: %s", v)
+
+        #ConstantOperation = namedtuple("ConstantOperation", "Active Speed")
+        return ConstantOperation(v[0], v[1])
+    
+    async def setConstantOperation(self, active:bool, speed:int) -> None:
+        _LOGGER.debug("Write Constant Operation settings")
+
+        if speed % 25:
+            raise ValueError("Speed must be a multiple of 25")
+        if not active:
+            speed = 0
+
+        await self._writeUUID(self.chars[CHARACTERISTIC_CONSTANT_OPERATION], pack("<BH", active, speed))
+
+    async def getTimeFunctions(self) -> TimeFunctions:
+        return TimeFunctions._make(
+            unpack("<3BH", await self._readUUID(self.chars[CHARACTERISTIC_TIME_FUNCTIONS]))
+        )
+
+    async def setTimeFunctions(self, presenceTime, timeActive, timeMin, speed) -> None:
+        if presenceTime not in (0, 5, 10):
+            raise ValueError("presenceTime must be 0, 5 or 10 minutes")
+        if timeActive not in (5, 10, 15, 30, 60):
+            raise ValueError("timeActive must be 5, 10, 15, 30 or 60 minutes")
+        if speed % 25:
+            raise ValueError("Speed must be a multiple of 25")
+
+        await self._writeUUID(
+            self.chars[CHARACTERISTIC_TIME_FUNCTIONS], pack("<3BH", presenceTime, timeActive, timeMin, speed)
         )

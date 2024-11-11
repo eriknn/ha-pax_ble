@@ -22,6 +22,11 @@ TrickleDays = namedtuple("TrickleDays", "Weekdays Weekends")
 BoostMode = namedtuple("BoostMode", "OnOff Speed Seconds")
 FanState = namedtuple("FanState", "Humidity Temp Light RPM Mode")
 
+# For svensa
+ConstantOperation = namedtuple("ConstantOperation", "Active Speed")
+Humidity = namedtuple("Humidity", "Active Level Speed")
+TimeFunctions = namedtuple("TimeFunctions", "PresenceTime TimeActive TimeMin Speed")
+
 class BaseDevice():
     chars = {}
 
@@ -229,10 +234,7 @@ class BaseDevice():
         )
 
     async def getFanSpeedSettings(self) -> Fanspeeds:
-        if self.chars[CHARACTERISTIC_LEVEL_OF_FAN_SPEED] is not None:
-            return Fanspeeds._make(unpack("<HHH", await self._readUUID(self.chars[CHARACTERISTIC_LEVEL_OF_FAN_SPEED])))
-        else:
-            return Fanspeeds._make((None, None, None))
+        return Fanspeeds._make(unpack("<HHH", await self._readUUID(self.chars[CHARACTERISTIC_LEVEL_OF_FAN_SPEED])))
 
     async def setSensorsSensitivity(self, humidity, light) -> None:
         if humidity > 3 or humidity < 0:
@@ -241,13 +243,13 @@ class BaseDevice():
             raise ValueError("Light sensitivity must be between 0-3")
 
         value = pack("<4B", bool(humidity), humidity, bool(light), light)
-        await self._writeUUID(CHARACTERISTIC_SENSITIVITY, value)
+        await self._writeUUID(self.chars[CHARACTERISTIC_SENSITIVITY], value)
 
     async def getSensorsSensitivity(self) -> Sensitivity:
         # Hum Active | Hum Sensitivity | Light Active | Light Sensitivity
         # We fix so that Sensitivity = 0 if active = 0
         l = Sensitivity._make(
-            unpack("<4B", await self._readUUID(CHARACTERISTIC_SENSITIVITY))
+            unpack("<4B", await self._readUUID(self.chars[CHARACTERISTIC_SENSITIVITY]))
         )
 
         return Sensitivity._make(
@@ -271,17 +273,17 @@ class BaseDevice():
             raise ValueError("Running time must be 5, 10, 15, 30 or 60 minutes")
 
         await self._writeUUID(
-            CHARACTERISTIC_TIME_FUNCTIONS, pack("<2B", delayed, running)
+            self.chars[CHARACTERISTIC_TIME_FUNCTIONS], pack("<2B", delayed, running)
         )
 
     async def getLightSensorSettings(self) -> LightSensorSettings:
         return LightSensorSettings._make(
-            unpack("<2B", await self._readUUID(CHARACTERISTIC_TIME_FUNCTIONS))
+            unpack("<2B", await self._readUUID(self.chars[CHARACTERISTIC_TIME_FUNCTIONS]))
         )
 
     async def getHeatDistributor(self) -> HeatDistributorSettings:
         return HeatDistributorSettings._make(
-            unpack("<BHH", await self._readUUID(CHARACTERISTIC_TEMP_HEAT_DISTRIBUTOR))
+            unpack("<BHH", await self._readUUID(self.chars[CHARACTERISTIC_TEMP_HEAT_DISTRIBUTOR]))
         )
 
     async def setBoostMode(self, on, speed, seconds) -> None:

@@ -18,7 +18,9 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SCAN_INTERVAL_FAST
 )
-from .coordinator import PaxCalimaCoordinator
+from .const import DeviceModel
+from .coordinator_calima import CalimaCoordinator
+from .coordinator_svensa import SvensaCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,9 +49,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
         # Set up coordinator
-        coordinator = PaxCalimaCoordinator(hass, dev, model, mac, pin, scan_interval, scan_interval_fast)
-        hass.data[DOMAIN][CONF_DEVICES][device_id] = coordinator
-    
+        match DeviceModel(model):
+            case DeviceModel.CALIMA | DeviceModel.SVARA:
+                coordinator = CalimaCoordinator(hass, dev, model, mac, pin, scan_interval, scan_interval_fast)
+                hass.data[DOMAIN][CONF_DEVICES][device_id] = coordinator
+            case DeviceModel.SVENSA:
+                coordinator = SvensaCoordinator(hass, dev, model, mac, pin, scan_interval, scan_interval_fast)
+                hass.data[DOMAIN][CONF_DEVICES][device_id] = coordinator
+            case _:
+                print("Unknown fan model")
+
     # Forward the setup to the platforms.
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

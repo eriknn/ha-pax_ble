@@ -201,7 +201,6 @@ class PaxOptionsFlowHandler(OptionsFlow):
                 await fan.setAuth(user_input[CONF_PIN])
                 pin_verified = await fan.checkAuth()
                 await fan.disconnect()
-                pin_verified = True
 
                 if pin_verified:
                     # Add device to config entry
