@@ -1,25 +1,13 @@
 import datetime as dt
 import logging
 
-from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-
 from .devices.calima import Calima
 
 from .coordinator import PaxCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-
 class CalimaCoordinator(PaxCoordinator):
-    _fast_poll_enabled = False
-    _fast_poll_count = 0
-    _normal_poll_interval = 60
-    _fast_poll_interval = 10
-
-    _deviceInfoLoaded = False
-    _last_config_timestamp = None
-
     def __init__(self, hass, device, model, mac, pin, scan_interval, scan_interval_fast):
         """Initialize coordinator parent"""
         super().__init__(hass, device, model, mac, pin, scan_interval, scan_interval_fast)
@@ -97,35 +85,9 @@ class CalimaCoordinator(PaxCoordinator):
         return True
 
     async def read_configdata(self, disconnect=False) -> bool:
-        _LOGGER.debug("Reading config data")
-        try:
-            # Make sure we are connected
-            if not await self._fan.connect():
-                raise Exception("Not connected!")
-        except Exception as e:
-            _LOGGER.warning("Error when fetching config data: %s", str(e))
+        if not await super().read_configdata(disconnect):
             return False
-
-        FanMode = await self._fan.getMode()  # Configuration
-        SilentHours = await self._fan.getSilentHours()  # Configuration
-        TrickleDays = await self._fan.getTrickleDays()  # Configuration
-        AutomaticCycles = await self._fan.getAutomaticCycles()  # Configuration
-
-        if FanMode is None:
-            _LOGGER.debug("Could not read config")
-            return False
-        else:
-            self._state["mode"] = FanMode
-
-            self._state["silenthours_on"] = SilentHours.On
-            self._state["silenthours_starttime"] = dt.time(SilentHours.StartingHour, SilentHours.StartingMinute)
-            self._state["silenthours_endtime"] = dt.time(SilentHours.EndingHour, SilentHours.EndingMinute)
-
-            self._state["trickledays_weekdays"] = TrickleDays.Weekdays
-            self._state["trickledays_weekends"] = TrickleDays.Weekends
-
-            self._state["automatic_cycles"] = AutomaticCycles
-            
+        
         # Device specific configs
         FanSpeeds = await self._fan.getFanSpeedSettings()  # Configuration
         self._state["fanspeed_humidity"] = FanSpeeds.Humidity
