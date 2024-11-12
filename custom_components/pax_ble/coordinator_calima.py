@@ -19,6 +19,41 @@ class CalimaCoordinator(BaseCoordinator):
         _LOGGER.debug("Initializing Calima!")
         self._fan = Calima(hass, mac, pin)
 
+    async def read_sensordata(self, disconnect=False) -> bool:
+        _LOGGER.debug("Reading sensor data")
+        try:
+            # Make sure we are connected
+            if not await self._fan.connect():
+                raise Exception("Not connected!")
+        except Exception as e:
+            _LOGGER.warning("Error when fetching config data: %s", str(e))
+            return False
+
+        FanState = await self._fan.getState()  # Sensors
+        BoostMode = await self._fan.getBoostMode()  # Sensors?
+
+        if FanState is None:
+            _LOGGER.debug("Could not read data")
+            return False
+        else:
+            self._state["humidity"] = FanState.Humidity
+            self._state["temperature"] = FanState.Temp
+            self._state["light"] = FanState.Light
+            self._state["rpm"] = FanState.RPM
+            if FanState.RPM > 400:
+                self._state["flow"] = int(FanState.RPM * 0.05076 - 14)
+            else:
+                self._state["flow"] = 0
+            self._state["state"] = FanState.Mode
+
+            self._state["boostmode"] = BoostMode.OnOff
+            self._state["boostmodespeedread"] = BoostMode.Speed
+            self._state["boostmodesecread"] = BoostMode.Seconds
+
+        if disconnect:
+            await self._fan.disconnect()
+        return True
+
     async def write_data(self, key) -> bool:
         _LOGGER.debug("Write_Data: %s", key)
         try:

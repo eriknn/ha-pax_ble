@@ -169,40 +169,10 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
             await self._fan.disconnect()
         return True
 
+    # Must be overridden by subclass
+    @abstractmethod
     async def read_sensordata(self, disconnect=False) -> bool:
         _LOGGER.debug("Reading sensor data")
-        try:
-            # Make sure we are connected
-            if not await self._fan.connect():
-                raise Exception("Not connected!")
-        except Exception as e:
-            _LOGGER.warning("Error when fetching config data: %s", str(e))
-            return False
-
-        FanState = await self._fan.getState()  # Sensors
-        BoostMode = await self._fan.getBoostMode()  # Sensors?
-
-        if FanState is None:
-            _LOGGER.debug("Could not read data")
-            return False
-        else:
-            self._state["humidity"] = FanState.Humidity
-            self._state["temperature"] = FanState.Temp
-            self._state["light"] = FanState.Light
-            self._state["rpm"] = FanState.RPM
-            if FanState.RPM > 400:
-                self._state["flow"] = int(FanState.RPM * 0.05076 - 14)
-            else:
-                self._state["flow"] = 0
-            self._state["state"] = FanState.Mode
-
-            self._state["boostmode"] = BoostMode.OnOff
-            self._state["boostmodespeedread"] = BoostMode.Speed
-            self._state["boostmodesecread"] = BoostMode.Seconds
-
-        if disconnect:
-            await self._fan.disconnect()
-        return True
 
     # Must be overridden by subclass
     @abstractmethod
@@ -221,7 +191,6 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
             return False
 
         FanMode = await self._fan.getMode()  # Configuration
-        SilentHours = await self._fan.getSilentHours()  # Configuration
         TrickleDays = await self._fan.getTrickleDays()  # Configuration
         AutomaticCycles = await self._fan.getAutomaticCycles()  # Configuration
 
@@ -230,10 +199,6 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
             return False
         else:
             self._state["mode"] = FanMode
-
-            self._state["silenthours_on"] = SilentHours.On
-            self._state["silenthours_starttime"] = dt.time(SilentHours.StartingHour, SilentHours.StartingMinute)
-            self._state["silenthours_endtime"] = dt.time(SilentHours.EndingHour, SilentHours.EndingMinute)
 
             self._state["trickledays_weekdays"] = TrickleDays.Weekdays
             self._state["trickledays_weekends"] = TrickleDays.Weekends

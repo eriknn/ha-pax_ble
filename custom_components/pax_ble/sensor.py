@@ -5,9 +5,10 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.const import CONF_DEVICES
 from homeassistant.const import UnitOfVolumeFlowRate, UnitOfTemperature
-from homeassistant.const import LIGHT_LUX, PERCENTAGE, REVOLUTIONS_PER_MINUTE
+from homeassistant.const import LIGHT_LUX, PERCENTAGE, REVOLUTIONS_PER_MINUTE, CONCENTRATION_PARTS_PER_MILLION
 
-from .const import DOMAIN, CONF_NAME, CONF_MAC
+from .const import DOMAIN, CONF_NAME
+from .const import DeviceModel
 from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -21,6 +22,9 @@ ENTITIES = [
     PaxEntity("flow", "Flow", UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR, None, None, "mdi:weather-windy"),
     PaxEntity("state", "State", None, None, None, None),
     PaxEntity("mode", "Mode", None, None, EntityCategory.DIAGNOSTIC, None)
+]
+SVENSA_ENTITIES = [
+    PaxEntity("airquality", "Air Quality", CONCENTRATION_PARTS_PER_MILLION, SensorDeviceClass.GAS, None, None),
 ]
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
@@ -37,6 +41,12 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
         # Create entities for this device
         for paxentity in ENTITIES:
             ha_entities.append(PaxCalimaSensorEntity(coordinator, paxentity))
+
+        # Device specific entities
+        match coordinator._model:
+            case DeviceModel.SVENSA.value:
+                for paxentity in SVENSA_ENTITIES:
+                    ha_entities.append(PaxCalimaSensorEntity(coordinator, paxentity))
 
     async_add_devices(ha_entities, True)
 
