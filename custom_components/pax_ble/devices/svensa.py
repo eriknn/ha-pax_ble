@@ -10,8 +10,9 @@ from typing import override
 
 _LOGGER = logging.getLogger(__name__)
 
-# Tuples secifically For Svensa
+# Tuples specifically For Svensa
 ConstantOperation = namedtuple("ConstantOperation", "Active Speed")
+FanState = namedtuple("FanState", "Humidity AirQuality Temp Light RPM Mode")
 Humidity = namedtuple("Humidity", "Active Level Speed")
 TimeFunctions = namedtuple("TimeFunctions", "PresenceTime TimeActive TimeMin Speed")
 
@@ -73,8 +74,10 @@ class Svensa(BaseDevice):
             trigger = "Timer"
 
         # FanState = namedtuple("FanState", "Humidity Temp Light RPM Mode")
+        # FanState = namedtuple("FanState", "Humidity AirQuality Temp Light RPM Mode")
         return FanState(
             round(15*math.log2(v[2]) - 75, 2) if v[2] > 35 else 0,
+            v[3],
             v[9],
             v[4],
             v[5],
