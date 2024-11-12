@@ -361,9 +361,9 @@ def getDeviceSchemaAdd(user_input: dict[str, Any] | None = None) -> vol.Schema:
             vol.Required(
                 CONF_NAME, description="Name", default=user_input[CONF_NAME]
             ): cv.string,
-            vol.Required(CONF_MODEL): selector.SelectSelector(
-                selector.SelectSelectorConfig(options=DEVICE_MODELS),
-            ),     
+            vol.Required(
+                CONF_MODEL, description="Model", default=user_input[CONF_MODEL]
+            ): vol.In(DEVICE_MODELS),
             vol.Required(
                 CONF_MAC, description="MAC Address", default=user_input[CONF_MAC]
             ): cv.string,

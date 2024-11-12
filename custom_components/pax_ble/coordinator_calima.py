@@ -1,13 +1,16 @@
 import datetime as dt
 import logging
 
-from .devices.calima import Calima
+from typing import Optional
 
-from .coordinator import PaxCoordinator
+from .coordinator import BaseCoordinator
+from .devices.calima import Calima
 
 _LOGGER = logging.getLogger(__name__)
 
-class CalimaCoordinator(PaxCoordinator):
+class CalimaCoordinator(BaseCoordinator):
+    _fan: Optional[Calima] = None  # This is basically a type hint
+
     def __init__(self, hass, device, model, mac, pin, scan_interval, scan_interval_fast):
         """Initialize coordinator parent"""
         super().__init__(hass, device, model, mac, pin, scan_interval, scan_interval_fast)
@@ -69,7 +72,7 @@ class CalimaCoordinator(PaxCoordinator):
                     )
                 case "silenthours_on" | "silenthours_starttime" | "silenthours_endtime":
                     await self._fan.setSilentHours(
-                        bool(int(self._state["silenthours_on"])),
+                        bool(self._state["silenthours_on"]),
                         self._state["silenthours_starttime"],
                         self._state["silenthours_endtime"],
                     )
@@ -106,6 +109,11 @@ class CalimaCoordinator(PaxCoordinator):
         Sensitivity = await self._fan.getSensorsSensitivity()  # Configuration
         self._state["sensitivity_humidity"] = Sensitivity.Humidity
         self._state["sensitivity_light"] = Sensitivity.Light
+
+        SilentHours = await self._fan.getSilentHours()  # Configuration
+        self._state["silenthours_on"] = SilentHours.On
+        self._state["silenthours_starttime"] = dt.time(SilentHours.StartingHour, SilentHours.StartingMinute)
+        self._state["silenthours_endtime"] = dt.time(SilentHours.EndingHour, SilentHours.EndingMinute)
 
         if disconnect:
             await self._fan.disconnect()

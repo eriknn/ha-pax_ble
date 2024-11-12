@@ -22,11 +22,6 @@ TrickleDays = namedtuple("TrickleDays", "Weekdays Weekends")
 BoostMode = namedtuple("BoostMode", "OnOff Speed Seconds")
 FanState = namedtuple("FanState", "Humidity Temp Light RPM Mode")
 
-# For svensa
-ConstantOperation = namedtuple("ConstantOperation", "Active Speed")
-Humidity = namedtuple("Humidity", "Active Level Speed")
-TimeFunctions = namedtuple("TimeFunctions", "PresenceTime TimeActive TimeMin Speed")
-
 class BaseDevice():
     chars = {}
 

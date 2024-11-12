@@ -6,25 +6,16 @@ from homeassistant.components.time import TimeEntity
 from homeassistant.const import CONF_DEVICES
 from homeassistant.helpers.entity import EntityCategory
 
-from .const import DOMAIN, CONF_NAME, CONF_MAC
+from .const import DOMAIN, CONF_NAME
+from .const import DeviceModel
 from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 PaxEntity = namedtuple('PaxEntity', ['key', 'entityName', 'category', 'icon'])
-ENTITIES = [
-    PaxEntity(
-        "silenthours_starttime",
-        "SilentHours Start Time",
-        EntityCategory.CONFIG,
-        "mdi:clock-outline",
-    ),
-    PaxEntity(
-        "silenthours_endtime",
-        "SilentHours End Time",
-        EntityCategory.CONFIG,
-        "mdi:clock-outline",
-    ),
+CALIMA_ENTITIES = [
+    PaxEntity("silenthours_starttime","SilentHours Start Time",EntityCategory.CONFIG,"mdi:clock-outline"),
+    PaxEntity("silenthours_endtime","SilentHours End Time",EntityCategory.CONFIG,"mdi:clock-outline"),
 ]
 
 
@@ -39,9 +30,14 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
         # Find coordinator for this device
         coordinator = hass.data[DOMAIN][CONF_DEVICES][device_id]
 
-        # Create entities for this device
-        for paxentity in ENTITIES:
-            ha_entities.append(PaxCalimaTimeEntity(coordinator, paxentity))
+        # Device specific entities
+        match coordinator._model:
+            case DeviceModel.CALIMA.value | DeviceModel.SVARA.value:
+                for paxentity in CALIMA_ENTITIES:
+                    ha_entities.append(PaxCalimaTimeEntity(coordinator, paxentity))
+            case DeviceModel.SVENSA.value:
+                # Svensa does not support these entities
+                pass
 
     async_add_devices(ha_entities, True)
 

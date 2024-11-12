@@ -1,13 +1,15 @@
-import datetime as dt
 import logging
 
-from .devices.svensa import Svensa
+from typing import Optional
 
-from .coordinator import PaxCoordinator
+from .coordinator import BaseCoordinator
+from .devices.svensa import Svensa
 
 _LOGGER = logging.getLogger(__name__)
 
-class SvensaCoordinator(PaxCoordinator):
+class SvensaCoordinator(BaseCoordinator):
+    _fan: Optional[Svensa] = None  # This is basically a type hint
+
     def __init__(self, hass, device, model, mac, pin, scan_interval, scan_interval_fast):
         """Initialize coordinator parent"""
         super().__init__(hass, device, model, mac, pin, scan_interval, scan_interval_fast)
@@ -46,13 +48,13 @@ class SvensaCoordinator(PaxCoordinator):
                         int(self._state["boostmodespeedwrite"]),
                         int(self._state["boostmodesecwrite"]),
                     )
-                case "fanspeed_humidity" | "sensitivity_humidity":
+                case "sensitivity_humidity" | "fanspeed_humidity":
                     await self._fan.setHumidity(
                         int(self._state["sensitivity_humidity"]) != 0,
                         int(self._state["sensitivity_humidity"]),
                         int(self._state["fanspeed_humidity"]),
                     )
-                case "fanspeed_light" | "lightsensorsettings_runningtime" | "lightsensorsettings_delayedstart":
+                case "lightsensorsettings_delayedstart" | "lightsensorsettings_runningtime" | "fanspeed_light":
                     await self._fan.setTimeFunctions(
                         int(self._state["lightsensorsettings_delayedstart"]),
                         int(self._state["lightsensorsettings_runningtime"]),
@@ -74,7 +76,7 @@ class SvensaCoordinator(PaxCoordinator):
                     )
                 case "silenthours_on" | "silenthours_starttime" | "silenthours_endtime":
                     await self._fan.setSilentHours(
-                        bool(int(self._state["silenthours_on"])),
+                        bool(self._state["silenthours_on"]),
                         self._state["silenthours_starttime"],
                         self._state["silenthours_endtime"],
                     )

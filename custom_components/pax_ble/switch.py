@@ -5,7 +5,8 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import CONF_DEVICES
 from homeassistant.helpers.entity import EntityCategory
 
-from .const import DOMAIN, CONF_NAME, CONF_MAC
+from .const import DOMAIN, CONF_NAME
+from .const import DeviceModel
 from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -16,9 +17,11 @@ boostmode_attribute = PaxAttribute('boostmodesecread', 'Boost time remaining', '
 PaxEntity = namedtuple('PaxEntity', ['key', 'entityName', 'category', 'icon', 'attributes'])
 ENTITIES = [
     PaxEntity("boostmode", "BoostMode", None, "mdi:wind-power", boostmode_attribute),
-    PaxEntity("silenthours_on", "SilentHours On", EntityCategory.CONFIG, "mdi:volume-off", None),
     PaxEntity("trickledays_weekdays", "TrickleDays Weekdays", EntityCategory.CONFIG, "mdi:calendar", None),
     PaxEntity("trickledays_weekends", "TrickleDays Weekends", EntityCategory.CONFIG, "mdi:calendar", None),
+]
+CALIMA_ENTITIES = [
+    PaxEntity("silenthours_on", "SilentHours On", EntityCategory.CONFIG, "mdi:volume-off", None),
 ]
 
 
@@ -36,6 +39,15 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
         # Create entities for this device
         for paxentity in ENTITIES:
             ha_entities.append(PaxCalimaSwitchEntity(coordinator, paxentity))
+
+        # Device specific entities
+        match coordinator._model:
+            case DeviceModel.CALIMA.value | DeviceModel.SVARA.value:
+                for paxentity in CALIMA_ENTITIES:
+                    ha_entities.append(PaxCalimaSwitchEntity(coordinator, paxentity))
+            case DeviceModel.SVENSA.value:
+                # Svensa does not support these entities
+                pass
 
     async_add_devices(ha_entities, True)
 

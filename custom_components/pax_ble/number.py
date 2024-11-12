@@ -9,13 +9,9 @@ from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import DOMAIN, CONF_NAME, CONF_MAC
-from .entity import PaxCalimaEntity
-
+from .const import DOMAIN, CONF_NAME
 from .const import DeviceModel
-from .devices.calima import Calima
-from .devices.svara import Svara
-from .devices.svensa import Svensa
+from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
 

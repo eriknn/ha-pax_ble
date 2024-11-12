@@ -4,11 +4,15 @@ import logging
 
 from abc import ABC, abstractmethod
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from typing import Optional
+
+from .devices.base_device import BaseDevice
 
 _LOGGER = logging.getLogger(__name__)
 
-class PaxCoordinator(DataUpdateCoordinator, ABC):
+class BaseCoordinator(DataUpdateCoordinator, ABC):
     _fast_poll_enabled = False
     _fast_poll_count = 0
     _normal_poll_interval = 60
@@ -17,7 +21,10 @@ class PaxCoordinator(DataUpdateCoordinator, ABC):
     _deviceInfoLoaded = False
     _last_config_timestamp = None
 
-    def __init__(self, hass, device, model, mac, pin, scan_interval, scan_interval_fast):
+    # Should be set by a child class
+    _fan: Optional[BaseDevice] = None  # This is basically a type hint
+
+    def __init__(self, hass, device:DeviceEntry, model:str, mac:str, pin:int, scan_interval:int, scan_interval_fast:int):
         """Initialize coordinator parent"""
         super().__init__(
             hass,
@@ -197,7 +204,7 @@ class PaxCoordinator(DataUpdateCoordinator, ABC):
             await self._fan.disconnect()
         return True
 
-    # Must be overridde by subclass
+    # Must be overridden by subclass
     @abstractmethod
     async def write_data(self, key) -> bool:
         _LOGGER.debug("Write_Data: %s", key)
@@ -214,7 +221,6 @@ class PaxCoordinator(DataUpdateCoordinator, ABC):
             return False
 
         FanMode = await self._fan.getMode()  # Configuration
-
         SilentHours = await self._fan.getSilentHours()  # Configuration
         TrickleDays = await self._fan.getTrickleDays()  # Configuration
         AutomaticCycles = await self._fan.getAutomaticCycles()  # Configuration

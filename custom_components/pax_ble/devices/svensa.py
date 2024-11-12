@@ -2,12 +2,18 @@ import logging
 import math
 
 from .characteristics import *
-from .base_device import BaseDevice, FanState, ConstantOperation, Humidity, TimeFunctions
+from .base_device import BaseDevice, FanState
 
+from collections import namedtuple
 from struct import pack, unpack
 from typing import override
 
 _LOGGER = logging.getLogger(__name__)
+
+# Tuples secifically For Svensa
+ConstantOperation = namedtuple("ConstantOperation", "Active Speed")
+Humidity = namedtuple("Humidity", "Active Level Speed")
+TimeFunctions = namedtuple("TimeFunctions", "PresenceTime TimeActive TimeMin Speed")
 
 class Svensa(BaseDevice):
     def __init__(self, hass, mac, pin):
