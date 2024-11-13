@@ -179,30 +179,7 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
     async def write_data(self, key) -> bool:
         _LOGGER.debug("Write_Data: %s", key)
 
-    # Should be extended by subclass
+    # Must be overridden by subclass
+    @abstractmethod
     async def read_configdata(self, disconnect=False) -> bool:
         _LOGGER.debug("Reading config data")
-        try:
-            # Make sure we are connected
-            if not await self._fan.connect():
-                raise Exception("Not connected!")
-        except Exception as e:
-            _LOGGER.warning("Error when fetching config data: %s", str(e))
-            return False
-
-        FanMode = await self._fan.getMode()  # Configuration
-        TrickleDays = await self._fan.getTrickleDays()  # Configuration
-        AutomaticCycles = await self._fan.getAutomaticCycles()  # Configuration
-
-        if FanMode is None:
-            _LOGGER.debug("Could not read config")
-            return False
-        else:
-            self._state["mode"] = FanMode
-
-            self._state["trickledays_weekdays"] = TrickleDays.Weekdays
-            self._state["trickledays_weekends"] = TrickleDays.Weekends
-
-            self._state["automatic_cycles"] = AutomaticCycles
-
-        return True

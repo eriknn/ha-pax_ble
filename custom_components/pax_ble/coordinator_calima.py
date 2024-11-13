@@ -123,10 +123,20 @@ class CalimaCoordinator(BaseCoordinator):
         return True
 
     async def read_configdata(self, disconnect=False) -> bool:
-        if not await super().read_configdata(disconnect):
+        try:
+            # Make sure we are connected
+            if not await self._fan.connect():
+                raise Exception("Not connected!")
+        except Exception as e:
+            _LOGGER.warning("Error when fetching config data: %s", str(e))
             return False
         
-        # Device specific configs
+        AutomaticCycles = await self._fan.getAutomaticCycles()  # Configuration
+        self._state["automatic_cycles"] = AutomaticCycles
+
+        FanMode = await self._fan.getMode()  # Configurations
+        self._state["mode"] = FanMode
+
         FanSpeeds = await self._fan.getFanSpeedSettings()  # Configuration
         self._state["fanspeed_humidity"] = FanSpeeds.Humidity
         self._state["fanspeed_light"] = FanSpeeds.Light
@@ -149,6 +159,10 @@ class CalimaCoordinator(BaseCoordinator):
         self._state["silenthours_on"] = SilentHours.On
         self._state["silenthours_starttime"] = dt.time(SilentHours.StartingHour, SilentHours.StartingMinute)
         self._state["silenthours_endtime"] = dt.time(SilentHours.EndingHour, SilentHours.EndingMinute)
+
+        TrickleDays = await self._fan.getTrickleDays()  # Configuration
+        self._state["trickledays_weekdays"] = TrickleDays.Weekdays
+        self._state["trickledays_weekends"] = TrickleDays.Weekends
 
         if disconnect:
             await self._fan.disconnect()

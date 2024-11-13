@@ -97,9 +97,9 @@ class SvensaCoordinator(BaseCoordinator):
                         int(self._state["lightsensorsettings_runningtime"]),
                         int(self._state["fanspeed_light"])
                     )
-                case "fanspeed_trickle":
+                case "trickle_on" | "fanspeed_trickle":
                     await self._fan.setConstantOperation(
-                        int(self._state["fanspeed_trickle"]) != 0,
+                        bool(self._state["trickle_on"]),
                         int(self._state["fanspeed_trickle"])
                     )            
                 case "sensitivity_light":
@@ -128,10 +128,20 @@ class SvensaCoordinator(BaseCoordinator):
         return True
 
     async def read_configdata(self, disconnect=False) -> bool:
-        if not await super().read_configdata(disconnect):
+        try:
+            # Make sure we are connected
+            if not await self._fan.connect():
+                raise Exception("Not connected!")
+        except Exception as e:
+            _LOGGER.warning("Error when fetching config data: %s", str(e))
             return False
-            
-        # Device specific configs
+
+        AutomaticCycles = await self._fan.getAutomaticCycles()  # Configuration
+        self._state["automatic_cycles"] = AutomaticCycles.TimeMin
+
+        FanMode = await self._fan.getMode()  # Configurations
+        self._state["mode"] = FanMode
+
         Humidity =  await self._fan.getHumidity()  # Configuration
         self._state["fanspeed_humidity"] = Humidity.Speed
         self._state["sensitivity_humidity"] = Humidity.Level
@@ -142,6 +152,7 @@ class SvensaCoordinator(BaseCoordinator):
         self._state["lightsensorsettings_runningtime"] = TimeFunctions.TimeActive
 
         ConstantOperation = await self._fan.getConstantOperation()  # Configuration
+        self._state["trickle_on"] = ConstantOperation.Active
         self._state["fanspeed_trickle"] = ConstantOperation.Speed
 
         if disconnect:

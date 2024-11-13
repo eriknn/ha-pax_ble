@@ -11,6 +11,7 @@ from typing import override
 _LOGGER = logging.getLogger(__name__)
 
 # Tuples specifically For Svensa
+AutomaticCycles = namedtuple("AutomaticCycles", "Active Hour TimeMin Speed")
 ConstantOperation = namedtuple("ConstantOperation", "Active Speed")
 FanState = namedtuple("FanState", "Humidity AirQuality Temp Light RPM Mode")
 Humidity = namedtuple("Humidity", "Active Level Speed")
@@ -39,9 +40,6 @@ class Svensa(BaseDevice):
     ################################################
     @override
     async def getState(self) -> FanState:
-        # We probably have to modify the FanState object as the fans have different sensors....
-        # This also means we must vary which entities to create etc...
-
         # Byte  Byte    Short Short Short Short    Byte Byte Byte Byte  Byte
         # Trg1  Trg2    Hum   Gas   Light FanSpeed Tbd  Tbd  Tbd  Temp? Tbd
         v = unpack("<2B4HBBBBB", await self._readUUID(self.chars[CHARACTERISTIC_SENSOR_DATA]))
@@ -73,7 +71,6 @@ class Svensa(BaseDevice):
         else:
             trigger = "Timer"
 
-        # FanState = namedtuple("FanState", "Humidity Temp Light RPM Mode")
         # FanState = namedtuple("FanState", "Humidity AirQuality Temp Light RPM Mode")
         return FanState(
             round(15*math.log2(v[2]) - 75, 2) if v[2] > 35 else 0,
@@ -84,6 +81,19 @@ class Svensa(BaseDevice):
             trigger
         )
         
+    @override
+    async def setAutomaticCycles(self, active:bool, hour:int, timeMin:int, speed:int) -> None:
+        if timeMin < 0 or timeMin > 3:
+            raise ValueError("Setting must be between 0-3")
+
+        await self._writeUUID(self.chars[CHARACTERISTIC_AUTOMATIC_CYCLES], pack("<3BH", active, hour, timeMin, speed))
+
+    @override
+    async def getAutomaticCycles(self) -> AutomaticCycles:
+        return AutomaticCycles._make(
+            unpack("<3BH", await self._readUUID(self.chars[CHARACTERISTIC_AUTOMATIC_CYCLES]))
+        )
+
     ################################################
     ########### FUNCTIONS JUST FOR SVENSA ##########
     ################################################

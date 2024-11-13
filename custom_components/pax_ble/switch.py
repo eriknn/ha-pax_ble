@@ -17,11 +17,14 @@ boostmode_attribute = PaxAttribute('boostmodesecread', 'Boost time remaining', '
 PaxEntity = namedtuple('PaxEntity', ['key', 'entityName', 'category', 'icon', 'attributes'])
 ENTITIES = [
     PaxEntity("boostmode", "BoostMode", None, "mdi:wind-power", boostmode_attribute),
-    PaxEntity("trickledays_weekdays", "TrickleDays Weekdays", EntityCategory.CONFIG, "mdi:calendar", None),
-    PaxEntity("trickledays_weekends", "TrickleDays Weekends", EntityCategory.CONFIG, "mdi:calendar", None),
 ]
 CALIMA_ENTITIES = [
+    PaxEntity("trickledays_weekdays", "TrickleDays Weekdays", EntityCategory.CONFIG, "mdi:calendar", None),
+    PaxEntity("trickledays_weekends", "TrickleDays Weekends", EntityCategory.CONFIG, "mdi:calendar", None),
     PaxEntity("silenthours_on", "SilentHours On", EntityCategory.CONFIG, "mdi:volume-off", None),
+]
+SVENSA_ENTITIES = [
+    PaxEntity("trickle_on", "Trickle On", EntityCategory.CONFIG, "mdi:volume-off", None),
 ]
 
 
@@ -46,8 +49,8 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
                 for paxentity in CALIMA_ENTITIES:
                     ha_entities.append(PaxCalimaSwitchEntity(coordinator, paxentity))
             case DeviceModel.SVENSA.value:
-                # Svensa does not support these entities
-                pass
+                for paxentity in SVENSA_ENTITIES:
+                    ha_entities.append(PaxCalimaSwitchEntity(coordinator, paxentity))
 
     async_add_devices(ha_entities, True)
 
