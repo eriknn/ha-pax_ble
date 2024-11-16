@@ -90,12 +90,19 @@ class SvensaCoordinator(BaseCoordinator):
                         int(self._state["sensitivity_humidity"]),
                         int(self._state["fanspeed_humidity"]),
                     )
-                case "lightsensorsettings_delayedstart" | "lightsensorsettings_runningtime" | "fanspeed_light":
+                case "sensitivity_presence" | "sensitivity_gas":
+                    await self._fan.setPresenceGas(
+                        int(self._state["sensitivity_presence"]) != 0,
+                        int(self._state["sensitivity_presence"]),
+                        int(self._state["sensitivity_gas"]) != 0,
+                        int(self._state["sensitivity_gas"]),
+                    )
+                case "sensor_delayedstart" | "sensor_runningtime" | "fanspeed_sensor":
                     await self._fan.setTimeFunctions(
-                        int(self._state["lightsensorsettings_delayedstart"]),
-                        int(self._state["lightsensorsettings_runningtime"]),
-                        int(self._state["lightsensorsettings_runningtime"]),
-                        int(self._state["fanspeed_light"])
+                        int(self._state["sensor_delayedstart"]),
+                        int(self._state["sensor_runningtime"]),
+                        int(self._state["sensor_runningtime"]),
+                        int(self._state["fanspeed_sensor"])
                     )
                 case "trickle_on" | "fanspeed_trickle":
                     await self._fan.setConstantOperation(
@@ -105,17 +112,6 @@ class SvensaCoordinator(BaseCoordinator):
                 case "sensitivity_light":
                     # Should we do anything here?
                     pass
-                case "trickledays_weekdays" | "trickledays_weekends":
-                    await self._fan.setTrickleDays(
-                        int(self._state["trickledays_weekdays"]),
-                        int(self._state["trickledays_weekends"]),
-                    )
-                case "silenthours_on" | "silenthours_starttime" | "silenthours_endtime":
-                    await self._fan.setSilentHours(
-                        bool(self._state["silenthours_on"]),
-                        self._state["silenthours_starttime"],
-                        self._state["silenthours_endtime"],
-                    )
 
                 case _:
                     return False
@@ -138,22 +134,32 @@ class SvensaCoordinator(BaseCoordinator):
 
         AutomaticCycles = await self._fan.getAutomaticCycles()  # Configuration
         self._state["automatic_cycles"] = AutomaticCycles.TimeMin
-
-        FanMode = await self._fan.getMode()  # Configurations
-        self._state["mode"] = FanMode
-
-        Humidity =  await self._fan.getHumidity()  # Configuration
-        self._state["fanspeed_humidity"] = Humidity.Speed
-        self._state["sensitivity_humidity"] = Humidity.Level
-
-        TimeFunctions = await self._fan.getTimeFunctions()  # Configuration
-        self._state["fanspeed_light"] = TimeFunctions.Speed
-        self._state["lightsensorsettings_delayedstart"] = TimeFunctions.PresenceTime
-        self._state["lightsensorsettings_runningtime"] = TimeFunctions.TimeActive
+        _LOGGER.debug(f"Automatic cycles: {AutomaticCycles}")
 
         ConstantOperation = await self._fan.getConstantOperation()  # Configuration
         self._state["trickle_on"] = ConstantOperation.Active
         self._state["fanspeed_trickle"] = ConstantOperation.Speed
+        _LOGGER.debug(f"Constant Op: {ConstantOperation}")
+
+        FanMode = await self._fan.getMode()  # Configurations
+        self._state["mode"] = FanMode
+        _LOGGER.debug(f"FanMode: {FanMode}")
+
+        Humidity =  await self._fan.getHumidity()  # Configuration
+        self._state["fanspeed_humidity"] = Humidity.Speed
+        self._state["sensitivity_humidity"] = Humidity.Level
+        _LOGGER.debug(f"Humidity: {Humidity}")
+
+        PresenceGas =  await self._fan.getPresenceGas()  # Configuration
+        self._state["sensitivity_presence"] = PresenceGas.PresenceLevel
+        self._state["sensitivity_gas"] = PresenceGas.GasLevel
+        _LOGGER.debug(f"PresenceGas: {PresenceGas}")
+
+        TimeFunctions = await self._fan.getTimeFunctions()  # Configuration
+        self._state["fanspeed_sensor"] = TimeFunctions.Speed
+        self._state["sensor_delayedstart"] = TimeFunctions.PresenceTime
+        self._state["sensor_runningtime"] = TimeFunctions.TimeActive
+        _LOGGER.debug(f"Time Functions: {TimeFunctions}")
 
         if disconnect:
             await self._fan.disconnect()

@@ -5,7 +5,8 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.const import CONF_DEVICES
 from homeassistant.helpers.entity import EntityCategory
 
-from .const import DOMAIN, CONF_NAME, CONF_MAC
+from .const import DOMAIN, CONF_NAME
+from .const import DeviceModel
 from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -31,43 +32,20 @@ OPTIONS = {
 
 PaxEntity = namedtuple('PaxEntity', ['key', 'entityName', 'category', 'icon', 'options'])
 ENTITIES = [
-    PaxEntity(
-        "automatic_cycles",
-        "Automatic Cycles",
-        EntityCategory.CONFIG,
-        "mdi:fan-auto",
-        OPTIONS["automatic_cycles"],
-    ),
-    PaxEntity(
-        "lightsensorsettings_delayedstart",
-        "LightSensorSettings DelayedStart",
-        EntityCategory.CONFIG,
-        "mdi:timer-outline",
-        OPTIONS["lightsensorsettings_delayedstart"],
-    ),
-    PaxEntity(
-        "lightsensorsettings_runningtime",
-        "LightSensorSettings Runningtime",
-        EntityCategory.CONFIG,
-        "mdi:timer-outline",
-        OPTIONS["lightsensorsettings_runningtime"],
-    ),
-    PaxEntity(
-        "sensitivity_humidity",
-        "Sensitivity Humidity",
-        EntityCategory.CONFIG,
-        "mdi:water-percent",
-        OPTIONS["sensitivity"],
-    ),
-    PaxEntity(
-        "sensitivity_light",
-        "Sensitivity Light",
-        EntityCategory.CONFIG,
-        "mdi:brightness-5",
-        OPTIONS["sensitivity"],
-    ),
+    PaxEntity("automatic_cycles","Automatic Cycles",EntityCategory.CONFIG,"mdi:fan-auto",OPTIONS["automatic_cycles"]),
+    PaxEntity("sensitivity_humidity","Sensitivity Humidity",EntityCategory.CONFIG,"mdi:water-percent",OPTIONS["sensitivity"]),
+    PaxEntity("sensitivity_light","Sensitivity Light",EntityCategory.CONFIG,"mdi:brightness-5",OPTIONS["sensitivity"]),
 ]
-
+CALIMA_ENTITIES = [
+    PaxEntity("lightsensorsettings_delayedstart","LightSensorSettings DelayedStart",EntityCategory.CONFIG,"mdi:timer-outline",OPTIONS["lightsensorsettings_delayedstart"]),
+    PaxEntity("lightsensorsettings_runningtime","LightSensorSettings Runningtime",EntityCategory.CONFIG,"mdi:timer-outline",OPTIONS["lightsensorsettings_runningtime"]),
+]
+SVENSA_ENTITIES = [
+    PaxEntity("sensitivity_presence","Sensitivity Presence",EntityCategory.CONFIG,"mdi:molecule",OPTIONS["sensitivity"]),
+    PaxEntity("sensitivity_gas","Sensitivity Gas",EntityCategory.CONFIG,"mdi:molecule",OPTIONS["sensitivity"]),
+    PaxEntity("sensor_delayedstart","Sensor DelayedStart",EntityCategory.CONFIG,"mdi:timer-outline",OPTIONS["lightsensorsettings_delayedstart"]),
+    PaxEntity("sensor_runningtime","Sensor Runningtime",EntityCategory.CONFIG,"mdi:timer-outline",OPTIONS["lightsensorsettings_runningtime"]),
+]
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
     """Setup selects from a config entry created in the integrations UI."""
@@ -83,6 +61,15 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
         # Create entities for this device
         for paxentity in ENTITIES:
             ha_entities.append(PaxCalimaSelectEntity(coordinator, paxentity))
+
+        # Device specific entities
+        match coordinator._model:
+            case DeviceModel.CALIMA.value:
+                for paxentity in CALIMA_ENTITIES:
+                    ha_entities.append(PaxCalimaSelectEntity(coordinator, paxentity))
+            case DeviceModel.SVENSA.value:
+                for paxentity in SVENSA_ENTITIES:
+                    ha_entities.append(PaxCalimaSelectEntity(coordinator, paxentity))
 
     async_add_devices(ha_entities, True)
 
