@@ -7,7 +7,6 @@ from .base_device import BaseDevice
 
 from collections import namedtuple
 from struct import pack, unpack
-from typing import override
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -34,6 +34,7 @@ CALIMA_ENTITIES = [
     PaxEntity("fanspeed_light","Fanspeed Light",REVOLUTIONS_PER_MINUTE,None,EntityCategory.CONFIG,"mdi:engine",OPTIONS["fanspeed"],),
 ]
 SVENSA_ENTITIES = [
+    PaxEntity("fanspeed_airing","Fanspeed Airing",REVOLUTIONS_PER_MINUTE,None,EntityCategory.CONFIG,"mdi:engine",OPTIONS["fanspeed"],),    
     PaxEntity("fanspeed_sensor","Fanspeed Sensor",REVOLUTIONS_PER_MINUTE,None,EntityCategory.CONFIG,"mdi:engine",OPTIONS["fanspeed"],),
 ]
 RESTOREENTITIES = [

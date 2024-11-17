@@ -6,7 +6,6 @@ import datetime
 from bleak import BleakClient
 from bleak.exc import BleakError
 import binascii
-import math
 from collections import namedtuple
 import logging
 

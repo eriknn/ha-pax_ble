@@ -15,7 +15,7 @@ class SvensaCoordinator(BaseCoordinator):
         super().__init__(hass, device, model, mac, pin, scan_interval, scan_interval_fast)
 
         # Initialize correct fan
-        _LOGGER.debug("Initializing Svansa!")
+        _LOGGER.debug("Initializing Svensa!")
         self._fan = Svensa(hass, mac, pin)
 
     async def read_sensordata(self, disconnect=False) -> bool:
@@ -70,9 +70,11 @@ class SvensaCoordinator(BaseCoordinator):
         try:
             # Write data
             match key:
-                case "automatic_cycles":
+                case "airing" | "fanspeed_airing":
                     await self._fan.setAutomaticCycles(
-                        int(self._state["automatic_cycles"])
+                        26,
+                        int(self._state["airing"]),
+                        int(self._state["fanspeed_airing"])
                     )
                 case "boostmode":
                     # Use default values if not set up
@@ -97,11 +99,11 @@ class SvensaCoordinator(BaseCoordinator):
                         int(self._state["sensitivity_gas"]) != 0,
                         int(self._state["sensitivity_gas"]),
                     )
-                case "sensor_delayedstart" | "sensor_runningtime" | "fanspeed_sensor":
-                    await self._fan.setTimeFunctions(
-                        int(self._state["sensor_delayedstart"]),
-                        int(self._state["sensor_runningtime"]),
-                        int(self._state["sensor_runningtime"]),
+                case "timer_runtime" | "timer_delay" | "fanspeed_sensor":
+                    await self._fan.setTimerFunctions(
+                        int(self._state["timer_runtime"]),
+                        int(self._state["timer_delay"]) != 0,
+                        int(self._state["timer_delay"]),
                         int(self._state["fanspeed_sensor"])
                     )
                 case "trickle_on" | "fanspeed_trickle":
@@ -133,7 +135,8 @@ class SvensaCoordinator(BaseCoordinator):
             return False
 
         AutomaticCycles = await self._fan.getAutomaticCycles()  # Configuration
-        self._state["automatic_cycles"] = AutomaticCycles.TimeMin
+        self._state["airing"] = AutomaticCycles.TimeMin
+        self._state["fanspeed_airing"] = AutomaticCycles.Speed
         _LOGGER.debug(f"Automatic cycles: {AutomaticCycles}")
 
         ConstantOperation = await self._fan.getConstantOperation()  # Configuration
@@ -155,10 +158,10 @@ class SvensaCoordinator(BaseCoordinator):
         self._state["sensitivity_gas"] = PresenceGas.GasLevel
         _LOGGER.debug(f"PresenceGas: {PresenceGas}")
 
-        TimeFunctions = await self._fan.getTimeFunctions()  # Configuration
+        TimeFunctions = await self._fan.getTimerFunctions()  # Configuration
+        self._state["timer_runtime"] = TimeFunctions.PresenceTime
+        self._state["timer_delay"] = TimeFunctions.TimeMin
         self._state["fanspeed_sensor"] = TimeFunctions.Speed
-        self._state["sensor_delayedstart"] = TimeFunctions.PresenceTime
-        self._state["sensor_runningtime"] = TimeFunctions.TimeActive
         _LOGGER.debug(f"Time Functions: {TimeFunctions}")
 
         if disconnect:

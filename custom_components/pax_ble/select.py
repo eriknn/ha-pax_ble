@@ -13,6 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Creating nested dictionary of key/pairs
 OPTIONS = {
+    "airing": {"0": "Off", "30": "30 min", "60": "60 min", "90": "90 min", "120": "120 min"},
     "automatic_cycles": {"0": "Off", "1": "30 min", "2": "60 min", "3": "90 min"},
     "lightsensorsettings_delayedstart": {"0": "No delay", "5": "5 min", "10": "10 min"},
     "lightsensorsettings_runningtime": {
@@ -28,23 +29,29 @@ OPTIONS = {
         "2": "Medium sensitivity",
         "3": "High sensitivity",
     },
+    "timer_delay": {
+        "0": "Off",
+        "2": "2 min",
+        "4": "4 min",
+    },
 }
 
 PaxEntity = namedtuple('PaxEntity', ['key', 'entityName', 'category', 'icon', 'options'])
 ENTITIES = [
-    PaxEntity("automatic_cycles","Automatic Cycles",EntityCategory.CONFIG,"mdi:fan-auto",OPTIONS["automatic_cycles"]),
     PaxEntity("sensitivity_humidity","Sensitivity Humidity",EntityCategory.CONFIG,"mdi:water-percent",OPTIONS["sensitivity"]),
-    PaxEntity("sensitivity_light","Sensitivity Light",EntityCategory.CONFIG,"mdi:brightness-5",OPTIONS["sensitivity"]),
 ]
 CALIMA_ENTITIES = [
+    PaxEntity("automatic_cycles","Automatic Cycles",EntityCategory.CONFIG,"mdi:fan-auto",OPTIONS["automatic_cycles"]),
+    PaxEntity("sensitivity_light","Sensitivity Light",EntityCategory.CONFIG,"mdi:brightness-5",OPTIONS["sensitivity"]),
     PaxEntity("lightsensorsettings_delayedstart","LightSensorSettings DelayedStart",EntityCategory.CONFIG,"mdi:timer-outline",OPTIONS["lightsensorsettings_delayedstart"]),
     PaxEntity("lightsensorsettings_runningtime","LightSensorSettings Runningtime",EntityCategory.CONFIG,"mdi:timer-outline",OPTIONS["lightsensorsettings_runningtime"]),
 ]
 SVENSA_ENTITIES = [
-    PaxEntity("sensitivity_presence","Sensitivity Presence",EntityCategory.CONFIG,"mdi:molecule",OPTIONS["sensitivity"]),
+    PaxEntity("airing","Airing",EntityCategory.CONFIG,"mdi:fan-auto",OPTIONS["airing"]),
+    PaxEntity("sensitivity_presence","Sensitivity Presence",EntityCategory.CONFIG,"mdi:brightness-5",OPTIONS["sensitivity"]),
     PaxEntity("sensitivity_gas","Sensitivity Gas",EntityCategory.CONFIG,"mdi:molecule",OPTIONS["sensitivity"]),
-    PaxEntity("sensor_delayedstart","Sensor DelayedStart",EntityCategory.CONFIG,"mdi:timer-outline",OPTIONS["lightsensorsettings_delayedstart"]),
-    PaxEntity("sensor_runningtime","Sensor Runningtime",EntityCategory.CONFIG,"mdi:timer-outline",OPTIONS["lightsensorsettings_runningtime"]),
+    PaxEntity("timer_runtime","Timer Runtime",EntityCategory.CONFIG,"mdi:timer-outline",OPTIONS["lightsensorsettings_runningtime"]),
+    PaxEntity("timer_delay","Timer Delay",EntityCategory.CONFIG,"mdi:timer-outline",OPTIONS["timer_delay"]),
 ]
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
@@ -122,3 +129,4 @@ class PaxCalimaSelectEntity(PaxCalimaEntity, SelectEntity):
             """Restore value"""
             self.coordinator.set_data(self._key, old_value)
         self.async_schedule_update_ha_state(force_refresh=False)
+ # type: ignore
