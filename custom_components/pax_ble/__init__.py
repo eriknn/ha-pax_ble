@@ -1,8 +1,9 @@
 """Support for Pax fans."""
 import logging
 
+from functools import partial
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -65,7 +66,38 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Set up options listener
     entry.async_on_unload(entry.add_update_listener(update_listener))
     
+    # Register services
+    hass.services.async_register(DOMAIN, "request_update",partial(service_request_update, hass))
+
     return True
+
+# Service-call to update values
+async def service_request_update(hass, call: ServiceCall):
+    _LOGGER.debug("Service request to update values triggered!")
+    """Handle the service call to update entities for a specific device."""
+    device_id = call.data.get("device_id")
+    if not device_id:
+        _LOGGER.error("Device ID is required")
+        return
+
+    # Get the device entry from the device registry
+    device_registry = dr.async_get(hass)
+    device_entry = device_registry.async_get(device_id)
+    if not device_entry:
+        _LOGGER.error("No device entry found for device ID %s", device_id)
+        return
+    
+    """Find the coordinator corresponding to the given device ID."""
+    coordinators = hass.data[DOMAIN].get(CONF_DEVICES, {})
+
+    # Iterate through all coordinators and check their device_id property
+    for coordinator in coordinators.values():
+        if getattr(coordinator, "device_id", None) == device_id:
+            _LOGGER.debug(f"Found coordinator")
+            await coordinator._async_update_data()
+            return
+
+    _LOGGER.warning("No coordinator found for device ID %s", device_id)
 
 # Example migration function
 async def async_migrate_entry(hass, config_entry: ConfigEntry):
