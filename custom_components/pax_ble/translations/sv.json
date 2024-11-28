@@ -82,5 +82,16 @@
                 "remove_device": "Ta bort enhet"
             }
         }
+    },
+    "services": {
+        "request_update": {
+            "name": "Request value update",
+            "description": "Triggers an update of data associated with a specific device.",
+            "fields": {
+                "device_id": {
+                    "description": "The device for which to update values."
+                }
+            }
+        }
     }
 }

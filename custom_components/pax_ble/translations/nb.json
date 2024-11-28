@@ -89,5 +89,16 @@
                 "remove_device": "Fjern enhet"
             }
         }
+    },
+    "services": {
+        "request_update": {
+            "name": "Be om verdioppdatering",
+            "description": "Starter en oppdatering av data knyttet til en spesifikk enhet.",
+            "fields": {
+                "device_id": {
+                    "description": "Enheten som skal oppdateres."
+                }
+            }
+        }
     }
 }
