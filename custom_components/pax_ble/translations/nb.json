@@ -96,6 +96,7 @@
             "description": "Starter en oppdatering av data knyttet til en spesifikk enhet.",
             "fields": {
                 "device_id": {
+                    "name": "Enhets ID",
                     "description": "Enheten som skal oppdateres."
                 }
             }
