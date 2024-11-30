@@ -14,5 +14,5 @@
 	"issue_tracker": "https://github.com/eriknn/ha-pax/issues",
 	"loggers": ["custom_components.pax_ble"],
 	"requirements": [],
-	"version": "1.0.0"
+	"version": "1.1.5"
 }
