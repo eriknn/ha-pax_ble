@@ -15,34 +15,34 @@ Time = namedtuple("Time", "DayOfWeek Hour Minute Second")
 BoostMode = namedtuple("BoostMode", "OnOff Speed Seconds")
 
 class BaseDevice():
-    chars = {}
-
     def __init__(self, hass, mac, pin):
         self._hass = hass
         self._mac = mac
         self._pin = pin
         self._dev = None
 
-        self.chars[CHARACTERISTIC_APPEARANCE] = "00002a01-0000-1000-8000-00805f9b34fb"          # Not used
-        self.chars[CHARACTERISTIC_BOOST] = "118c949c-28c8-4139-b0b3-36657fd055a9"
-        self.chars[CHARACTERISTIC_CLOCK] = "6dec478e-ae0b-4186-9d82-13dda03c0682"
-        self.chars[CHARACTERISTIC_DEVICE_NAME] = "00002a00-0000-1000-8000-00805f9b34fb"         # Not used
-        self.chars[CHARACTERISTIC_FACTORY_SETTINGS_CHANGED] = "63b04af9-24c0-4e5d-a69c-94eb9c5707b4"
-        self.chars[CHARACTERISTIC_FAN_DESCRIPTION] = "b85fa07a-9382-4838-871c-81d045dcc2ff"
-        self.chars[CHARACTERISTIC_FIRMWARE_REVISION] = "00002a26-0000-1000-8000-00805f9b34fb"   # Not used
-        self.chars[CHARACTERISTIC_HARDWARE_REVISION] = "00002a27-0000-1000-8000-00805f9b34fb"   # Not used
-        self.chars[CHARACTERISTIC_SOFTWARE_REVISION] = "00002a28-0000-1000-8000-00805f9b34fb"   # Not used
-        self.chars[CHARACTERISTIC_LED] = "8b850c04-dc18-44d2-9501-7662d65ba36e"
-        self.chars[CHARACTERISTIC_MANUFACTURER_NAME] = "00002a29-0000-1000-8000-00805f9b34fb"   # Not used
-        self.chars[CHARACTERISTIC_MODE] = "90cabcd1-bcda-4167-85d8-16dcd8ab6a6b"
-        self.chars[CHARACTERISTIC_MODEL_NAME] = "00002a00-0000-1000-8000-00805f9b34fb"
-        self.chars[CHARACTERISTIC_MODEL_NUMBER] = "00002a24-0000-1000-8000-00805f9b34fb"        # Not used
-        self.chars[CHARACTERISTIC_PIN_CODE] = "4cad343a-209a-40b7-b911-4d9b3df569b2"
-        self.chars[CHARACTERISTIC_PIN_CONFIRMATION] = "d1ae6b70-ee12-4f6d-b166-d2063dcaffe1"
-        self.chars[CHARACTERISTIC_RESET] = "ff5f7c4f-2606-4c69-b360-15aaea58ad5f"
-        self.chars[CHARACTERISTIC_SENSOR_DATA] = "528b80e8-c47a-4c0a-bdf1-916a7748f412"
-        self.chars[CHARACTERISTIC_SERIAL_NUMBER] = "00002a25-0000-1000-8000-00805f9b34fb"       # Not used
-        self.chars[CHARACTERISTIC_STATUS] = "25a824ad-3021-4de9-9f2f-60cf8d17bded"
+        self.chars = {
+            CHARACTERISTIC_APPEARANCE: "00002a01-0000-1000-8000-00805f9b34fb",  # Not used
+            CHARACTERISTIC_BOOST: "118c949c-28c8-4139-b0b3-36657fd055a9",
+            CHARACTERISTIC_CLOCK: "6dec478e-ae0b-4186-9d82-13dda03c0682",
+            CHARACTERISTIC_DEVICE_NAME: "00002a00-0000-1000-8000-00805f9b34fb",  # Not used
+            CHARACTERISTIC_FACTORY_SETTINGS_CHANGED: "63b04af9-24c0-4e5d-a69c-94eb9c5707b4",
+            CHARACTERISTIC_FAN_DESCRIPTION: "b85fa07a-9382-4838-871c-81d045dcc2ff",
+            CHARACTERISTIC_FIRMWARE_REVISION: "00002a26-0000-1000-8000-00805f9b34fb",  # Not used
+            CHARACTERISTIC_HARDWARE_REVISION: "00002a27-0000-1000-8000-00805f9b34fb",  # Not used
+            CHARACTERISTIC_SOFTWARE_REVISION: "00002a28-0000-1000-8000-00805f9b34fb",  # Not used
+            CHARACTERISTIC_LED: "8b850c04-dc18-44d2-9501-7662d65ba36e",
+            CHARACTERISTIC_MANUFACTURER_NAME: "00002a29-0000-1000-8000-00805f9b34fb",  # Not used
+            CHARACTERISTIC_MODE: "90cabcd1-bcda-4167-85d8-16dcd8ab6a6b",
+            CHARACTERISTIC_MODEL_NAME: "00002a00-0000-1000-8000-00805f9b34fb",
+            CHARACTERISTIC_MODEL_NUMBER: "00002a24-0000-1000-8000-00805f9b34fb",  # Not used
+            CHARACTERISTIC_PIN_CODE: "4cad343a-209a-40b7-b911-4d9b3df569b2",
+            CHARACTERISTIC_PIN_CONFIRMATION: "d1ae6b70-ee12-4f6d-b166-d2063dcaffe1",
+            CHARACTERISTIC_RESET: "ff5f7c4f-2606-4c69-b360-15aaea58ad5f",
+            CHARACTERISTIC_SENSOR_DATA: "528b80e8-c47a-4c0a-bdf1-916a7748f412",
+            CHARACTERISTIC_SERIAL_NUMBER: "00002a25-0000-1000-8000-00805f9b34fb",  # Not used
+            CHARACTERISTIC_STATUS: "25a824ad-3021-4de9-9f2f-60cf8d17bded",
+        }
 
     async def authorize(self):
         await self.setAuth(self._pin)

@@ -1,4 +1,5 @@
 """Support for Pax fans."""
+import asyncio
 import logging
 
 from functools import partial
@@ -33,7 +34,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][CONF_DEVICES] = {}
 
     # Create one coordinator for each device
+    first_iteration = True
     for device_id in entry.data[CONF_DEVICES]:
+        if not first_iteration:
+            await asyncio.sleep(10)
+        first_iteration = False
+
         name = entry.data[CONF_DEVICES][device_id][CONF_NAME]
         model = entry.data[CONF_DEVICES][device_id].get(CONF_MODEL, "Calima")
         mac = entry.data[CONF_DEVICES][device_id][CONF_MAC]
@@ -53,9 +59,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         match DeviceModel(model):
             case DeviceModel.CALIMA | DeviceModel.SVARA:
                 coordinator = CalimaCoordinator(hass, dev, model, mac, pin, scan_interval, scan_interval_fast)
+                await coordinator.async_request_refresh()     # Force an immediate update
                 hass.data[DOMAIN][CONF_DEVICES][device_id] = coordinator
             case DeviceModel.SVENSA:
                 coordinator = SvensaCoordinator(hass, dev, model, mac, pin, scan_interval, scan_interval_fast)
+                await coordinator.async_request_refresh()     # Force an immediate update
                 hass.data[DOMAIN][CONF_DEVICES][device_id] = coordinator
             case _:
                 _LOGGER.debug("Unknown fan model")
@@ -73,7 +81,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 # Service-call to update values
 async def service_request_update(hass, call: ServiceCall):
-    _LOGGER.debug("Service request to update values triggered!")
     """Handle the service call to update entities for a specific device."""
     device_id = call.data.get("device_id")
     if not device_id:
@@ -93,7 +100,6 @@ async def service_request_update(hass, call: ServiceCall):
     # Iterate through all coordinators and check their device_id property
     for coordinator in coordinators.values():
         if getattr(coordinator, "device_id", None) == device_id:
-            _LOGGER.debug(f"Found coordinator")
             await coordinator._async_update_data()
             return
 
