@@ -34,7 +34,6 @@ class BaseDevice():
             CHARACTERISTIC_LED: "8b850c04-dc18-44d2-9501-7662d65ba36e",
             CHARACTERISTIC_MANUFACTURER_NAME: "00002a29-0000-1000-8000-00805f9b34fb",  # Not used
             CHARACTERISTIC_MODE: "90cabcd1-bcda-4167-85d8-16dcd8ab6a6b",
-            CHARACTERISTIC_MODEL_NAME: "00002a00-0000-1000-8000-00805f9b34fb",
             CHARACTERISTIC_MODEL_NUMBER: "00002a24-0000-1000-8000-00805f9b34fb",  # Not used
             CHARACTERISTIC_PIN_CODE: "4cad343a-209a-40b7-b911-4d9b3df569b2",
             CHARACTERISTIC_PIN_CONFIRMATION: "d1ae6b70-ee12-4f6d-b166-d2063dcaffe1",
@@ -106,7 +105,7 @@ class BaseDevice():
     # --- Generic GATT Characteristics
     async def getDeviceName(self) -> str:
         #return (await self._readHandle(0x2)).decode("ascii")
-        return (await self._readUUID(self.chars[CHARACTERISTIC_MODEL_NAME])).decode("ascii")
+        return (await self._readUUID(self.chars[CHARACTERISTIC_DEVICE_NAME])).decode("ascii")
 
     async def getModelNumber(self) -> str:
         #return (await self._readHandle(0xD)).decode("ascii")
@@ -211,3 +210,5 @@ class BaseDevice():
             return "WallSwitchNoExtendedRuntimeMode"
         elif v[0] == 4:
             return "HeatDistributionMode"
+        else:
+            return "Unknown: " + str(v[0])
