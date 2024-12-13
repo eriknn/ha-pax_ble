@@ -96,10 +96,10 @@ class Svensa(BaseDevice):
     ################################################
     async def getAutomaticCycles(self) -> AutomaticCycles:
         # Active | Hour | TimeMin | Speed
-        # We fix so that TimeMin = 0 if Active = 0
         l = AutomaticCycles._make(unpack("<3BH", await self._readUUID(self.chars[CHARACTERISTIC_AUTOMATIC_CYCLES])))
 
-        return AutomaticCycles._make(unpack("<3BH",bytearray([l.Active,l.Hour,l.Active and l.TimeMin,l.Speed])))
+        # We fix so that TimeMin = 0 if Active = 0
+        return AutomaticCycles(l.Active, l.Hour, l.TimeMin if l.Active else 0, l.Speed)
 
     async def setAutomaticCycles(self, hour:int, timeMin:int, speed:int) -> None:
         await self._writeUUID(self.chars[CHARACTERISTIC_AUTOMATIC_CYCLES], pack("<3BH", timeMin > 0, hour, timeMin, speed))

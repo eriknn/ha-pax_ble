@@ -44,7 +44,7 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         """Get the options flow for this handler."""
-        return PaxOptionsFlowHandler(config_entry)
+        return PaxOptionsFlowHandler()
 
     def get_pax_config_entry(self, entry_title: str) -> ConfigEntry:
         if self.hass is not None:
@@ -157,8 +157,7 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         )
 
 class PaxOptionsFlowHandler(OptionsFlow):
-    def __init__(self, config_entry):
-        self.config_entry = config_entry
+    def __init__(self):
         self.selected_device = None             # Mac address / key
         self.device_data = DEVICE_DATA.copy()   # Data of "current" device
 
