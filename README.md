@@ -4,6 +4,16 @@
 
 Download using HACS or manually put it in the custom_components folder.
 
+## Supported devices
+
+This integration was originally meant to just support Pax Calima, but as other fans have been made that builds on the same concept, this 
+integration now supports:
+* Pax Calima
+* Vent-Axia Svara (Same as the Calima)
+* Vent-Axia Svensa
+
+If you've got other fans of the same'ish type, just give it a go and let me know how it works out :)
+
 ## Add device
 
 The integration supports discovery of devices, so any fans should be automatically discovered.
