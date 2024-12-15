@@ -7,6 +7,7 @@
 				"description": "Ange information om enhet.",
 				"data": {
 					"name": "Namn på enhet",
+                    "model": "Device model",  
 					"mac": "MAC-adress (aa:bb:cc:dd:ee:ff)",
 					"pin": "PIN-kod",
 					"scan_interval": "Sökintervall i sekunder",
@@ -28,13 +29,16 @@
         "step": {
             "init": {
 				"title": "Pax BLE Konfiguration",
-                "description": "Var god välj önskad åtgärd."
+                "data": { 
+                    "action": "Var god välj önskad åtgärd."
+                }
             },
             "add_device": {
 				"title": "Pax BLE: Lägg till enhet",
                 "description": "Ange uppgifter om din enhet.",
                 "data": {
 					"name": "Namn på enhet",
+                    "model": "Device model",
 					"mac": "MAC-adress (aa:bb:cc:dd:ee:ff)",
 					"pin": "PIN-kod",
 					"scan_interval": "Sökintervall i sekunder",
@@ -46,6 +50,7 @@
                 "description": "Ange nya enhetsdetaljer för {dev_name}",
                 "data": {
 					"name": "Namn på enhet",
+                    "model": "Device model",
 					"mac": "MAC-adress (aa:bb:cc:dd:ee:ff)",
 					"pin": "PIN-kod",
 					"scan_interval": "Sökintervall i sekunder",
@@ -54,13 +59,15 @@
             },
             "remove_device": {
 				"title": "Pax BLE: Ta bort enhet",
-                "description": "Ange enhet att ta bort.",
-                "data": {}
+                "data": {
+                    "selected_device": "Ange enhet att ta bort."   
+                }
             },
             "select_edit_device": {
 				"title": "Pax BLE: Redigera enhet",
-                "description": "Ange enhet att redigera.",
-                "data": {}
+                "data": {
+                    "selected_device": "Ange enhet att redigera."    
+                }
             }
         },
 		"error": {

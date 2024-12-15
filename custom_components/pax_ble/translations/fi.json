@@ -6,7 +6,8 @@
 				"title": "Pax: Lisää laite",
                 "description": "Anna laitteesi tiedot.", 
                 "data": {                     
-                    "name": "Laitteen nimi",                     
+                    "name": "Laitteen nimi", 
+                    "model": "Device model",  
                     "mac": "MAC-osoite (aa:bb:cc:dd:ee:ff)",                                
                     "pin": "PIN-koodi",    
                     "scan_interval": "Päivitysväli sekunneissa",
@@ -28,13 +29,16 @@
         "step": {
             "init": {
 				"title": "Pax BLE Configuration",
-                "description": "Please select the desired action."
+                "data": { 
+                    "action": "Please select the desired action."
+                }
             },
             "add_device": {
 				"title": "Pax BLE: Add device",
                 "description": "Enter your device details.",
                 "data": {
                     "name": "Laitteen nimi",
+                    "model": "Device model",
                     "mac": "MAC-osoite (aa:bb:cc:dd:ee:ff)",
                     "pin": "PIN-koodi",
                     "scan_interval": "Päivitysväli sekunneissa",
@@ -46,6 +50,7 @@
                 "description": "Enter new device details.",
                 "data": {
                     "name": "Laitteen nimi",
+                    "model": "Device model", 
                     "mac": "MAC-osoite (aa:bb:cc:dd:ee:ff)",
                     "pin": "PIN-koodi",
                     "scan_interval": "Päivitysväli sekunneissa",
@@ -54,13 +59,15 @@
             },
             "remove_device": {
 				"title": "Pax BLE: Remove device",
-                "description": "Select device to remove.",
-                "data": {}
+                "data": {
+                    "selected_device": "Select device to remove."   
+                }
             },
             "select_edit_device": {
 				"title": "Pax BLE: Edit Device",
-                "description": "Select device to edit.",
-                "data": {}
+                "data": {
+                    "selected_device": "Select device to edit."    
+                }
             }
         },
 		"error": {
