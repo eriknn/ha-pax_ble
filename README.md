@@ -16,7 +16,7 @@ If you've got other fans of the same'ish type, just give it a go and let me know
 
 ## Add device
 
-The integration supports discovery of devices, but only for Calima (until someone tells me how I can add multiple device-types in manifest "local_name", or if there's another way...
+The integration supports discovery of devices, but only for Calima (until someone tells me how I can add multiple device-types in manifest "local_name", or if there's another way...)
 If discovery doesn't work you may try to add it manually through the integration configuration.
 PIN code is necessary to allow commands to be sent. For the Calima, you'll find this written on the fan motor (remove rrom base). You'll also find the MAC-address here.
 The MAC-address can also be found in the HA Bluetooth diagnostic-files, if it's seen by the adapter.
