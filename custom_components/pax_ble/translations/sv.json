@@ -13,7 +13,13 @@
 					"scan_interval": "Sökintervall i sekunder",
 					"scan_interval_fast": "Snabbt skanningsintervall i sekunder"
 				}
-			}
+			},
+            "wrong_pin": {
+				"title": "Pax: Wrong PIN",
+                "data": {
+                    "wrong_pin_selector": "Select action."    
+                }
+            }
 		},
 		"error": {
 			"cannot_connect": "Anslutning misslyckades",
@@ -43,6 +49,12 @@
 					"pin": "PIN-kod",
 					"scan_interval": "Sökintervall i sekunder",
 					"scan_interval_fast": "Snabbt skanningsintervall i sekunder"
+                }
+            },
+            "wrong_pin": {
+				"title": "Pax: Wrong PIN",
+                "data": {
+                    "wrong_pin_selector": "Select action."    
                 }
             },
             "edit_device": {
@@ -87,6 +99,12 @@
                 "add_device": "Lägg till enhet",
                 "edit_device": "Redigera enhet",
                 "remove_device": "Ta bort enhet"
+            }
+        },
+        "wrong_pin_selector": {
+            "options": {
+                "accept": "Accept wrong pin",
+                "decline": "Try new pin"
             }
         }
     },

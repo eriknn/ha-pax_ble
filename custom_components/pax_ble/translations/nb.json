@@ -13,6 +13,12 @@
                     "scan_interval": "Pollinterval i sekunder",
 					"scan_interval_fast": "Hurtig Scan Interval i sekunder"   					
                 }                                                            
+            },
+            "wrong_pin": {
+				"title": "Pax: Feil PIN-kode",
+                "data": {
+                    "wrong_pin_selector": "Velg aksjon."    
+                }
             }
         },
 		"error": {
@@ -43,6 +49,12 @@
                     "pin": "PIN-kode",
                     "scan_interval": "Pollinterval i sekunder",
 					"scan_interval_fast": "Hurtig Scan Interval i sekunder"
+                }
+            },
+            "wrong_pin": {
+				"title": "Pax: Feil PIN-kode",
+                "data": {
+                    "wrong_pin_selector": "Velg aksjon."    
                 }
             },
             "edit_device": {
@@ -87,6 +99,12 @@
                 "add_device": "Legg til enhet",
                 "edit_device": "Rediger enhet",
                 "remove_device": "Fjern enhet"
+            }
+        },
+        "wrong_pin_selector": {
+            "options": {
+                "accept": "Godta feil PIN-kode",
+                "decline": "Prøv ny PIN-kode"
             }
         }
     },

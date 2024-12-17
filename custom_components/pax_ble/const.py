@@ -8,6 +8,7 @@ PLATFORMS = [Platform.TIME, Platform.SENSOR, Platform.SWITCH, Platform.NUMBER, P
 # Configuration Constants
 CONF_ACTION = "action"
 CONF_ADD_DEVICE = "add_device"
+CONF_WRONG_PIN_SELECTOR = "wrong_pin_selector"
 CONF_EDIT_DEVICE = "edit_device"
 CONF_REMOVE_DEVICE = "remove_device"
 

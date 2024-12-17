@@ -15,7 +15,7 @@ from typing import Any
 from .devices.base_device import BaseDevice
 
 from homeassistant.const import CONF_DEVICES
-from .const import CONF_ACTION, CONF_ADD_DEVICE, CONF_EDIT_DEVICE, CONF_REMOVE_DEVICE
+from .const import CONF_ACTION, CONF_ADD_DEVICE, CONF_WRONG_PIN_SELECTOR, CONF_EDIT_DEVICE, CONF_REMOVE_DEVICE
 from .const import DOMAIN, CONF_NAME, CONF_MODEL, CONF_MAC, CONF_PIN, CONF_SCAN_INTERVAL, CONF_SCAN_INTERVAL_FAST
 from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_FAST
 from .const import DeviceModel
@@ -41,6 +41,7 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     def __init__(self):
         self.device_data = DEVICE_DATA.copy()  # Data of "current" device
         self.config_entry = None
+        self.accept_wrong_pin = False
 
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         """Get the options flow for this handler."""
@@ -107,7 +108,11 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
             if await fan.connect():
                 await fan.setAuth(user_input[CONF_PIN])
-                pin_verified = await fan.checkAuth()
+
+                if not self.accept_wrong_pin:
+                    pin_verified = await fan.checkAuth()
+                else:
+                    pin_verified = True
                 await fan.disconnect()
 
                 if pin_verified:
@@ -143,9 +148,10 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                             }
                         )
                 else:
-                    errors["base"] = "wrong_pin"
-                    # Store values for new attempt
+                    # Store values for accept / decline wrong pin
                     self.device_data = user_input
+                    errors["base"] = "wrong_pin"
+                    return await self.async_step_wrong_pin()
             else:
                 errors["base"] = "cannot_connect"
                 # Store values for new attempt
@@ -156,10 +162,30 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             step_id="add_device", data_schema=data_schema, errors=errors
         )
 
+    """##################################################
+    ###################### WRONG PIN ####################
+    ##################################################"""
+    async def async_step_wrong_pin(self, user_input=None):
+        """Accept or decline wrong pin."""
+        errors = {}
+
+        if user_input is not None:
+            if user_input.get(CONF_WRONG_PIN_SELECTOR) == "accept":
+                self.accept_wrong_pin = True
+                return await self.async_step_add_device(self.device_data)
+            if user_input.get(CONF_WRONG_PIN_SELECTOR) == "decline":
+                self.accept_wrong_pin = False
+                return await self.async_step_add_device()
+
+        return self.async_show_form(
+            step_id="wrong_pin", data_schema=MENU_WRONG_PIN_SCHEMA, errors=errors
+        )
+
 class PaxOptionsFlowHandler(OptionsFlow):
     def __init__(self):
         self.selected_device = None             # Mac address / key
         self.device_data = DEVICE_DATA.copy()   # Data of "current" device
+        self.accept_wrong_pin = False
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         # Manage the options for the custom component."""
@@ -198,7 +224,11 @@ class PaxOptionsFlowHandler(OptionsFlow):
 
             if await fan.connect():
                 await fan.setAuth(user_input[CONF_PIN])
-                pin_verified = await fan.checkAuth()
+
+                if not self.accept_wrong_pin:
+                    pin_verified = await fan.checkAuth()
+                else:
+                    pin_verified = True
                 await fan.disconnect()
 
                 if pin_verified:
@@ -216,9 +246,10 @@ class PaxOptionsFlowHandler(OptionsFlow):
                         }
                     )
                 else:
-                    errors["base"] = "wrong_pin"
-                    # Store values for new attempt
+                    # Store values for accept / decline wrong pin
                     self.device_data = user_input
+                    errors["base"] = "wrong_pin"
+                    return await self.async_step_wrong_pin()
             else:
                 errors["base"] = "cannot_connect"
                 # Store values for new attempt
@@ -227,6 +258,25 @@ class PaxOptionsFlowHandler(OptionsFlow):
         data_schema = getDeviceSchemaAdd(self.device_data)
         return self.async_show_form(
             step_id="add_device", data_schema=data_schema, errors=errors
+        )
+
+    """##################################################
+    ###################### WRONG PIN ####################
+    ##################################################"""
+    async def async_step_wrong_pin(self, user_input=None):
+        """Accept or decline wrong pin."""
+        errors = {}
+
+        if user_input is not None:
+            if user_input.get(CONF_WRONG_PIN_SELECTOR) == "accept":
+                self.accept_wrong_pin = True
+                return await self.async_step_add_device(self.device_data)
+            if user_input.get(CONF_WRONG_PIN_SELECTOR) == "decline":
+                self.accept_wrong_pin = False
+                return await self.async_step_add_device()
+
+        return self.async_show_form(
+            step_id="wrong_pin", data_schema=MENU_WRONG_PIN_SCHEMA, errors=errors
         )
 
     """##################################################
@@ -260,6 +310,7 @@ class PaxOptionsFlowHandler(OptionsFlow):
         if user_input is not None:
             # Update device in config entry
             new_data = self.config_entry.data.copy()
+            new_data[CONF_DEVICES][self.selected_device][CONF_PIN] = user_input[CONF_PIN]
             new_data[CONF_DEVICES][self.selected_device][CONF_SCAN_INTERVAL] = user_input[CONF_SCAN_INTERVAL]
             new_data[CONF_DEVICES][self.selected_device][CONF_SCAN_INTERVAL_FAST] = user_input[CONF_SCAN_INTERVAL_FAST]
 
@@ -384,6 +435,9 @@ def getDeviceSchemaAdd(user_input: dict[str, Any] | None = None) -> vol.Schema:
 def getDeviceSchemaEdit(user_input: dict[str, Any] | None = None) -> vol.Schema:
     data_schema = vol.Schema(
         {
+            vol.Required(
+                CONF_PIN, description="Pin Code", default=user_input[CONF_PIN]
+            ): cv.string,
             vol.Optional(
                 CONF_SCAN_INTERVAL, default=user_input[CONF_SCAN_INTERVAL]
             ): vol.All(vol.Coerce(int), vol.Range(min=5, max=999)),
@@ -408,3 +462,13 @@ def getDeviceSchemaSelect(devices: dict[str, Any] | None = None) -> vol.Schema:
     )
 
     return data_schema
+
+# Schema for accepting wrong pin
+MENU_WRONG_PIN_VALUES = ["accept", "decline"]
+MENU_WRONG_PIN_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_WRONG_PIN_SELECTOR): selector.SelectSelector(
+            selector.SelectSelectorConfig(options=MENU_WRONG_PIN_VALUES, translation_key=CONF_WRONG_PIN_SELECTOR),
+        )
+    }
+)

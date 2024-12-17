@@ -13,6 +13,12 @@
                     "scan_interval": "Scan Interval in seconds",
                     "scan_interval_fast": "Fast Scan Interval in seconds"  						
                 }                                                            
+            },
+            "wrong_pin": {
+				"title": "Pax: Wrong PIN",
+                "data": {
+                    "wrong_pin_selector": "Select action."    
+                }
             }
         },
 		"error": {
@@ -43,6 +49,12 @@
                     "pin": "PIN Code",
                     "scan_interval": "Scan Interval in seconds",
                     "scan_interval_fast": "Fast Scan Interval in seconds"
+                }
+            },
+            "wrong_pin": {
+				"title": "Pax: Wrong PIN",
+                "data": {
+                    "wrong_pin_selector": "Select action."    
                 }
             },
             "edit_device": {
@@ -87,6 +99,12 @@
                 "add_device": "Add device",
                 "edit_device": "Edit device",
                 "remove_device": "Remove device"
+            }
+        },
+        "wrong_pin_selector": {
+            "options": {
+                "accept": "Accept wrong pin",
+                "decline": "Try new pin"
             }
         }
     },
