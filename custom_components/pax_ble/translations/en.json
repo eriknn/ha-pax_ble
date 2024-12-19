@@ -1,0 +1,123 @@
+{    
+	"title": "Pax",
+    "config": {         
+        "step": {                    
+            "add_device": { 
+				"title": "Pax: Add device",
+                "description": "Enter your device details.", 
+                "data": {                     
+                    "name": "Name of device",     
+                    "model": "Device model",                
+                    "mac": "MAC Address (aa:bb:cc:dd:ee:ff)",                                
+                    "pin": "PIN Code",    
+                    "scan_interval": "Scan Interval in seconds",
+                    "scan_interval_fast": "Fast Scan Interval in seconds"  						
+                }                                                            
+            },
+            "wrong_pin": {
+				"title": "Pax: Wrong PIN",
+                "data": {
+                    "wrong_pin_selector": "Select action."    
+                }
+            }
+        },
+		"error": {
+			"cannot_connect": "Failed to connect",
+			"wrong_pin": "Wrong PIN"
+		},
+		"abort": {
+            "add_success": "Device {dev_name} successfully added",
+			"already_configured": "Integration already exists",
+            "device_already_configured": "Device {dev_name} is already configured"
+		}		
+    },   
+    "options": {         
+        "step": {
+            "init": {
+				"title": "Pax BLE Configuration",
+                "data": { 
+                    "action": "Please select the desired action."
+                }
+            },
+            "add_device": {
+				"title": "Pax BLE: Add device",
+                "description": "Enter your device details.",
+                "data": {
+                    "name": "Name of device",
+                    "model": "Device model",  
+                    "mac": "MAC Address (aa:bb:cc:dd:ee:ff)",
+                    "pin": "PIN Code",
+                    "scan_interval": "Scan Interval in seconds",
+                    "scan_interval_fast": "Fast Scan Interval in seconds"
+                }
+            },
+            "wrong_pin": {
+				"title": "Pax: Wrong PIN",
+                "data": {
+                    "wrong_pin_selector": "Select action."    
+                }
+            },
+            "edit_device": {
+				"title": "Pax BLE: Edit device",
+                "description": "Enter new device details for {dev_name}",
+                "data": {                 
+                    "name": "Name of device",  
+                    "model": "Device model",              
+                    "mac": "MAC Address (aa:bb:cc:dd:ee:ff)",                                
+                    "pin": "PIN Code",    
+                    "scan_interval": "Scan Interval in seconds",
+                    "scan_interval_fast": "Fast Scan Interval in seconds"  	
+                }                                     
+            },
+            "remove_device": {
+                "title": "Pax BLE: Remove device",
+                "data": {
+                    "selected_device": "Select device to remove."   
+                }
+            },
+            "select_edit_device": {
+				"title": "Pax BLE: Edit Device",
+                "data": {
+                    "selected_device": "Select device to edit."    
+                }
+            }
+        },
+		"error": {
+			"cannot_connect": "Failed to connect",
+			"wrong_pin": "Wrong PIN"
+		},
+		"abort": {
+            "add_success": "Device {dev_name} successfully added",
+			"already_configured": "Device {dev_name} is already configured",
+            "edit_success": "Device {dev_name} edited",
+            "remove_success": "Device {dev_name} removed"
+		}
+    },
+    "selector": {
+        "action": {
+            "options": {
+                "add_device": "Add device",
+                "edit_device": "Edit device",
+                "remove_device": "Remove device"
+            }
+        },
+        "wrong_pin_selector": {
+            "options": {
+                "accept": "Accept wrong pin",
+                "decline": "Try new pin"
+            }
+        }
+    },
+    "services": {
+        "request_update": {
+            "name": "Request value update",
+            "description": "Triggers an update of data associated with a specific device.",
+            "fields": {
+                "device_id": {
+                    "name": "Device ID",
+                    "description": "The device for which to update values."
+                }
+            }
+        }
+    }
+}
