@@ -10,7 +10,7 @@ This integration was originally meant to just support Pax Calima, but as other f
 integration now supports:
 * Pax Calima
 * Vent-Axia Svara (Same as the Calima)
-* Vent-Axia Svensa
+* Vent-Axia Svensa (same as PureAir Sense)
 
 If you've got other fans of the same'ish type, just give it a go and let me know how it works out :)
 
@@ -20,11 +20,13 @@ The integration supports discovery of devices, but only for Calima (until someon
 If discovery doesn't work you may try to add it manually through the integration configuration.
 If you have issues connecting, try cycling power on the device. It seems that the Bluetooth interface easily hangs if it's messed around with a bit.
 
-## Pin code
+For Svensa-specific instructions, see [here](svensa.md).
+
+## PIN code
 
 A valid PIN code is required to be able to control the fan. You can add the fan without PIN, but then you'll only be able to read values.
 * For Calima/Svara you just enter the decimal value printed on the fan motor (remove from base)
-* For Svensa the pin is written in HEX. You must reverse the bytes and convert to integer.
+* For Svensa, the PIN is not written on the device, but should be requested from it. See [instructions for Svensa](svensa.md).
 
 ## Sensor data
 
