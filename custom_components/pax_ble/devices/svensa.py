@@ -40,6 +40,11 @@ class Svensa(BaseDevice):
             CHARACTERISTIC_PRESENCE_GAS: "7c4adc02-2f33-11e7-93ae-92361f002671"
         })        
 
+    # Override base method, this should return the correct pin as a string
+    async def pair(self) -> str:
+        raise NotImplementedError("This needs to be implemented in svensa.py...")
+        #return "12345678"
+
     ################################################
     ############## STATE / SENSOR DATA #############
     ################################################

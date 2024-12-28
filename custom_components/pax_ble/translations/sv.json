@@ -23,6 +23,7 @@
 		},
 		"error": {
 			"cannot_connect": "Anslutning misslyckades",
+            "cannot_pair": "Failed to pair",
 			"wrong_pin": "Fel PIN-kod"
 		},
 		"abort": {
@@ -84,6 +85,7 @@
         },
 		"error": {
 			"cannot_connect": "Anslutning misslyckades",
+            "cannot_pair": "Failed to pair",
 			"wrong_pin": "Fel PIN-kod"
 		},
 		"abort": {
@@ -104,7 +106,8 @@
         "wrong_pin_selector": {
             "options": {
                 "accept": "Accept wrong pin",
-                "decline": "Try new pin"
+                "decline": "Try new pin",
+                "pair": "Start pairing"
             }
         }
     },

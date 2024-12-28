@@ -10,6 +10,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
+from types import SimpleNamespace
 from typing import Any
 
 from .devices.base_device import BaseDevice
@@ -19,6 +20,7 @@ from .const import CONF_ACTION, CONF_ADD_DEVICE, CONF_WRONG_PIN_SELECTOR, CONF_E
 from .const import DOMAIN, CONF_NAME, CONF_MODEL, CONF_MAC, CONF_PIN, CONF_SCAN_INTERVAL, CONF_SCAN_INTERVAL_FAST
 from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_FAST
 from .const import DeviceModel
+from .helpers import getCoordinator
 
 CONFIG_ENTRY_NAME = "Pax BLE"
 SELECTED_DEVICE = "selected_device"
@@ -176,6 +178,13 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             if user_input.get(CONF_WRONG_PIN_SELECTOR) == "decline":
                 self.accept_wrong_pin = False
                 return await self.async_step_add_device()
+            if user_input.get(CONF_WRONG_PIN_SELECTOR) == "pair":
+                # Use the helper function
+                result, error = await attempt_pair_device(self.hass, self.device_data)
+                if result:
+                    self.accept_wrong_pin = False
+                    return await self.async_step_add_device()
+                errors["base"] = error
 
         return self.async_show_form(
             step_id="wrong_pin", data_schema=MENU_WRONG_PIN_SCHEMA, errors=errors
@@ -259,6 +268,33 @@ class PaxOptionsFlowHandler(OptionsFlow):
         return self.async_show_form(
             step_id="add_device", data_schema=data_schema, errors=errors
         )
+    
+    """##################################################
+    #################### PAIR DEVICE ####################
+    ##################################################"""
+    async def async_step_pair_device(self, user_input=None):
+        """Handler for pairing device."""
+        errors = {}
+
+        # Initialize the BaseDevice
+        fan = BaseDevice(self.hass, self.device_data[CONF_MAC], self.device_data[CONF_PIN])
+
+        # Attempt to connect to the device
+        if await fan.connect():
+            try:
+                # Attempt to pair the device
+                result = await fan.pair()
+                self.device_data[CONF_PIN] = result
+            except Exception as e:
+                # Log the error and add a user-friendly message
+                _LOGGER.error(f"Error during pairing: {e}")
+                errors["base"] = "pairing_failed"
+        else:
+            # Handle connection failure
+            errors["base"] = "connection_failed"
+
+        # Return the next step with any errors
+        return await self.async_step_add_device(errors=errors)
 
     """##################################################
     ###################### WRONG PIN ####################
@@ -274,6 +310,13 @@ class PaxOptionsFlowHandler(OptionsFlow):
             if user_input.get(CONF_WRONG_PIN_SELECTOR) == "decline":
                 self.accept_wrong_pin = False
                 return await self.async_step_add_device()
+            if user_input.get(CONF_WRONG_PIN_SELECTOR) == "pair":
+                # Use the helper function
+                result, error = await attempt_pair_device(self.hass, self.device_data)
+                if result:
+                    self.accept_wrong_pin = False
+                    return await self.async_step_add_device()
+                errors["base"] = error
 
         return self.async_show_form(
             step_id="wrong_pin", data_schema=MENU_WRONG_PIN_SCHEMA, errors=errors
@@ -464,7 +507,7 @@ def getDeviceSchemaSelect(devices: dict[str, Any] | None = None) -> vol.Schema:
     return data_schema
 
 # Schema for accepting wrong pin
-MENU_WRONG_PIN_VALUES = ["accept", "decline"]
+MENU_WRONG_PIN_VALUES = ["accept", "decline", "pair"]
 MENU_WRONG_PIN_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_WRONG_PIN_SELECTOR): selector.SelectSelector(
@@ -472,3 +515,22 @@ MENU_WRONG_PIN_SCHEMA = vol.Schema(
         )
     }
 )
+
+""" ################################################### """
+"""                     Helper functions                """
+""" ################################################### """
+async def attempt_pair_device(hass, device_data):
+    """Helper method to attempt pairing a device."""
+    device = SimpleNamespace(name="Config Flow Device")
+    coordinator = getCoordinator(hass, device_data, device)
+
+    if await coordinator._fan.connect():
+        try:
+            result = await coordinator._fan.pair()
+            device_data[CONF_PIN] = result
+            return True, None
+        except Exception as e:
+            _LOGGER.error(f"Error during pairing: {e}")
+            return False, str(e)
+    else:
+        return False, "cannot_connect"

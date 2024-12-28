@@ -20,9 +20,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SCAN_INTERVAL_FAST
 )
-from .const import DeviceModel
-from .coordinator_calima import CalimaCoordinator
-from .coordinator_svensa import SvensaCoordinator
+from .helpers import getCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,11 +39,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         first_iteration = False
 
         name = entry.data[CONF_DEVICES][device_id][CONF_NAME]
-        model = entry.data[CONF_DEVICES][device_id].get(CONF_MODEL, "Calima")
         mac = entry.data[CONF_DEVICES][device_id][CONF_MAC]
-        pin = entry.data[CONF_DEVICES][device_id][CONF_PIN]
-        scan_interval = entry.data[CONF_DEVICES][device_id][CONF_SCAN_INTERVAL]
-        scan_interval_fast = entry.data[CONF_DEVICES][device_id][CONF_SCAN_INTERVAL_FAST]
 
         # Create device
         device_registry = dr.async_get(hass)
@@ -55,18 +49,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             name=name
         )
 
-        # Set up coordinator
-        match DeviceModel(model):
-            case DeviceModel.CALIMA | DeviceModel.SVARA:
-                coordinator = CalimaCoordinator(hass, dev, model, mac, pin, scan_interval, scan_interval_fast)
-                await coordinator.async_request_refresh()     # Force an immediate update
-                hass.data[DOMAIN][CONF_DEVICES][device_id] = coordinator
-            case DeviceModel.SVENSA:
-                coordinator = SvensaCoordinator(hass, dev, model, mac, pin, scan_interval, scan_interval_fast)
-                await coordinator.async_request_refresh()     # Force an immediate update
-                hass.data[DOMAIN][CONF_DEVICES][device_id] = coordinator
-            case _:
-                _LOGGER.debug("Unknown fan model")
+        coordinator = getCoordinator(hass, entry.data[CONF_DEVICES][device_id], dev)
+        await coordinator.async_request_refresh()     # Force an immediate update
+        hass.data[DOMAIN][CONF_DEVICES][device_id] = coordinator
 
     # Forward the setup to the platforms.
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

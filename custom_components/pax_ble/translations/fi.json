@@ -23,6 +23,7 @@
         },
 		"error": {
 			"cannot_connect": "Yhdistäminen epäonnistui",
+            "cannot_pair": "Failed to pair",
 			"wrong_pin": "Väärä PIN"
 		},
 		"abort": {
@@ -84,6 +85,7 @@
         },
 		"error": {
 			"cannot_connect": "Failed to connect",
+            "cannot_pair": "Failed to pair",
 			"wrong_pin": "Wrong PIN"
 		},
 		"abort": {
@@ -104,7 +106,8 @@
         "wrong_pin_selector": {
             "options": {
                 "accept": "Accept wrong pin",
-                "decline": "Try new pin"
+                "decline": "Try new pin",
+                "pair": "Start pairing"
             }
         }
     },

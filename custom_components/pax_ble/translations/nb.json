@@ -23,6 +23,7 @@
         },
 		"error": {
 			"cannot_connect": "Tilkobling feilet",
+            "cannot_pair": "Paring feilet",
 			"wrong_pin": "Feil PIN"
 		},
 		"abort": {
@@ -84,6 +85,7 @@
         },
 		"error": {
 			"cannot_connect": "Tilkobling feilet",
+            "cannot_pair": "Paring feilet",
 			"wrong_pin": "Feil PIN"
 		},
 		"abort": {
@@ -104,7 +106,8 @@
         "wrong_pin_selector": {
             "options": {
                 "accept": "Godta feil PIN-kode",
-                "decline": "Prøv ny PIN-kode"
+                "decline": "Prøv ny PIN-kode",
+                "pair": "Start paring"
             }
         }
     },

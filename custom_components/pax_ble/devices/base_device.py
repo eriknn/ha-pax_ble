@@ -85,6 +85,9 @@ class BaseDevice():
                 _LOGGER.info("Error disconnecting from %s! %s", self._mac, str(e))
             self._dev = None
 
+    async def pair(self) -> str:
+        raise NotImplementedError("Pairing not availiable for this device type.")
+
     def isConnected(self) -> bool:
         return self._dev is not None and self._dev.is_connected
 
