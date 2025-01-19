@@ -9,6 +9,7 @@ Download using HACS (manually add repo) or manually put it in the custom_compone
 This integration was originally meant to just support Pax Calima, but as other fans have been made that builds on the same concept, this 
 integration now supports:
 * Pax Calima
+* Pax Levante 50
 * Vent-Axia Svara (Same as the Calima)
 * Vent-Axia Svensa (same as PureAir Sense)
 
@@ -27,6 +28,7 @@ For Svensa-specific instructions, see [here](svensa.md).
 A valid PIN code is required to be able to control the fan. You can add the fan without PIN, but then you'll only be able to read values.
 * For Calima/Svara you just enter the decimal value printed on the fan motor (remove from base)
 * For Svensa, the PIN is not written on the device, but should be requested from it. See [instructions for Svensa](svensa.md).
+* For Levante 50, request the PIN using the steps outlined for Svensa. Enter pairing mode by powercycling the fan using the switch on the side.
 
 ## Sensor data
 
