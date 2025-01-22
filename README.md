@@ -11,7 +11,7 @@ integration now supports:
 * Pax Calima
 * Pax Levante 50
 * Vent-Axia Svara (Same as the Calima)
-* Vent-Axia Svensa (same as PureAir Sense)
+* Vent-Axia Svensa (same as PureAir Sense and Fresh Intellivent SKY)
 
 If you've got other fans of the same'ish type, just give it a go and let me know how it works out :)
 
