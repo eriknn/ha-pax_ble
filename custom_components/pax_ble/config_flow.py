@@ -353,13 +353,8 @@ class PaxOptionsFlowHandler(OptionsFlow):
         if user_input is not None:
             # Update device in config entry
             new_data = self.config_entry.data.copy()
-            new_data[CONF_DEVICES][self.selected_device][CONF_PIN] = user_input[CONF_PIN]
-            new_data[CONF_DEVICES][self.selected_device][CONF_SCAN_INTERVAL] = user_input[CONF_SCAN_INTERVAL]
-            new_data[CONF_DEVICES][self.selected_device][CONF_SCAN_INTERVAL_FAST] = user_input[CONF_SCAN_INTERVAL_FAST]
-
+            new_data[CONF_DEVICES][self.selected_device].update(user_input)
             self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
-            self.hass.config_entries._async_schedule_save()
-            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
 
             return self.async_abort(
                 reason="edit_success",

@@ -142,6 +142,10 @@ class BaseDevice():
         result = await self.checkAuth()
         _LOGGER.debug(f"Authorized: {result}")
 
+    async def getAuth(self) -> int:
+        v = unpack("<I", await self._readUUID(self.chars[CHARACTERISTIC_PIN_CODE]))
+        return v[0]
+
     async def checkAuth(self) -> bool:
         v = unpack("<b", await self._readUUID(self.chars[CHARACTERISTIC_PIN_CONFIRMATION]))
         return bool(v[0])
