@@ -41,7 +41,7 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
         )
 
         # Find coordinator for this device
-        coordinator = hass.data[DOMAIN][CONF_DEVICES][device_id]
+        coordinator = hass.data[DOMAIN][config_entry.entry_id][CONF_DEVICES][device_id]
 
         # Device specific entities
         match coordinator._model:

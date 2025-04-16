@@ -27,10 +27,14 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    # Set up platform from a ConfigEntry.
+    """Set up Pax BLE from a config entry."""
     _LOGGER.debug("Setting up configuration for Pax BLE!")
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][CONF_DEVICES] = {}
+
+    # Set up per-entry data storage
+    if entry.entry_id not in hass.data[DOMAIN]:
+        hass.data[DOMAIN][entry.entry_id] = {}
+    hass.data[DOMAIN][entry.entry_id][CONF_DEVICES] = {}
 
     # Create one coordinator for each device
     first_iteration = True
@@ -39,32 +43,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             await asyncio.sleep(10)
         first_iteration = False
 
-        name = entry.data[CONF_DEVICES][device_id][CONF_NAME]
-        mac = entry.data[CONF_DEVICES][device_id][CONF_MAC]
+        device_data = entry.data[CONF_DEVICES][device_id]
+        name = device_data[CONF_NAME]
+        mac = device_data[CONF_MAC]
 
-        # Create device
+        # Register device
         device_registry = dr.async_get(hass)
         dev = device_registry.async_get_or_create(
-            config_entry_id=entry.entry_id, identifiers={(DOMAIN, mac)}, name=name
+            config_entry_id=entry.entry_id,
+            identifiers={(DOMAIN, mac)},
+            name=name
         )
 
-        coordinator = getCoordinator(hass, entry.data[CONF_DEVICES][device_id], dev)
-        await coordinator.async_request_refresh()  # Force an immediate update
-        hass.data[DOMAIN][CONF_DEVICES][device_id] = coordinator
+        coordinator = getCoordinator(hass, device_data, dev)
+        await coordinator.async_request_refresh()
+        hass.data[DOMAIN][entry.entry_id][CONF_DEVICES][device_id] = coordinator
 
-    # Forward the setup to the platforms.
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Avoid forwarding platforms multiple times
+    if not hass.data[DOMAIN][entry.entry_id].get("forwarded"):
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        hass.data[DOMAIN][entry.entry_id]["forwarded"] = True
+    else:
+        _LOGGER.debug("Platforms already forwarded for entry %s", entry.entry_id)
 
-    # Set up options listener
+    # Set up update listener
     entry.async_on_unload(entry.add_update_listener(update_listener))
 
     # Register services
-    hass.services.async_register(
-        DOMAIN, "request_update", partial(service_request_update, hass)
-    )
+    hass.services.async_register(DOMAIN, "request_update", partial(service_request_update, hass))
 
     return True
-
 
 # Service-call to update values
 async def service_request_update(hass, call: ServiceCall):
