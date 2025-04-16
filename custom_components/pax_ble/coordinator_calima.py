@@ -23,7 +23,7 @@ class CalimaCoordinator(BaseCoordinator):
         _LOGGER.debug("Reading sensor data")
         try:
             # Make sure we are connected
-            if not await self._fan.connect():
+            if not await self._safe_connect():
                 raise Exception("Not connected!")
         except Exception as e:
             _LOGGER.warning("Error when fetching config data: %s", str(e))
@@ -58,7 +58,7 @@ class CalimaCoordinator(BaseCoordinator):
         _LOGGER.debug("Write_Data: %s", key)
         try:
             # Make sure we are connected
-            if not await self._fan.connect():
+            if not await self._safe_connect():
                 raise Exception("Not connected!")
         except Exception as e:
             _LOGGER.warning("Error when writing data: %s", str(e))
@@ -125,7 +125,7 @@ class CalimaCoordinator(BaseCoordinator):
     async def read_configdata(self, disconnect=False) -> bool:
         try:
             # Make sure we are connected
-            if not await self._fan.connect():
+            if not await self._safe_connect():
                 raise Exception("Not connected!")
         except Exception as e:
             _LOGGER.warning("Error when fetching config data: %s", str(e))

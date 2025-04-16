@@ -1,3 +1,4 @@
+import asyncio
 import async_timeout
 import datetime as dt
 import logging
@@ -73,6 +74,21 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
     async def disconnect(self):
         await self._fan.disconnect()
 
+    async def _safe_connect(self) -> bool:
+        """
+        Try up to 5× with exponential backoff.
+        """
+        backoff = 1.0
+        for attempt in range(1, 6):
+            if await self._fan.connect():
+                return True
+            _LOGGER.debug("Coordinator connect attempt %d failed", attempt)
+            if attempt < 5:
+                await asyncio.sleep(backoff)
+                backoff *= 2
+        _LOGGER.warning("Coordinator failed to connect after 5 attempts")
+        return False
+
     async def _async_update_data(self):
         _LOGGER.debug("Coordinator updating data!!")
 
@@ -135,7 +151,7 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         _LOGGER.debug("Reading device information")
         try:
             # Make sure we are connected
-            if not await self._fan.connect():
+            if not await self._safe_connect():
                 raise Exception("Not connected!")
         except Exception as e:
             _LOGGER.warning("Error when fetching device info: %s", str(e))

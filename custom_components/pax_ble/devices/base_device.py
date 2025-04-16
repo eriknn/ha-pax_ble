@@ -8,6 +8,7 @@ from bleak.exc import BleakError
 import binascii
 from collections import namedtuple
 import logging
+import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,8 +20,8 @@ class BaseDevice():
         self._hass = hass
         self._mac = mac
         self._pin = pin
-        self._dev = None
-
+        self._client: BleakClient | None = None
+        # Characteristic UUIDs (centralized in characteristics.py ideally)
         self.chars = {
             CHARACTERISTIC_APPEARANCE: "00002a01-0000-1000-8000-00805f9b34fb",  # Not used
             CHARACTERISTIC_BOOST: "118c949c-28c8-4139-b0b3-36657fd055a9",
@@ -46,64 +47,92 @@ class BaseDevice():
     async def authorize(self):
         await self.setAuth(self._pin)
 
-    async def connect(self, retries=3) -> bool:
-        if self.isConnected():
+    async def connect(self) -> bool:
+        """
+        Reuse BleakClient if already connected; otherwise try up to N times
+        with exponential backoff.
+        """
+        if self._client and self._client.is_connected:
             return True
 
-        tries = 0
-
-        _LOGGER.debug("Connecting to %s", self._mac)
-        while tries < retries:
-            tries += 1
-
+        retries = 3
+        backoff = 1.0
+        for attempt in range(1, retries + 1):
             try:
                 d = bluetooth.async_ble_device_from_address(
                     self._hass, self._mac.upper()
                 )
                 if not d:
-                    raise BleakError(
-                        f"A device with address {self._mac} could not be found."
-                    )
-                self._dev = BleakClient(d)
-                ret = await self._dev.connect()
-                if ret:
-                    _LOGGER.debug("Connected to %s", self._mac)
-                    break
+                    raise BleakError(f"Device {self._mac} not found")
+                if not self._client:
+                    self._client = BleakClient(d)
+                await self._client.connect()
+                _LOGGER.debug("Connected to %s on attempt %d", self._mac, attempt)
+                return True
             except Exception as e:
-                if tries == retries:
-                    _LOGGER.info("Not able to connect to %s! %s", self._mac, str(e))
-                else:
-                    _LOGGER.debug("Retrying %s", self._mac)
+                _LOGGER.debug("Connect attempt %d/%d failed: %s", attempt, retries, e)
 
-        return self.isConnected()
+                # **cleanup** the half‑dead client before retrying
+                try:
+                    await self._client.disconnect()
+                except Exception:
+                    # might already be partially torn down
+                    pass
+                self._client = None
+
+                if attempt < retries:
+                    await asyncio.sleep(backoff)
+                    backoff *= 2
+                else:
+                    _LOGGER.warning("Failed to connect %s after %d attempts", self._mac, retries)
+        return False
 
     async def disconnect(self) -> None:
-        if self._dev is not None:
+        if self._client:
             try:
-                await self._dev.disconnect()
+                await self._client.disconnect()
             except Exception as e:
-                _LOGGER.info("Error disconnecting from %s! %s", self._mac, str(e))
-            self._dev = None
+                _LOGGER.warning("Error disconnecting %s: %s", self._mac, e)
+            finally:
+                self._client = None
+
+    async def _with_disconnect_on_error(self, coro):
+        try:
+            return await coro
+        except Exception:
+            _LOGGER.debug("GATT operation failed; disconnecting", exc_info=True)
+            await self.disconnect()
+            raise
 
     async def pair(self) -> str:
         raise NotImplementedError("Pairing not availiable for this device type.")
 
     def isConnected(self) -> bool:
-        return self._dev is not None and self._dev.is_connected
+         return self._client is not None and self._client.is_connected
 
     def _bToStr(self, val) -> str:
         return binascii.b2a_hex(val).decode("utf-8")
 
     async def _readUUID(self, uuid) -> bytearray:
-        val = await self._dev.read_gatt_char(uuid)
-        return val
+        if not self._client:
+            raise BleakError("Client not initialized")
+        return await self._with_disconnect_on_error(
+            self._client.read_gatt_char(uuid)
+        )
 
     async def _readHandle(self, handle) -> bytearray:
-        val = await self._dev.read_gatt_char(char_specifier=handle)
-        return val
+        if not self._client:
+            raise BleakError("Client not initialized")
+        return await self._with_disconnect_on_error(
+            self._client.read_gatt_char(handle)
+        )
 
-    async def _writeUUID(self, uuid, val) -> None:
-        await self._dev.write_gatt_char(char_specifier=uuid, data=val, response=True)
+    async def _writeUUID(self, uuid, data) -> None:
+        if not self._client:
+            raise BleakError("Client not initialized")
+        return await self._with_disconnect_on_error(
+            self._client.write_gatt_char(uuid, data, response=True)
+        )
 
     # --- Generic GATT Characteristics
     async def getDeviceName(self) -> str:
