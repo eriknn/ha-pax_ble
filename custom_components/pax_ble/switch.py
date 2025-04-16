@@ -11,20 +11,42 @@ from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
-PaxAttribute = namedtuple('PaxAttribute', ['key', 'descriptor', 'unit'])
-boostmode_attribute = PaxAttribute('boostmodesecread', 'Boost time remaining', ' s')
+PaxAttribute = namedtuple("PaxAttribute", ["key", "descriptor", "unit"])
+boostmode_attribute = PaxAttribute("boostmodesecread", "Boost time remaining", " s")
 
-PaxEntity = namedtuple('PaxEntity', ['key', 'entityName', 'category', 'icon', 'attributes'])
+PaxEntity = namedtuple(
+    "PaxEntity", ["key", "entityName", "category", "icon", "attributes"]
+)
 ENTITIES = [
     PaxEntity("boostmode", "BoostMode", None, "mdi:wind-power", boostmode_attribute),
 ]
 CALIMA_ENTITIES = [
-    PaxEntity("trickledays_weekdays", "TrickleDays Weekdays", EntityCategory.CONFIG, "mdi:calendar", None),
-    PaxEntity("trickledays_weekends", "TrickleDays Weekends", EntityCategory.CONFIG, "mdi:calendar", None),
-    PaxEntity("silenthours_on", "SilentHours On", EntityCategory.CONFIG, "mdi:volume-off", None),
+    PaxEntity(
+        "trickledays_weekdays",
+        "TrickleDays Weekdays",
+        EntityCategory.CONFIG,
+        "mdi:calendar",
+        None,
+    ),
+    PaxEntity(
+        "trickledays_weekends",
+        "TrickleDays Weekends",
+        EntityCategory.CONFIG,
+        "mdi:calendar",
+        None,
+    ),
+    PaxEntity(
+        "silenthours_on",
+        "SilentHours On",
+        EntityCategory.CONFIG,
+        "mdi:volume-off",
+        None,
+    ),
 ]
 SVENSA_ENTITIES = [
-    PaxEntity("trickle_on", "Trickle On", EntityCategory.CONFIG, "mdi:volume-off", None),
+    PaxEntity(
+        "trickle_on", "Trickle On", EntityCategory.CONFIG, "mdi:volume-off", None
+    ),
 ]
 
 
@@ -34,7 +56,10 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
     ha_entities = []
 
     for device_id in config_entry.data[CONF_DEVICES]:
-        _LOGGER.debug("Starting paxcalima switches: %s", config_entry.data[CONF_DEVICES][device_id][CONF_NAME])
+        _LOGGER.debug(
+            "Starting paxcalima switches: %s",
+            config_entry.data[CONF_DEVICES][device_id][CONF_NAME],
+        )
 
         # Find coordinator for this device
         coordinator = hass.data[DOMAIN][CONF_DEVICES][device_id]
@@ -75,7 +100,7 @@ class PaxCalimaSwitchEntity(PaxCalimaEntity, SwitchEntity):
             descriptor = self._paxattr.descriptor
             key = self.coordinator.get_data(self._paxattr.key)
             unit = self._paxattr.unit
-            attrs = {descriptor:str(key) + unit}
+            attrs = {descriptor: str(key) + unit}
             attrs.update(super().extra_state_attributes)
             return attrs
         else:
@@ -92,7 +117,7 @@ class PaxCalimaSwitchEntity(PaxCalimaEntity, SwitchEntity):
     async def writeVal(self, val):
         """Save old value"""
         old_value = self.coordinator.get_data(self._key)
-        
+
         """Write new value to our storage"""
         self.coordinator.set_data(self._key, val)
 

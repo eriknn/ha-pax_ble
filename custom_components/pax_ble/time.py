@@ -12,10 +12,20 @@ from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
-PaxEntity = namedtuple('PaxEntity', ['key', 'entityName', 'category', 'icon'])
+PaxEntity = namedtuple("PaxEntity", ["key", "entityName", "category", "icon"])
 CALIMA_ENTITIES = [
-    PaxEntity("silenthours_starttime","SilentHours Start Time",EntityCategory.CONFIG,"mdi:clock-outline"),
-    PaxEntity("silenthours_endtime","SilentHours End Time",EntityCategory.CONFIG,"mdi:clock-outline"),
+    PaxEntity(
+        "silenthours_starttime",
+        "SilentHours Start Time",
+        EntityCategory.CONFIG,
+        "mdi:clock-outline",
+    ),
+    PaxEntity(
+        "silenthours_endtime",
+        "SilentHours End Time",
+        EntityCategory.CONFIG,
+        "mdi:clock-outline",
+    ),
 ]
 
 
@@ -25,7 +35,10 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
     ha_entities = []
 
     for device_id in config_entry.data[CONF_DEVICES]:
-        _LOGGER.debug("Starting paxcalima times: %s", config_entry.data[CONF_DEVICES][device_id][CONF_NAME])
+        _LOGGER.debug(
+            "Starting paxcalima times: %s",
+            config_entry.data[CONF_DEVICES][device_id][CONF_NAME],
+        )
 
         # Find coordinator for this device
         coordinator = hass.data[DOMAIN][CONF_DEVICES][device_id]

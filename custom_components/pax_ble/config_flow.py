@@ -1,4 +1,5 @@
 """Config flow to configure Pax integration"""
+
 import logging
 import voluptuous as vol
 
@@ -16,8 +17,22 @@ from typing import Any
 from .devices.base_device import BaseDevice
 
 from homeassistant.const import CONF_DEVICES
-from .const import CONF_ACTION, CONF_ADD_DEVICE, CONF_WRONG_PIN_SELECTOR, CONF_EDIT_DEVICE, CONF_REMOVE_DEVICE
-from .const import DOMAIN, CONF_NAME, CONF_MODEL, CONF_MAC, CONF_PIN, CONF_SCAN_INTERVAL, CONF_SCAN_INTERVAL_FAST
+from .const import (
+    CONF_ACTION,
+    CONF_ADD_DEVICE,
+    CONF_WRONG_PIN_SELECTOR,
+    CONF_EDIT_DEVICE,
+    CONF_REMOVE_DEVICE,
+)
+from .const import (
+    DOMAIN,
+    CONF_NAME,
+    CONF_MODEL,
+    CONF_MAC,
+    CONF_PIN,
+    CONF_SCAN_INTERVAL,
+    CONF_SCAN_INTERVAL_FAST,
+)
 from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_FAST
 from .const import DeviceModel
 from .helpers import getCoordinator
@@ -26,13 +41,13 @@ CONFIG_ENTRY_NAME = "Pax BLE"
 SELECTED_DEVICE = "selected_device"
 
 DEVICE_DATA = {
-            CONF_NAME: "",
-            CONF_MODEL: "",
-            CONF_MAC: "",
-            CONF_PIN: "",
-            CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
-            CONF_SCAN_INTERVAL_FAST: DEFAULT_SCAN_INTERVAL_FAST
-        }
+    CONF_NAME: "",
+    CONF_MODEL: "",
+    CONF_MAC: "",
+    CONF_PIN: "",
+    CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+    CONF_SCAN_INTERVAL_FAST: DEFAULT_SCAN_INTERVAL_FAST,
+}
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -64,7 +79,9 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     return True
         return False
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Handle a flow initialized by the user, adding the integration."""
         errors = {}
 
@@ -74,7 +91,9 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         return self.async_create_entry(title=CONFIG_ENTRY_NAME, data={CONF_DEVICES: {}})
 
-    async def async_step_bluetooth(self, discovery_info: BluetoothServiceInfoBleak) -> FlowResult:
+    async def async_step_bluetooth(
+        self, discovery_info: BluetoothServiceInfoBleak
+    ) -> FlowResult:
         """Handle a flow initialized by bluetooth discovery."""
         _LOGGER.debug("Discovered device: %s", discovery_info.address)
         self.device_data[CONF_MAC] = dr.format_mac(discovery_info.address)
@@ -86,15 +105,17 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         """Abort if this device is already configured"""
         if self.device_exists(self.device_data[CONF_MAC]):
             _LOGGER.debug("Aborting because device exists!")
-            return self.async_abort(reason="device_already_configured",
-                                    description_placeholders={"dev_name": self.device_data[CONF_MAC]}
-                                    )
+            return self.async_abort(
+                reason="device_already_configured",
+                description_placeholders={"dev_name": self.device_data[CONF_MAC]},
+            )
 
         return await self.async_step_add_device()
 
     """##################################################
     ##################### ADD DEVICE ####################
     ##################################################"""
+
     async def async_step_add_device(self, user_input=None):
         """Handler for adding discovered device."""
         errors = {}
@@ -102,9 +123,10 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             dev_mac = dr.format_mac(user_input[CONF_MAC])
             if self.device_exists(dev_mac):
-                return self.async_abort(reason="device_already_configured",
-                                        description_placeholders={"dev_name": dev_mac}
-                                        )
+                return self.async_abort(
+                    reason="device_already_configured",
+                    description_placeholders={"dev_name": dev_mac},
+                )
 
             fan = BaseDevice(self.hass, dev_mac, user_input[CONF_PIN])
 
@@ -127,27 +149,32 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                         new_data[CONF_DEVICES][dev_mac] = user_input
                         _LOGGER.debug("Creating config entry: %s", new_data)
 
-                        return self.async_create_entry(title=CONFIG_ENTRY_NAME,
-                                                       data=new_data,
-                                                       description_placeholders={
-                                                           "dev_name": new_data[CONF_DEVICES][dev_mac][CONF_NAME]
-                                                       }
-                                                       )
+                        return self.async_create_entry(
+                            title=CONFIG_ENTRY_NAME,
+                            data=new_data,
+                            description_placeholders={
+                                "dev_name": new_data[CONF_DEVICES][dev_mac][CONF_NAME]
+                            },
+                        )
                     else:
                         # Integration found, update with new device
                         new_data = self.config_entry.data.copy()
                         new_data[CONF_DEVICES][dev_mac] = user_input
 
-                        self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+                        self.hass.config_entries.async_update_entry(
+                            self.config_entry, data=new_data
+                        )
                         self.hass.config_entries._async_schedule_save()
 
-                        await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                        await self.hass.config_entries.async_reload(
+                            self.config_entry.entry_id
+                        )
 
                         return self.async_abort(
                             reason="add_success",
                             description_placeholders={
                                 "dev_name": user_input[CONF_NAME]
-                            }
+                            },
                         )
                 else:
                     # Store values for accept / decline wrong pin
@@ -167,6 +194,7 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     """##################################################
     ###################### WRONG PIN ####################
     ##################################################"""
+
     async def async_step_wrong_pin(self, user_input=None):
         """Accept or decline wrong pin."""
         errors = {}
@@ -190,10 +218,11 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             step_id="wrong_pin", data_schema=MENU_WRONG_PIN_SCHEMA, errors=errors
         )
 
+
 class PaxOptionsFlowHandler(OptionsFlow):
     def __init__(self):
-        self.selected_device = None             # Mac address / key
-        self.device_data = DEVICE_DATA.copy()   # Data of "current" device
+        self.selected_device = None  # Mac address / key
+        self.device_data = DEVICE_DATA.copy()  # Data of "current" device
         self.accept_wrong_pin = False
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
@@ -217,16 +246,18 @@ class PaxOptionsFlowHandler(OptionsFlow):
     """##################################################
     ##################### ADD DEVICE ####################
     ##################################################"""
+
     async def async_step_add_device(self, user_input=None):
         """Handler for adding device."""
         errors = {}
 
         if user_input is not None:
             if self.device_exists(dr.format_mac(user_input[CONF_MAC])):
-                return self.async_abort(reason="already_configured",
-                    description_placeholders = {
+                return self.async_abort(
+                    reason="already_configured",
+                    description_placeholders={
                         "dev_name": user_input[CONF_MAC],
-                    }
+                    },
                 )
 
             fan = BaseDevice(self.hass, user_input[CONF_MAC], user_input[CONF_PIN])
@@ -245,14 +276,21 @@ class PaxOptionsFlowHandler(OptionsFlow):
                     new_data = self.config_entry.data.copy()
                     new_data[CONF_DEVICES][user_input[CONF_MAC]] = user_input
 
-                    self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry, data=new_data
+                    )
                     self.hass.config_entries._async_schedule_save()
-                    await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                    await self.hass.config_entries.async_reload(
+                        self.config_entry.entry_id
+                    )
 
-                    return self.async_abort(reason="add_success",
+                    return self.async_abort(
+                        reason="add_success",
                         description_placeholders={
-                            "dev_name": new_data[CONF_DEVICES][user_input[CONF_MAC]][CONF_NAME],
-                        }
+                            "dev_name": new_data[CONF_DEVICES][user_input[CONF_MAC]][
+                                CONF_NAME
+                            ],
+                        },
                     )
                 else:
                     # Store values for accept / decline wrong pin
@@ -268,16 +306,19 @@ class PaxOptionsFlowHandler(OptionsFlow):
         return self.async_show_form(
             step_id="add_device", data_schema=data_schema, errors=errors
         )
-    
+
     """##################################################
     #################### PAIR DEVICE ####################
     ##################################################"""
+
     async def async_step_pair_device(self, user_input=None):
         """Handler for pairing device."""
         errors = {}
 
         # Initialize the BaseDevice
-        fan = BaseDevice(self.hass, self.device_data[CONF_MAC], self.device_data[CONF_PIN])
+        fan = BaseDevice(
+            self.hass, self.device_data[CONF_MAC], self.device_data[CONF_PIN]
+        )
 
         # Attempt to connect to the device
         if await fan.connect():
@@ -299,6 +340,7 @@ class PaxOptionsFlowHandler(OptionsFlow):
     """##################################################
     ###################### WRONG PIN ####################
     ##################################################"""
+
     async def async_step_wrong_pin(self, user_input=None):
         """Accept or decline wrong pin."""
         errors = {}
@@ -325,13 +367,16 @@ class PaxOptionsFlowHandler(OptionsFlow):
     """##################################################
     ################# SELECT EDIT DEVICE ################
     ##################################################"""
+
     async def async_step_select_edit_device(self, user_input=None):
         """Handler for selecting device to edit."""
         errors = {}
 
         if user_input is not None:
             self.selected_device = user_input[SELECTED_DEVICE]
-            self.device_data = self.config_entry.data[CONF_DEVICES][self.selected_device]
+            self.device_data = self.config_entry.data[CONF_DEVICES][
+                self.selected_device
+            ]
 
             return await self.async_step_edit_device()
 
@@ -340,12 +385,15 @@ class PaxOptionsFlowHandler(OptionsFlow):
             devices[dev_id] = dev_config[CONF_NAME]
 
         return self.async_show_form(
-            step_id="select_edit_device", data_schema=getDeviceSchemaSelect(devices), errors=errors
+            step_id="select_edit_device",
+            data_schema=getDeviceSchemaSelect(devices),
+            errors=errors,
         )
 
     """##################################################
     #################### EDIT DEVICE ###################
     ##################################################"""
+
     async def async_step_edit_device(self, user_input=None):
         """Handler for inputting new data for device."""
         errors = {}
@@ -354,13 +402,15 @@ class PaxOptionsFlowHandler(OptionsFlow):
             # Update device in config entry
             new_data = self.config_entry.data.copy()
             new_data[CONF_DEVICES][self.selected_device].update(user_input)
-            self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+            self.hass.config_entries.async_update_entry(
+                self.config_entry, data=new_data
+            )
 
             return self.async_abort(
                 reason="edit_success",
                 description_placeholders={
                     "dev_name": new_data[CONF_DEVICES][self.selected_device][CONF_NAME]
-                }
+                },
             )
 
         return self.async_show_form(
@@ -368,34 +418,41 @@ class PaxOptionsFlowHandler(OptionsFlow):
             data_schema=getDeviceSchemaEdit(self.device_data),
             errors=errors,
             description_placeholders={
-                "dev_name": self.config_entry.data[CONF_DEVICES][self.selected_device][CONF_NAME]
-            }
+                "dev_name": self.config_entry.data[CONF_DEVICES][self.selected_device][
+                    CONF_NAME
+                ]
+            },
         )
 
     """##################################################
     #################### REMOVE DEVICE ##################
     ##################################################"""
+
     async def async_step_remove_device(self, user_input=None):
         """Handler for selecting device to remove."""
         errors = {}
 
         if user_input is not None:
             self.selected_device = user_input[SELECTED_DEVICE]
-            self.device_data = self.config_entry.data[CONF_DEVICES][self.selected_device]
+            self.device_data = self.config_entry.data[CONF_DEVICES][
+                self.selected_device
+            ]
 
             # Remove device from config entry
             new_data = self.config_entry.data.copy()
             new_data[CONF_DEVICES].pop(self.selected_device)
 
-            await self.async_remove_device(self.config_entry.entry_id, self.selected_device)
-            self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+            await self.async_remove_device(
+                self.config_entry.entry_id, self.selected_device
+            )
+            self.hass.config_entries.async_update_entry(
+                self.config_entry, data=new_data
+            )
             self.hass.config_entries._async_schedule_save()
 
             return self.async_abort(
                 reason="remove_success",
-                description_placeholders={
-                    "dev_name": self.device_data[CONF_NAME]
-                }
+                description_placeholders={"dev_name": self.device_data[CONF_NAME]},
             )
 
         devices = {}
@@ -403,7 +460,9 @@ class PaxOptionsFlowHandler(OptionsFlow):
             devices[dev_id] = dev_config[CONF_NAME]
 
         return self.async_show_form(
-            step_id="remove_device", data_schema=getDeviceSchemaSelect(devices), errors=errors
+            step_id="remove_device",
+            data_schema=getDeviceSchemaSelect(devices),
+            errors=errors,
         )
 
     async def async_remove_device(self, entry_id, mac) -> None:
@@ -424,6 +483,7 @@ class PaxOptionsFlowHandler(OptionsFlow):
         for entity_id in reg_entities.values():
             ent_reg.async_remove(entity_id)
 
+
 """ ################################################### """
 """                      Static schemas                 """
 """ ################################################ """
@@ -432,7 +492,9 @@ CONF_ACTIONS = [CONF_ADD_DEVICE, CONF_EDIT_DEVICE, CONF_REMOVE_DEVICE]
 CONFIGURE_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_ACTION): selector.SelectSelector(
-            selector.SelectSelectorConfig(options=CONF_ACTIONS, translation_key=CONF_ACTION),
+            selector.SelectSelectorConfig(
+                options=CONF_ACTIONS, translation_key=CONF_ACTION
+            ),
         )
     }
 )
@@ -440,6 +502,8 @@ CONFIGURE_SCHEMA = vol.Schema(
 """ ################################################### """
 """                     Dynamic schemas                 """
 """ ################################################### """
+
+
 # Schema taking device details when adding
 def getDeviceSchemaAdd(user_input: dict[str, Any] | None = None) -> vol.Schema:
     DEVICE_MODELS = list(DeviceModel)
@@ -469,6 +533,7 @@ def getDeviceSchemaAdd(user_input: dict[str, Any] | None = None) -> vol.Schema:
 
     return data_schema
 
+
 # Schema taking device details when editing
 def getDeviceSchemaEdit(user_input: dict[str, Any] | None = None) -> vol.Schema:
     data_schema = vol.Schema(
@@ -487,26 +552,26 @@ def getDeviceSchemaEdit(user_input: dict[str, Any] | None = None) -> vol.Schema:
 
     return data_schema
 
+
 # Schema for selecting device to edit
 def getDeviceSchemaSelect(devices: dict[str, Any] | None = None) -> vol.Schema:
     schema_devices = {}
     for dev_key, dev_name in devices.items():
         schema_devices[dev_key] = f"{dev_name} ({dev_key})"
 
-    data_schema = vol.Schema(
-        {
-            vol.Required(SELECTED_DEVICE): vol.In(schema_devices)
-        }
-    )
+    data_schema = vol.Schema({vol.Required(SELECTED_DEVICE): vol.In(schema_devices)})
 
     return data_schema
+
 
 # Schema for accepting wrong pin
 MENU_WRONG_PIN_VALUES = ["accept", "decline", "pair"]
 MENU_WRONG_PIN_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_WRONG_PIN_SELECTOR): selector.SelectSelector(
-            selector.SelectSelectorConfig(options=MENU_WRONG_PIN_VALUES, translation_key=CONF_WRONG_PIN_SELECTOR),
+            selector.SelectSelectorConfig(
+                options=MENU_WRONG_PIN_VALUES, translation_key=CONF_WRONG_PIN_SELECTOR
+            ),
         )
     }
 )
@@ -514,6 +579,8 @@ MENU_WRONG_PIN_SCHEMA = vol.Schema(
 """ ################################################### """
 """                     Helper functions                """
 """ ################################################### """
+
+
 async def attempt_pair_device(hass, device_data):
     """Helper method to attempt pairing a device."""
     device = SimpleNamespace(name="Config Flow Device")

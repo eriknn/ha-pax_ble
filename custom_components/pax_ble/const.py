@@ -3,7 +3,13 @@ from homeassistant.const import Platform
 
 # Global Constants
 DOMAIN: str = "pax_ble"
-PLATFORMS = [Platform.TIME, Platform.SENSOR, Platform.SWITCH, Platform.NUMBER, Platform.SELECT]
+PLATFORMS = [
+    Platform.TIME,
+    Platform.SENSOR,
+    Platform.SWITCH,
+    Platform.NUMBER,
+    Platform.SELECT,
+]
 
 # Configuration Constants
 CONF_ACTION = "action"
@@ -23,6 +29,7 @@ CONF_SCAN_INTERVAL_FAST: str = "scan_interval_fast"
 # Defaults
 DEFAULT_SCAN_INTERVAL: int = 300  # Seconds
 DEFAULT_SCAN_INTERVAL_FAST: int = 5  # Seconds
+
 
 # Device models
 class DeviceModel(str, Enum):

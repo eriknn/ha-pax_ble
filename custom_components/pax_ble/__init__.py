@@ -1,4 +1,5 @@
 """Support for Pax fans."""
+
 import asyncio
 import logging
 
@@ -18,7 +19,7 @@ from .const import (
     CONF_MAC,
     CONF_PIN,
     CONF_SCAN_INTERVAL,
-    CONF_SCAN_INTERVAL_FAST
+    CONF_SCAN_INTERVAL_FAST,
 )
 from .helpers import getCoordinator
 
@@ -26,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    # Set up platform from a ConfigEntry."""
+    # Set up platform from a ConfigEntry.
     _LOGGER.debug("Setting up configuration for Pax BLE!")
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][CONF_DEVICES] = {}
@@ -44,13 +45,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Create device
         device_registry = dr.async_get(hass)
         dev = device_registry.async_get_or_create(
-            config_entry_id=entry.entry_id,
-            identifiers={(DOMAIN, mac)},
-            name=name
+            config_entry_id=entry.entry_id, identifiers={(DOMAIN, mac)}, name=name
         )
 
         coordinator = getCoordinator(hass, entry.data[CONF_DEVICES][device_id], dev)
-        await coordinator.async_request_refresh()     # Force an immediate update
+        await coordinator.async_request_refresh()  # Force an immediate update
         hass.data[DOMAIN][CONF_DEVICES][device_id] = coordinator
 
     # Forward the setup to the platforms.
@@ -58,11 +57,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Set up options listener
     entry.async_on_unload(entry.add_update_listener(update_listener))
-    
+
     # Register services
-    hass.services.async_register(DOMAIN, "request_update",partial(service_request_update, hass))
+    hass.services.async_register(
+        DOMAIN, "request_update", partial(service_request_update, hass)
+    )
 
     return True
+
 
 # Service-call to update values
 async def service_request_update(hass, call: ServiceCall):
@@ -78,7 +80,7 @@ async def service_request_update(hass, call: ServiceCall):
     if not device_entry:
         _LOGGER.error("No device entry found for device ID %s", device_id)
         return
-    
+
     """Find the coordinator corresponding to the given device ID."""
     coordinators = hass.data[DOMAIN].get(CONF_DEVICES, {})
 
@@ -90,17 +92,22 @@ async def service_request_update(hass, call: ServiceCall):
 
     _LOGGER.warning("No coordinator found for device ID %s", device_id)
 
+
 # Example migration function
 async def async_migrate_entry(hass, config_entry: ConfigEntry):
     if config_entry.version == 1:
-        _LOGGER.error("You have an old PAX configuration, please remove and add again. Sorry for the inconvenience!")
+        _LOGGER.error(
+            "You have an old PAX configuration, please remove and add again. Sorry for the inconvenience!"
+        )
         return False
 
     return True
 
+
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
     _LOGGER.debug("Updating Pax BLE entry!")
     await hass.config_entries.async_reload(entry.entry_id)
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
@@ -111,11 +118,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await coordinator.disconnect()
 
     # Unload entries
-    unload_ok = await hass.config_entries.async_unload_platforms(
-        entry, PLATFORMS
-    )
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     return unload_ok
+
 
 async def async_remove_config_entry_device(
     hass: HomeAssistant, config_entry: ConfigEntry, device_entry: DeviceEntry
