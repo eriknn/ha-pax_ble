@@ -122,7 +122,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("Unloading Pax BLE entry!")
 
     # Make sure we are disconnected
-    for dev_id, coordinator in hass.data[DOMAIN][CONF_DEVICES].items():
+    devices = hass.data[DOMAIN].get(entry.entry_id, {}).get(CONF_DEVICES, {})
+    for dev_id, coordinator in devices.items():
         await coordinator.disconnect()
 
     # Unload entries
