@@ -15,33 +15,42 @@ ConstantOperation = namedtuple("ConstantOperation", "Active Speed")
 FanState = namedtuple("FanState", "Humidity AirQuality Temp Light RPM Mode")
 Humidity = namedtuple("Humidity", "Active Level Speed")
 TimerFunctions = namedtuple("TimerFunctions", "PresenceTime TimeActive TimeMin Speed")
-PresenceGas = namedtuple("PresenceGas", "PresenceActive PresenceLevel GasActive GasLevel")
+PresenceGas = namedtuple(
+    "PresenceGas", "PresenceActive PresenceLevel GasActive GasLevel"
+)
+
 
 class Svensa(BaseDevice):
     def __init__(self, hass, mac, pin):
         super().__init__(hass, mac, pin)
 
         # Update characteristics used in base device
-        self.chars.update({
-            CHARACTERISTIC_BOOST: "7c4adc07-2f33-11e7-93ae-92361f002671",
-            CHARACTERISTIC_MODE: "7c4adc0d-2f33-11e7-93ae-92361f002671",
-            CHARACTERISTIC_MODEL_NUMBER: "00002a24-0000-1000-8000-00805f9b34fb",         # Not used
-        })
+        self.chars.update(
+            {
+                CHARACTERISTIC_BOOST: "7c4adc07-2f33-11e7-93ae-92361f002671",
+                CHARACTERISTIC_MODE: "7c4adc0d-2f33-11e7-93ae-92361f002671",
+                CHARACTERISTIC_MODEL_NUMBER: "00002a24-0000-1000-8000-00805f9b34fb",  # Not used
+            }
+        )
 
         # Update charateristics used in this device
-        self.chars.update({
-            CHARACTERISTIC_AUTOMATIC_CYCLES: "7c4adc05-2f33-11e7-93ae-92361f002671",
-            CHARACTERISTIC_TIME_FUNCTIONS: "7c4adc04-2f33-11e7-93ae-92361f002671"
-        })
+        self.chars.update(
+            {
+                CHARACTERISTIC_AUTOMATIC_CYCLES: "7c4adc05-2f33-11e7-93ae-92361f002671",
+                CHARACTERISTIC_TIME_FUNCTIONS: "7c4adc04-2f33-11e7-93ae-92361f002671",
+            }
+        )
 
         # Add characteristics specific for Svensa
-        self.chars.update({
-            CHARACTERISTIC_HUMIDITY: "7c4adc01-2f33-11e7-93ae-92361f002671",             # humActive, humLevel, fanSpeed
-            CHARACTERISTIC_CONSTANT_OPERATION: "7c4adc03-2f33-11e7-93ae-92361f002671",
-            CHARACTERISTIC_PRESENCE_GAS: "7c4adc02-2f33-11e7-93ae-92361f002671"
-        })        
+        self.chars.update(
+            {
+                CHARACTERISTIC_HUMIDITY: "7c4adc01-2f33-11e7-93ae-92361f002671",  # humActive, humLevel, fanSpeed
+                CHARACTERISTIC_CONSTANT_OPERATION: "7c4adc03-2f33-11e7-93ae-92361f002671",
+                CHARACTERISTIC_PRESENCE_GAS: "7c4adc02-2f33-11e7-93ae-92361f002671",
+            }
+        )
 
-    # Override base method, this should return the correct pin    
+    # Override base method, this should return the correct pin
     async def pair(self) -> str:
         for _ in range(5):
             await self.setAuth(0)
@@ -57,7 +66,9 @@ class Svensa(BaseDevice):
     async def getState(self) -> FanState:
         # Byte  Byte    Short Short Short Short    Byte Byte Byte Byte  Byte
         # Trg1  Trg2    Hum   Gas   Light FanSpeed Tbd  Tbd  Tbd  Temp? Tbd
-        v = unpack("<2B4H5B", await self._readUUID(self.chars[CHARACTERISTIC_SENSOR_DATA]))
+        v = unpack(
+            "<2B4H5B", await self._readUUID(self.chars[CHARACTERISTIC_SENSOR_DATA])
+        )
         _LOGGER.debug("Read Fan States: %s", v)
 
         # Found in package com.component.svara.views.calima.SkyModeView
@@ -94,12 +105,12 @@ class Svensa(BaseDevice):
 
         # FanState = namedtuple("FanState", "Humidity AirQuality Temp Light RPM Mode")
         return FanState(
-            round(15*math.log2(v[2]) - 75, 2) if v[2] > 35 else 0,
+            round(15 * math.log2(v[2]) - 75, 2) if v[2] > 35 else 0,
             v[3],
             v[9],
             v[4],
             v[5],
-            trigger
+            trigger,
         )
 
     ################################################
@@ -107,22 +118,32 @@ class Svensa(BaseDevice):
     ################################################
     async def getAutomaticCycles(self) -> AutomaticCycles:
         # Active | Hour | TimeMin | Speed
-        l = AutomaticCycles._make(unpack("<3BH", await self._readUUID(self.chars[CHARACTERISTIC_AUTOMATIC_CYCLES])))
+        l = AutomaticCycles._make(
+            unpack(
+                "<3BH",
+                await self._readUUID(self.chars[CHARACTERISTIC_AUTOMATIC_CYCLES]),
+            )
+        )
 
         # We fix so that TimeMin = 0 if Active = 0
         return AutomaticCycles(l.Active, l.Hour, l.TimeMin if l.Active else 0, l.Speed)
 
-    async def setAutomaticCycles(self, hour:int, timeMin:int, speed:int) -> None:
-        await self._writeUUID(self.chars[CHARACTERISTIC_AUTOMATIC_CYCLES], pack("<3BH", timeMin > 0, hour, timeMin, speed))
+    async def setAutomaticCycles(self, hour: int, timeMin: int, speed: int) -> None:
+        await self._writeUUID(
+            self.chars[CHARACTERISTIC_AUTOMATIC_CYCLES],
+            pack("<3BH", timeMin > 0, hour, timeMin, speed),
+        )
 
     async def getConstantOperation(self) -> ConstantOperation:
-        v = unpack("<BH", await self._readUUID(self.chars[CHARACTERISTIC_CONSTANT_OPERATION]))
+        v = unpack(
+            "<BH", await self._readUUID(self.chars[CHARACTERISTIC_CONSTANT_OPERATION])
+        )
         _LOGGER.debug("Read Constant Operation settings: %s", v)
 
-        #ConstantOperation = namedtuple("ConstantOperation", "Active Speed")
+        # ConstantOperation = namedtuple("ConstantOperation", "Active Speed")
         return ConstantOperation(v[0], v[1])
-    
-    async def setConstantOperation(self, active:bool, speed:int) -> None:
+
+    async def setConstantOperation(self, active: bool, speed: int) -> None:
         _LOGGER.debug("Write Constant Operation settings")
 
         if speed % 25:
@@ -130,7 +151,9 @@ class Svensa(BaseDevice):
         if not active:
             speed = 0
 
-        await self._writeUUID(self.chars[CHARACTERISTIC_CONSTANT_OPERATION], pack("<BH", active, speed))
+        await self._writeUUID(
+            self.chars[CHARACTERISTIC_CONSTANT_OPERATION], pack("<BH", active, speed)
+        )
 
     async def getHumidity(self) -> Humidity:
         v = unpack("<BBH", await self._readUUID(self.chars[CHARACTERISTIC_HUMIDITY]))
@@ -138,8 +161,8 @@ class Svensa(BaseDevice):
 
         # Humidity = namedtuple("Humidity", "Active Level Speed")
         return Humidity(v[0], v[1], v[2])
-    
-    async def setHumidity(self, active:bool, level:int, speed:int) -> None:
+
+    async def setHumidity(self, active: bool, level: int, speed: int) -> None:
         _LOGGER.debug("Write Fan Humidity settings")
 
         if speed % 25:
@@ -148,23 +171,38 @@ class Svensa(BaseDevice):
             level = 0
             speed = 0
 
-        await self._writeUUID(self.chars[CHARACTERISTIC_HUMIDITY], pack("<BBH", active, level, speed))
-    
+        await self._writeUUID(
+            self.chars[CHARACTERISTIC_HUMIDITY], pack("<BBH", active, level, speed)
+        )
+
     async def getPresenceGas(self) -> PresenceGas:
         # Pres Active | Pres Sensitivity | Gas Active | Gas Sensitivity
         # We fix so that Sensitivity = 0 if active = 0
-        l = PresenceGas._make(unpack("<4B", await self._readUUID(self.chars[CHARACTERISTIC_PRESENCE_GAS])))
+        l = PresenceGas._make(
+            unpack("<4B", await self._readUUID(self.chars[CHARACTERISTIC_PRESENCE_GAS]))
+        )
 
         return PresenceGas._make(
-            unpack( "<4B",bytearray([
-                l.PresenceActive,
-                l.PresenceActive and l.PresenceLevel,
-                l.GasActive,
-                l.GasActive and l.GasLevel]),
+            unpack(
+                "<4B",
+                bytearray(
+                    [
+                        l.PresenceActive,
+                        l.PresenceActive and l.PresenceLevel,
+                        l.GasActive,
+                        l.GasActive and l.GasLevel,
+                    ]
+                ),
             )
         )
 
-    async def setPresenceGas(self, presence_active:bool, presence_level:int, gas_active:bool, gas_level:int) -> None:
+    async def setPresenceGas(
+        self,
+        presence_active: bool,
+        presence_level: int,
+        gas_active: bool,
+        gas_level: int,
+    ) -> None:
         _LOGGER.debug("Write Fan Presence/Gas settings")
 
         if not presence_active:
@@ -172,14 +210,30 @@ class Svensa(BaseDevice):
         if not gas_active:
             gas_level = 0
 
-        await self._writeUUID(self.chars[CHARACTERISTIC_PRESENCE_GAS], pack("<4B", presence_active, presence_level, gas_active, gas_level))
+        await self._writeUUID(
+            self.chars[CHARACTERISTIC_PRESENCE_GAS],
+            pack("<4B", presence_active, presence_level, gas_active, gas_level),
+        )
 
     async def getTimerFunctions(self) -> TimerFunctions:
         # PresenceTime | TimeActive | TimeMin | Speed, we fix so that TimeMin (Delay Time) = 0 if TimeActive = 0
-        l = TimerFunctions._make(unpack("<3BH", await self._readUUID(self.chars[CHARACTERISTIC_TIME_FUNCTIONS])))
-        return TimerFunctions._make(unpack("<3BH",bytearray([l.PresenceTime, l.TimeActive, l.TimeActive and l.TimeMin, l.Speed])))
+        l = TimerFunctions._make(
+            unpack(
+                "<3BH", await self._readUUID(self.chars[CHARACTERISTIC_TIME_FUNCTIONS])
+            )
+        )
+        return TimerFunctions._make(
+            unpack(
+                "<3BH",
+                bytearray(
+                    [l.PresenceTime, l.TimeActive, l.TimeActive and l.TimeMin, l.Speed]
+                ),
+            )
+        )
 
-    async def setTimerFunctions(self, presenceTimeMin, timeActive:bool, timeMin:int, speed:int) -> None:
+    async def setTimerFunctions(
+        self, presenceTimeMin, timeActive: bool, timeMin: int, speed: int
+    ) -> None:
         if presenceTimeMin not in (5, 10, 15, 30, 60):
             raise ValueError("presenceTime must be 5, 10, 15, 30 or 60 minutes")
         if timeMin not in (0, 2, 4):
@@ -188,5 +242,6 @@ class Svensa(BaseDevice):
             raise ValueError("Speed must be a multiple of 25")
 
         await self._writeUUID(
-            self.chars[CHARACTERISTIC_TIME_FUNCTIONS], pack("<3BH", presenceTimeMin, timeActive, timeMin, speed)
+            self.chars[CHARACTERISTIC_TIME_FUNCTIONS],
+            pack("<3BH", presenceTimeMin, timeActive, timeMin, speed),
         )

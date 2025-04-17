@@ -15,32 +15,116 @@ from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
-OptionsTuple = namedtuple('options', ['min_value', 'max_value', 'step'])
+OptionsTuple = namedtuple("options", ["min_value", "max_value", "step"])
 OPTIONS = {}
 OPTIONS["fanspeed"] = OptionsTuple(800, 2400, 25)
 OPTIONS["temperature"] = OptionsTuple(15, 30, 1)
 OPTIONS["boostmodesec"] = OptionsTuple(60, 900, 1)
 OPTIONS["boostmodespeed"] = OptionsTuple(1000, 2400, 25)
 
-PaxEntity = namedtuple('PaxEntity', ['key', 'entityName', 'units', 'deviceClass', 'category', 'icon', 'options'])
+PaxEntity = namedtuple(
+    "PaxEntity",
+    ["key", "entityName", "units", "deviceClass", "category", "icon", "options"],
+)
 ENTITIES = [
-    PaxEntity("fanspeed_humidity","Fanspeed Humidity",REVOLUTIONS_PER_MINUTE,None,EntityCategory.CONFIG,"mdi:engine",OPTIONS["fanspeed"],),
-    PaxEntity("fanspeed_trickle","Fanspeed Trickle",REVOLUTIONS_PER_MINUTE,None,EntityCategory.CONFIG,"mdi:engine",OPTIONS["fanspeed"],),
+    PaxEntity(
+        "fanspeed_humidity",
+        "Fanspeed Humidity",
+        REVOLUTIONS_PER_MINUTE,
+        None,
+        EntityCategory.CONFIG,
+        "mdi:engine",
+        OPTIONS["fanspeed"],
+    ),
+    PaxEntity(
+        "fanspeed_trickle",
+        "Fanspeed Trickle",
+        REVOLUTIONS_PER_MINUTE,
+        None,
+        EntityCategory.CONFIG,
+        "mdi:engine",
+        OPTIONS["fanspeed"],
+    ),
 ]
 CALIMA_ENTITIES = [
-    PaxEntity("heatdistributorsettings_temperaturelimit","HeatDistributorSettings TemperatureLimit",UnitOfTemperature.CELSIUS,NumberDeviceClass.TEMPERATURE,EntityCategory.CONFIG,None,OPTIONS["temperature"],),
-    PaxEntity("heatdistributorsettings_fanspeedbelow","HeatDistributorSettings FanSpeedBelow",REVOLUTIONS_PER_MINUTE,None,EntityCategory.CONFIG,"mdi:engine",OPTIONS["fanspeed"],),
-    PaxEntity("heatdistributorsettings_fanspeedabove","HeatDistributorSettings FanSpeedAbove",REVOLUTIONS_PER_MINUTE,None,EntityCategory.CONFIG,"mdi:engine",OPTIONS["fanspeed"],),
-    PaxEntity("fanspeed_light","Fanspeed Light",REVOLUTIONS_PER_MINUTE,None,EntityCategory.CONFIG,"mdi:engine",OPTIONS["fanspeed"],),
+    PaxEntity(
+        "heatdistributorsettings_temperaturelimit",
+        "HeatDistributorSettings TemperatureLimit",
+        UnitOfTemperature.CELSIUS,
+        NumberDeviceClass.TEMPERATURE,
+        EntityCategory.CONFIG,
+        None,
+        OPTIONS["temperature"],
+    ),
+    PaxEntity(
+        "heatdistributorsettings_fanspeedbelow",
+        "HeatDistributorSettings FanSpeedBelow",
+        REVOLUTIONS_PER_MINUTE,
+        None,
+        EntityCategory.CONFIG,
+        "mdi:engine",
+        OPTIONS["fanspeed"],
+    ),
+    PaxEntity(
+        "heatdistributorsettings_fanspeedabove",
+        "HeatDistributorSettings FanSpeedAbove",
+        REVOLUTIONS_PER_MINUTE,
+        None,
+        EntityCategory.CONFIG,
+        "mdi:engine",
+        OPTIONS["fanspeed"],
+    ),
+    PaxEntity(
+        "fanspeed_light",
+        "Fanspeed Light",
+        REVOLUTIONS_PER_MINUTE,
+        None,
+        EntityCategory.CONFIG,
+        "mdi:engine",
+        OPTIONS["fanspeed"],
+    ),
 ]
 SVENSA_ENTITIES = [
-    PaxEntity("fanspeed_airing","Fanspeed Airing",REVOLUTIONS_PER_MINUTE,None,EntityCategory.CONFIG,"mdi:engine",OPTIONS["fanspeed"],),    
-    PaxEntity("fanspeed_sensor","Fanspeed Sensor",REVOLUTIONS_PER_MINUTE,None,EntityCategory.CONFIG,"mdi:engine",OPTIONS["fanspeed"],),
+    PaxEntity(
+        "fanspeed_airing",
+        "Fanspeed Airing",
+        REVOLUTIONS_PER_MINUTE,
+        None,
+        EntityCategory.CONFIG,
+        "mdi:engine",
+        OPTIONS["fanspeed"],
+    ),
+    PaxEntity(
+        "fanspeed_sensor",
+        "Fanspeed Sensor",
+        REVOLUTIONS_PER_MINUTE,
+        None,
+        EntityCategory.CONFIG,
+        "mdi:engine",
+        OPTIONS["fanspeed"],
+    ),
 ]
 RESTOREENTITIES = [
-    PaxEntity("boostmodesecwrite","BoostMode Time",UnitOfTime.SECONDS,None,EntityCategory.CONFIG,"mdi:timer-outline",OPTIONS["boostmodesec"],),
-    PaxEntity("boostmodespeedwrite","BoostMode Speed",REVOLUTIONS_PER_MINUTE,None,EntityCategory.CONFIG,      "mdi:engine",OPTIONS["boostmodespeed"],),
+    PaxEntity(
+        "boostmodesecwrite",
+        "BoostMode Time",
+        UnitOfTime.SECONDS,
+        None,
+        EntityCategory.CONFIG,
+        "mdi:timer-outline",
+        OPTIONS["boostmodesec"],
+    ),
+    PaxEntity(
+        "boostmodespeedwrite",
+        "BoostMode Speed",
+        REVOLUTIONS_PER_MINUTE,
+        None,
+        EntityCategory.CONFIG,
+        "mdi:engine",
+        OPTIONS["boostmodespeed"],
+    ),
 ]
+
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
     """Setup numbers from a config entry created in the integrations UI."""
@@ -48,10 +132,13 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
     ha_entities = []
 
     for device_id in config_entry.data[CONF_DEVICES]:
-        _LOGGER.debug("Starting paxcalima numbers: %s", config_entry.data[CONF_DEVICES][device_id][CONF_NAME])
+        _LOGGER.debug(
+            "Starting paxcalima numbers: %s",
+            config_entry.data[CONF_DEVICES][device_id][CONF_NAME],
+        )
 
         # Find coordinator for this device
-        coordinator = hass.data[DOMAIN][CONF_DEVICES][device_id]
+        coordinator = hass.data[DOMAIN][config_entry.entry_id][CONF_DEVICES][device_id]
 
         # Create entities for this device
         for paxentity in ENTITIES:
@@ -71,6 +158,7 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
             ha_entities.append(PaxCalimaRestoreNumberEntity(coordinator, paxentity))
 
     async_add_devices(ha_entities, True)
+
 
 class PaxCalimaNumberEntity(PaxCalimaEntity, NumberEntity):
     """Representation of a Number."""
@@ -109,8 +197,10 @@ class PaxCalimaNumberEntity(PaxCalimaEntity, NumberEntity):
 
         self.async_schedule_update_ha_state(force_refresh=False)
 
+
 class PaxCalimaRestoreNumberEntity(PaxCalimaNumberEntity, RestoreEntity):
     """Representation of a Number with restore ability (and only local storage)."""
+
     def __init__(self, coordinator, paxentity):
         super().__init__(coordinator, paxentity)
 
@@ -119,7 +209,9 @@ class PaxCalimaRestoreNumberEntity(PaxCalimaNumberEntity, RestoreEntity):
         await super().async_added_to_hass()
         last_state = await self.async_get_last_state()
 
-        if (last_state is not None) and (last_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)):
+        if (last_state is not None) and (
+            last_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)
+        ):
             self.coordinator.set_data(self._key, last_state.state)
 
     async def async_set_native_value(self, value):

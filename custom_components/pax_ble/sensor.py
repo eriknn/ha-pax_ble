@@ -5,7 +5,12 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.const import CONF_DEVICES
 from homeassistant.const import UnitOfVolumeFlowRate, UnitOfTemperature
-from homeassistant.const import LIGHT_LUX, PERCENTAGE, REVOLUTIONS_PER_MINUTE, CONCENTRATION_PARTS_PER_MILLION
+from homeassistant.const import (
+    LIGHT_LUX,
+    PERCENTAGE,
+    REVOLUTIONS_PER_MINUTE,
+    CONCENTRATION_PARTS_PER_MILLION,
+)
 
 from .const import DOMAIN, CONF_NAME
 from .const import DeviceModel
@@ -13,19 +18,45 @@ from .entity import PaxCalimaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
-PaxEntity = namedtuple('PaxEntity', ['key', 'entityName', 'units', 'deviceClass', 'category', 'icon'])
+PaxEntity = namedtuple(
+    "PaxEntity", ["key", "entityName", "units", "deviceClass", "category", "icon"]
+)
 ENTITIES = [
-    PaxEntity("humidity", "Humidity", PERCENTAGE, SensorDeviceClass.HUMIDITY, None, None),
-    PaxEntity("temperature", "Temperature", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, None, None),
+    PaxEntity(
+        "humidity", "Humidity", PERCENTAGE, SensorDeviceClass.HUMIDITY, None, None
+    ),
+    PaxEntity(
+        "temperature",
+        "Temperature",
+        UnitOfTemperature.CELSIUS,
+        SensorDeviceClass.TEMPERATURE,
+        None,
+        None,
+    ),
     PaxEntity("light", "Light", LIGHT_LUX, SensorDeviceClass.ILLUMINANCE, None, None),
     PaxEntity("rpm", "RPM", REVOLUTIONS_PER_MINUTE, None, None, "mdi:engine"),
-    PaxEntity("flow", "Flow", UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR, None, None, "mdi:weather-windy"),
+    PaxEntity(
+        "flow",
+        "Flow",
+        UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
+        None,
+        None,
+        "mdi:weather-windy",
+    ),
     PaxEntity("state", "State", None, None, None, None),
-    PaxEntity("mode", "Mode", None, None, EntityCategory.DIAGNOSTIC, None)
+    PaxEntity("mode", "Mode", None, None, EntityCategory.DIAGNOSTIC, None),
 ]
 SVENSA_ENTITIES = [
-    PaxEntity("airquality", "Air Quality", CONCENTRATION_PARTS_PER_MILLION, SensorDeviceClass.GAS, None, None),
+    PaxEntity(
+        "airquality",
+        "Air Quality",
+        CONCENTRATION_PARTS_PER_MILLION,
+        SensorDeviceClass.GAS,
+        None,
+        None,
+    ),
 ]
+
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
     """Setup sensors from a config entry created in the integrations UI."""
@@ -33,10 +64,13 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
     ha_entities = []
 
     for device_id in config_entry.data[CONF_DEVICES]:
-        _LOGGER.debug("Starting paxcalima sensors: %s", config_entry.data[CONF_DEVICES][device_id][CONF_NAME])
+        _LOGGER.debug(
+            "Starting paxcalima sensors: %s",
+            config_entry.data[CONF_DEVICES][device_id][CONF_NAME],
+        )
 
         # Find coordinator for this device
-        coordinator = hass.data[DOMAIN][CONF_DEVICES][device_id]
+        coordinator = hass.data[DOMAIN][config_entry.entry_id][CONF_DEVICES][device_id]
 
         # Create entities for this device
         for paxentity in ENTITIES:

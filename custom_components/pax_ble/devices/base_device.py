@@ -14,7 +14,8 @@ _LOGGER = logging.getLogger(__name__)
 Time = namedtuple("Time", "DayOfWeek Hour Minute Second")
 BoostMode = namedtuple("BoostMode", "OnOff Speed Seconds")
 
-class BaseDevice():
+
+class BaseDevice:
     def __init__(self, hass, mac, pin):
         self._hass = hass
         self._mac = mac
@@ -107,32 +108,46 @@ class BaseDevice():
 
     # --- Generic GATT Characteristics
     async def getDeviceName(self) -> str:
-        #return (await self._readHandle(0x2)).decode("ascii")
-        return (await self._readUUID(self.chars[CHARACTERISTIC_DEVICE_NAME])).decode("ascii")
+        # return (await self._readHandle(0x2)).decode("ascii")
+        return (await self._readUUID(self.chars[CHARACTERISTIC_DEVICE_NAME])).decode(
+            "ascii"
+        )
 
     async def getModelNumber(self) -> str:
-        #return (await self._readHandle(0xD)).decode("ascii")
-        return (await self._readUUID(self.chars[CHARACTERISTIC_MODEL_NUMBER])).decode("ascii")
+        # return (await self._readHandle(0xD)).decode("ascii")
+        return (await self._readUUID(self.chars[CHARACTERISTIC_MODEL_NUMBER])).decode(
+            "ascii"
+        )
 
     async def getSerialNumber(self) -> str:
-        #return (await self._readHandle(0xB)).decode("ascii")
-        return (await self._readUUID(self.chars[CHARACTERISTIC_SERIAL_NUMBER])).decode("ascii")
+        # return (await self._readHandle(0xB)).decode("ascii")
+        return (await self._readUUID(self.chars[CHARACTERISTIC_SERIAL_NUMBER])).decode(
+            "ascii"
+        )
 
     async def getHardwareRevision(self) -> str:
-        #return (await self._readHandle(0xF)).decode("ascii")
-        return (await self._readUUID(self.chars[CHARACTERISTIC_HARDWARE_REVISION])).decode("ascii")
+        # return (await self._readHandle(0xF)).decode("ascii")
+        return (
+            await self._readUUID(self.chars[CHARACTERISTIC_HARDWARE_REVISION])
+        ).decode("ascii")
 
     async def getFirmwareRevision(self) -> str:
-        #return (await self._readHandle(0x11)).decode("ascii")
-        return (await self._readUUID(self.chars[CHARACTERISTIC_FIRMWARE_REVISION])).decode("ascii")
+        # return (await self._readHandle(0x11)).decode("ascii")
+        return (
+            await self._readUUID(self.chars[CHARACTERISTIC_FIRMWARE_REVISION])
+        ).decode("ascii")
 
     async def getSoftwareRevision(self) -> str:
-        #return (await self._readHandle(0x13)).decode("ascii")
-        return (await self._readUUID(self.chars[CHARACTERISTIC_SOFTWARE_REVISION])).decode("ascii")
+        # return (await self._readHandle(0x13)).decode("ascii")
+        return (
+            await self._readUUID(self.chars[CHARACTERISTIC_SOFTWARE_REVISION])
+        ).decode("ascii")
 
     async def getManufacturer(self) -> str:
-        #return (await self._readHandle(0x15)).decode("ascii")
-        return (await self._readUUID(self.chars[CHARACTERISTIC_MANUFACTURER_NAME])).decode("ascii")
+        # return (await self._readHandle(0x15)).decode("ascii")
+        return (
+            await self._readUUID(self.chars[CHARACTERISTIC_MANUFACTURER_NAME])
+        ).decode("ascii")
 
     # --- Onwards to PAX characteristics
     async def setAuth(self, pin) -> None:
@@ -147,22 +162,30 @@ class BaseDevice():
         return v[0]
 
     async def checkAuth(self) -> bool:
-        v = unpack("<b", await self._readUUID(self.chars[CHARACTERISTIC_PIN_CONFIRMATION]))
+        v = unpack(
+            "<b", await self._readUUID(self.chars[CHARACTERISTIC_PIN_CONFIRMATION])
+        )
         return bool(v[0])
 
     async def setAlias(self, name) -> None:
         await self._writeUUID(
-            self.chars[CHARACTERISTIC_FAN_DESCRIPTION], pack("20s", bytearray(name, "utf-8"))
+            self.chars[CHARACTERISTIC_FAN_DESCRIPTION],
+            pack("20s", bytearray(name, "utf-8")),
         )
 
-    async def getAlias(self)-> str:
-        return await self._readUUID(self.chars[CHARACTERISTIC_FAN_DESCRIPTION]).decode("utf-8")
+    async def getAlias(self) -> str:
+        return await self._readUUID(self.chars[CHARACTERISTIC_FAN_DESCRIPTION]).decode(
+            "utf-8"
+        )
 
     async def getIsClockSet(self) -> str:
         return self._bToStr(await self._readUUID(self.chars[CHARACTERISTIC_STATUS]))
 
     async def getFactorySettingsChanged(self) -> bool:
-        v = unpack("<?", await self._readUUID(self.chars[CHARACTERISTIC_FACTORY_SETTINGS_CHANGED]))
+        v = unpack(
+            "<?",
+            await self._readUUID(self.chars[CHARACTERISTIC_FACTORY_SETTINGS_CHANGED]),
+        )
         return v[0]
 
     async def getLed(self) -> str:
@@ -170,11 +193,14 @@ class BaseDevice():
 
     async def setTime(self, dayofweek, hour, minute, second) -> None:
         await self._writeUUID(
-            self.chars[CHARACTERISTIC_CLOCK], pack("<4B", dayofweek, hour, minute, second)
+            self.chars[CHARACTERISTIC_CLOCK],
+            pack("<4B", dayofweek, hour, minute, second),
         )
 
     async def getTime(self) -> Time:
-        return Time._make(unpack("<BBBB", await self._readUUID(self.chars[CHARACTERISTIC_CLOCK])))
+        return Time._make(
+            unpack("<BBBB", await self._readUUID(self.chars[CHARACTERISTIC_CLOCK]))
+        )
 
     async def setTimeToNow(self) -> None:
         now = datetime.datetime.now()
@@ -203,7 +229,9 @@ class BaseDevice():
             speed = 0
             seconds = 0
 
-        await self._writeUUID(self.chars[CHARACTERISTIC_BOOST], pack("<BHH", on, speed, seconds))
+        await self._writeUUID(
+            self.chars[CHARACTERISTIC_BOOST], pack("<BHH", on, speed, seconds)
+        )
 
     async def getMode(self) -> str:
         v = unpack("<B", await self._readUUID(self.chars[CHARACTERISTIC_MODE]))

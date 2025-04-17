@@ -7,12 +7,17 @@ from .devices.svensa import Svensa
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class SvensaCoordinator(BaseCoordinator):
     _fan: Optional[Svensa] = None  # This is basically a type hint
 
-    def __init__(self, hass, device, model, mac, pin, scan_interval, scan_interval_fast):
+    def __init__(
+        self, hass, device, model, mac, pin, scan_interval, scan_interval_fast
+    ):
         """Initialize coordinator parent"""
-        super().__init__(hass, device, model, mac, pin, scan_interval, scan_interval_fast)
+        super().__init__(
+            hass, device, model, mac, pin, scan_interval, scan_interval_fast
+        )
 
         # Initialize correct fan
         _LOGGER.debug("Initializing Svensa!")
@@ -74,7 +79,7 @@ class SvensaCoordinator(BaseCoordinator):
                     await self._fan.setAutomaticCycles(
                         26,
                         int(self._state["airing"]),
-                        int(self._state["fanspeed_airing"])
+                        int(self._state["fanspeed_airing"]),
                     )
                 case "boostmode":
                     # Use default values if not set up
@@ -104,20 +109,20 @@ class SvensaCoordinator(BaseCoordinator):
                         int(self._state["timer_runtime"]),
                         int(self._state["timer_delay"]) != 0,
                         int(self._state["timer_delay"]),
-                        int(self._state["fanspeed_sensor"])
+                        int(self._state["fanspeed_sensor"]),
                     )
                 case "trickle_on" | "fanspeed_trickle":
                     await self._fan.setConstantOperation(
                         bool(self._state["trickle_on"]),
-                        int(self._state["fanspeed_trickle"])
-                    )            
+                        int(self._state["fanspeed_trickle"]),
+                    )
                 case "sensitivity_light":
                     # Should we do anything here?
                     pass
 
                 case _:
                     return False
-                
+
         except Exception as e:
             _LOGGER.debug("Not able to write command: %s", str(e))
             return False
@@ -148,12 +153,12 @@ class SvensaCoordinator(BaseCoordinator):
         self._state["mode"] = FanMode
         _LOGGER.debug(f"FanMode: {FanMode}")
 
-        Humidity =  await self._fan.getHumidity()  # Configuration
+        Humidity = await self._fan.getHumidity()  # Configuration
         self._state["fanspeed_humidity"] = Humidity.Speed
         self._state["sensitivity_humidity"] = Humidity.Level
         _LOGGER.debug(f"Humidity: {Humidity}")
 
-        PresenceGas =  await self._fan.getPresenceGas()  # Configuration
+        PresenceGas = await self._fan.getPresenceGas()  # Configuration
         self._state["sensitivity_presence"] = PresenceGas.PresenceLevel
         self._state["sensitivity_gas"] = PresenceGas.GasLevel
         _LOGGER.debug(f"PresenceGas: {PresenceGas}")
