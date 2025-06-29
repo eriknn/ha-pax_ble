@@ -18,7 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 OptionsTuple = namedtuple("options", ["min_value", "max_value", "step"])
 OPTIONS = {}
 OPTIONS["fanspeed"] = OptionsTuple(800, 2400, 25)
-OPTIONS["temperature"] = OptionsTuple(15, 30, 1)
+OPTIONS["temperature"] = OptionsTuple(5, 50, 1)
 OPTIONS["boostmodesec"] = OptionsTuple(60, 900, 1)
 OPTIONS["boostmodespeed"] = OptionsTuple(1000, 2400, 25)
 
