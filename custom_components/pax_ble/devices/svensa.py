@@ -18,6 +18,9 @@ TimerFunctions = namedtuple("TimerFunctions", "PresenceTime TimeActive TimeMin S
 PresenceGas = namedtuple(
     "PresenceGas", "PresenceActive PresenceLevel GasActive GasLevel"
 )
+Pause = namedtuple(
+    "Pause", "PauseActive PauseMinutes"
+)
 
 
 class Svensa(BaseDevice):
@@ -47,6 +50,7 @@ class Svensa(BaseDevice):
                 CHARACTERISTIC_HUMIDITY: "7c4adc01-2f33-11e7-93ae-92361f002671",  # humActive, humLevel, fanSpeed
                 CHARACTERISTIC_CONSTANT_OPERATION: "7c4adc03-2f33-11e7-93ae-92361f002671",
                 CHARACTERISTIC_PRESENCE_GAS: "7c4adc02-2f33-11e7-93ae-92361f002671",
+                CHARACTERISTIC_PAUSE: "7C4ADC06-2F33-11E7-93AE-92361F002671",
             }
         )
 
@@ -215,6 +219,26 @@ class Svensa(BaseDevice):
             pack("<4B", presence_active, presence_level, gas_active, gas_level),
         )
 
+    async def getPause(self) -> Pause:
+        # Pause Active | Pause Minutes
+        # When paused, Minutes indicates how many minutes are remaining.
+        # When not paused, Minutes indicates the saved pause length.
+        v = unpack("<BB", await self._readUUID(self.chars[CHARACTERISTIC_PAUSE]))
+        return Pause(v[0], v[1])
+
+    async def setPause(
+        self,
+        active: bool,
+        duration: int,
+    ) -> None:
+        v = pack("<BB", active, duration)
+        _LOGGER.debug("Write Pause")
+
+        await self._writeUUID(
+            self.chars[CHARACTERISTIC_PAUSE],
+            v,
+        )
+
     async def getTimerFunctions(self) -> TimerFunctions:
         # PresenceTime | TimeActive | TimeMin | Speed, we fix so that TimeMin (Delay Time) = 0 if TimeActive = 0
         l = TimerFunctions._make(
@@ -222,14 +246,7 @@ class Svensa(BaseDevice):
                 "<3BH", await self._readUUID(self.chars[CHARACTERISTIC_TIME_FUNCTIONS])
             )
         )
-        return TimerFunctions._make(
-            unpack(
-                "<3BH",
-                bytearray(
-                    [l.PresenceTime, l.TimeActive, l.TimeActive and l.TimeMin, l.Speed]
-                ),
-            )
-        )
+        return TimerFunctions(l.PresenceTime, l.TimeActive, int(l.TimeActive and l.TimeMin), l.Speed)
 
     async def setTimerFunctions(
         self, presenceTimeMin, timeActive: bool, timeMin: int, speed: int
