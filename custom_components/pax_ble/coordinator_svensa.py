@@ -35,6 +35,7 @@ class SvensaCoordinator(BaseCoordinator):
 
         FanState = await self._fan.getState()  # Sensors
         BoostMode = await self._fan.getBoostMode()  # Sensors?
+        Pause = await self._fan.getPause()
 
         if FanState is None:
             _LOGGER.debug("Could not read data")
@@ -54,6 +55,11 @@ class SvensaCoordinator(BaseCoordinator):
             self._state["boostmode"] = BoostMode.OnOff
             self._state["boostmodespeedread"] = BoostMode.Speed
             self._state["boostmodesecread"] = BoostMode.Seconds
+
+            self._state["pause"] = Pause.PauseActive
+            self._state["pauseminread"] = Pause.PauseMinutes
+            if not Pause.PauseActive:
+                self._state["pausemin"] = Pause.PauseMinutes
 
         if disconnect:
             await self._fan.disconnect()
@@ -116,6 +122,12 @@ class SvensaCoordinator(BaseCoordinator):
                         bool(self._state["trickle_on"]),
                         int(self._state["fanspeed_trickle"]),
                     )
+                case "pause" | "pausemin":
+                    await self._fan.setPause(
+                        bool(self._state["pause"]),
+                        int(self._state["pausemin"]),
+                    )
+
                 case "sensitivity_light":
                     # Should we do anything here?
                     pass
@@ -162,6 +174,15 @@ class SvensaCoordinator(BaseCoordinator):
         self._state["sensitivity_presence"] = PresenceGas.PresenceLevel
         self._state["sensitivity_gas"] = PresenceGas.GasLevel
         _LOGGER.debug(f"PresenceGas: {PresenceGas}")
+
+        Pause = await self._fan.getPause()
+        self._state["pause"] = Pause.PauseActive
+        self._state["pauseminread"] = Pause.PauseMinutes
+        if not Pause.PauseActive:
+            self._state["pausemin"] = Pause.PauseMinutes
+        else:
+            # Only useful if we start the integration while the fan is paused. Will be re-read when pause ends.
+            self._state["pausemin"] = 60
 
         TimeFunctions = await self._fan.getTimerFunctions()  # Configuration
         self._state["timer_runtime"] = TimeFunctions.PresenceTime

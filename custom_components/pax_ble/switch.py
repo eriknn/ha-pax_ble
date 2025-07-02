@@ -47,6 +47,9 @@ SVENSA_ENTITIES = [
     PaxEntity(
         "trickle_on", "Trickle On", EntityCategory.CONFIG, "mdi:volume-off", None
     ),
+    PaxEntity(
+        "pause", "Pause", None, "mdi:pause", None
+    ),
 ]
 
 
@@ -107,11 +110,11 @@ class PaxCalimaSwitchEntity(PaxCalimaEntity, SwitchEntity):
             return None
 
     async def async_turn_on(self, **kwargs):
-        _LOGGER.debug("Enabling Boost Mode")
+        _LOGGER.debug("Enabling %s", self._attr_name)
         await self.writeVal(1)
 
     async def async_turn_off(self, **kwargs):
-        _LOGGER.debug("Disabling Boost Mode")
+        _LOGGER.debug("Disabling %s", self._attr_name)
         await self.writeVal(0)
 
     async def writeVal(self, val):

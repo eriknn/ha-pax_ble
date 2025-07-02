@@ -40,6 +40,12 @@ OPTIONS = {
         "2": "2 min",
         "4": "4 min",
     },
+    "pausemin": {
+        "30": "30 min",
+        "60": "60 min", # Default.
+        "90": "90 min",
+        "120": "120 min",
+    },
 }
 
 PaxEntity = namedtuple(
@@ -115,6 +121,13 @@ SVENSA_ENTITIES = [
         EntityCategory.CONFIG,
         "mdi:timer-outline",
         OPTIONS["timer_delay"],
+    ),
+    PaxEntity(
+        "pausemin",
+        "Pause Time",
+        EntityCategory.CONFIG,
+        "mdi:pause-circle-outline",
+        OPTIONS["pausemin"],
     ),
 ]
 
