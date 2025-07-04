@@ -129,6 +129,18 @@ class Calima(BaseDevice):
                 await self._readUUID(self.chars[CHARACTERISTIC_TEMP_HEAT_DISTRIBUTOR]),
             )
         )
+    
+    async def setHeatDistributor(self, temperatureLimit, fanSpeedBelow, fanSpeedAbove) -> None:
+        _LOGGER.debug(
+            "Writing heat distributor %s %s %s",
+            temperatureLimit,
+            fanSpeedBelow,
+            fanSpeedAbove,
+        )
+        await self._writeUUID(
+            self.chars[CHARACTERISTIC_TEMP_HEAT_DISTRIBUTOR],
+            pack("<BHH", temperatureLimit, fanSpeedBelow, fanSpeedAbove),
+        )
 
     async def getSilentHours(self) -> SilentHours:
         return SilentHours._make(

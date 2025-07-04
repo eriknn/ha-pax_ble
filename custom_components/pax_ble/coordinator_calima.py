@@ -119,7 +119,12 @@ class CalimaCoordinator(BaseCoordinator):
                         self._state["silenthours_starttime"],
                         self._state["silenthours_endtime"],
                     )
-
+                case "heatdistributorsettings_temperaturelimit" | "heatdistributorsettings_fanspeedbelow" | "heatdistributorsettings_fanspeedabove":
+                    await self._fan.setHeatDistributor(
+                        int(self._state["heatdistributorsettings_temperaturelimit"]),
+                        int(self._state["heatdistributorsettings_fanspeedbelow"]),
+                        int(self._state["heatdistributorsettings_fanspeedabove"]),
+                    )
                 case _:
                     return False
 

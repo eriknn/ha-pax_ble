@@ -152,8 +152,6 @@ class Svensa(BaseDevice):
 
         if speed % 25:
             raise ValueError("Speed must be a multiple of 25")
-        if not active:
-            speed = 0
 
         await self._writeUUID(
             self.chars[CHARACTERISTIC_CONSTANT_OPERATION], pack("<BH", active, speed)
@@ -164,16 +162,13 @@ class Svensa(BaseDevice):
         _LOGGER.debug("Read Fan Humidity settings: %s", v)
 
         # Humidity = namedtuple("Humidity", "Active Level Speed")
-        return Humidity(v[0], v[1], v[2])
+        return Humidity(v[0], v[1] if v[0] != 0 else 0, v[2])
 
     async def setHumidity(self, active: bool, level: int, speed: int) -> None:
         _LOGGER.debug("Write Fan Humidity settings")
 
         if speed % 25:
             raise ValueError("Speed must be a multiple of 25")
-        if not active:
-            level = 0
-            speed = 0
 
         await self._writeUUID(
             self.chars[CHARACTERISTIC_HUMIDITY], pack("<BBH", active, level, speed)
