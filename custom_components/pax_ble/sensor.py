@@ -50,8 +50,8 @@ SVENSA_ENTITIES = [
     PaxEntity(
         "airquality",
         "Air Quality",
-        CONCENTRATION_PARTS_PER_MILLION,
-        SensorDeviceClass.GAS,
+        None,
+        SensorDeviceClass.AQI,
         None,
         None,
     ),
