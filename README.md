@@ -46,6 +46,22 @@ Fast scan interval refers to the interval after a write has been made. This allo
 
 Setting speed to less than 800 RPM might stall the fan, depending on the specific application. I don't know if stalling like this could damage the fan/motor, so do this with care.
 
+### ESP32 bluetooth proxy
+
+If your home assistant instance does not have Bluetooth, you can use a standalone esp32 with esphome. Use the following esphome config to set up the bluetooth proxy. 
+
+```yaml
+esp32:
+  board: esp32dev
+
+bluetooth_proxy:
+  active: true
+
+esp32_ble_tracker:
+```
+
+When config is applied, go ahead and add the pax using ha webgui. 
+
 ## Thanks
 
 - [@PatrickE94](https://github.com/PatrickE94/pycalima) for the Calima driver
