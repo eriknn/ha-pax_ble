@@ -2,6 +2,8 @@
 
 import logging
 
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -23,9 +25,10 @@ class PaxCalimaEntity(CoordinatorEntity):
             self.coordinator.devicename, paxentity.entityName
         )
         self._attr_unique_id = "{}-{}".format(self.coordinator.device_id, self.name)
-        self._attr_device_info = {
-            "identifiers": self.coordinator.identifiers,
-        }
+        self._attr_device_info = DeviceInfo(
+            identifiers=self.coordinator.identifiers,
+            connections={(dr.CONNECTION_BLUETOOTH, self.coordinator.device_id)},
+        )
         self._extra_state_attributes = {}
 
         """Store this entities key."""
