@@ -7,6 +7,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
+from .coordinator import BaseCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 class PaxCalimaEntity(CoordinatorEntity):
     """Pax Calima base entity class."""
 
-    def __init__(self, coordinator, paxentity):
+    def __init__(self, coordinator: BaseCoordinator, paxentity):
         """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator)
 
@@ -27,7 +28,7 @@ class PaxCalimaEntity(CoordinatorEntity):
         self._attr_unique_id = "{}-{}".format(self.coordinator.device_id, self.name)
         self._attr_device_info = DeviceInfo(
             identifiers=self.coordinator.identifiers,
-            connections={(dr.CONNECTION_BLUETOOTH, self.coordinator.mac)},
+            connections={(dr.CONNECTION_BLUETOOTH, self.coordinator.fan._mac)},
         )
         self._extra_state_attributes = {}
 

@@ -17,7 +17,7 @@ class CalimaCoordinator(BaseCoordinator):
     ):
         """Initialize coordinator parent"""
         super().__init__(
-            hass, device, model, mac, pin, scan_interval, scan_interval_fast
+            hass, device, model, scan_interval, scan_interval_fast
         )
 
         # Initialize correct fan

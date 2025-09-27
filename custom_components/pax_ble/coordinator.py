@@ -31,8 +31,6 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         hass,
         device: DeviceEntry,
         model: str,
-        mac: str,
-        pin: int,
         scan_interval: int,
         scan_interval_fast: int,
     ):
@@ -49,6 +47,7 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         self._normal_poll_interval = scan_interval
         self._fast_poll_interval = scan_interval_fast
 
+        self._fan: Optional[BaseDevice] = None  # Base class for Calima/Svensa
         self._device = device
         self._model = model
 
@@ -56,6 +55,10 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         self._state = {}
         self._state["boostmodespeedwrite"] = 2400
         self._state["boostmodesecwrite"] = 600
+
+    @property
+    def fan(self) -> BaseDevice:
+        return self._fan
 
     @property
     def device_id(self):
