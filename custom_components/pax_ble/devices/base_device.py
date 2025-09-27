@@ -9,6 +9,14 @@ import binascii
 from collections import namedtuple
 import logging
 import asyncio
+from bleak import BleakClient
+from bleak.exc import BleakError
+from bleak_retry_connector import (
+    establish_connection,
+    BleakClientWithServiceCache,
+    close_stale_connections,
+)
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,7 +29,7 @@ class BaseDevice:
         self._hass = hass
         self._mac = mac
         self._pin = pin
-        self._client: BleakClient | None = None
+        self._client: BleakClientWithServiceCache | None = None
         # Characteristic UUIDs (centralized in characteristics.py ideally)
         self.chars = {
             CHARACTERISTIC_APPEARANCE: "00002a01-0000-1000-8000-00805f9b34fb",  # Not used
@@ -48,45 +56,41 @@ class BaseDevice:
     async def authorize(self):
         await self.setAuth(self._pin)
 
+
     async def connect(self) -> bool:
-        """
-        Reuse BleakClient if already connected; otherwise try up to N times
-        with exponential backoff.
-        """
+        """Establish a reliable connection using bleak-retry-connector."""
+        # Already connected?
         if self._client and self._client.is_connected:
             return True
 
-        retries = 3
-        backoff = 1.0
-        for attempt in range(1, retries + 1):
-            try:
-                d = bluetooth.async_ble_device_from_address(
-                    self._hass, self._mac.upper()
-                )
-                if not d:
-                    raise BleakError(f"Device {self._mac} not found")
-                if not self._client:
-                    self._client = BleakClient(d)
-                await self._client.connect()
-                _LOGGER.debug("Connected to %s on attempt %d", self._mac, attempt)
-                return True
-            except Exception as e:
-                _LOGGER.debug("Connect attempt %d/%d failed: %s", attempt, retries, e)
+        # Resolve the BLE device from HA's bluetooth stack
+        device = bluetooth.async_ble_device_from_address(self._hass, self._mac.upper())
+        if not device:
+            raise BleakError(f"Device {self._mac} not found")
 
-                # **cleanup** the half‑dead client before retrying
-                try:
-                    await self._client.disconnect()
-                except Exception:
-                    # might already be partially torn down
-                    pass
-                self._client = None
+        # Best-effort cleanup of stale OS-level BLE handles (helps BlueZ reconnects)
+        try:
+            await close_stale_connections()
+        except Exception:  # best-effort
+            pass
 
-                if attempt < retries:
-                    await asyncio.sleep(backoff)
-                    backoff *= 2
-                else:
-                    _LOGGER.warning("Failed to connect %s after %d attempts", self._mac, retries)
-        return False
+        try:
+            # Use the cached-services client (faster, more reliable)
+            self._client = await establish_connection(
+                BleakClientWithServiceCache,   # client class to construct
+                device,                        # HA-discovered BLEDevice
+                name=getattr(self, "name", self._mac),
+                disconnected_callback=getattr(self, "_handle_disconnect", None),
+                use_services_cache=True,
+                max_attempts=3,                # internal retry/backoff
+                retry_interval=0.5,            # optional; default is fine too
+            )
+            _LOGGER.debug("Connected to %s", self._mac)
+            return True
+        except Exception as err:
+            _LOGGER.warning("Failed to connect %s: %s", self._mac, err)
+            self._client = None
+            return False
 
     async def disconnect(self) -> None:
         if self._client:
