@@ -141,53 +141,52 @@ class CalimaCoordinator(BaseCoordinator):
         try:
             # Make sure we are connected
             if not await self._safe_connect():
-                _LOGGER.warning("Cannot read config data: not connected to %s", self.devicename)
-                return False
+                raise Exception("Not connected!")
 
-        AutomaticCycles = await self._fan.getAutomaticCycles()  # Configuration
-        self._state["automatic_cycles"] = AutomaticCycles
+            AutomaticCycles = await self._fan.getAutomaticCycles()  # Configuration
+            self._state["automatic_cycles"] = AutomaticCycles
 
-        FanMode = await self._fan.getMode()  # Configurations
-        self._state["mode"] = FanMode
+            FanMode = await self._fan.getMode()  # Configurations
+            self._state["mode"] = FanMode
 
-        FanSpeeds = await self._fan.getFanSpeedSettings()  # Configuration
-        self._state["fanspeed_humidity"] = FanSpeeds.Humidity
-        self._state["fanspeed_light"] = FanSpeeds.Light
-        self._state["fanspeed_trickle"] = FanSpeeds.Trickle
+            FanSpeeds = await self._fan.getFanSpeedSettings()  # Configuration
+            self._state["fanspeed_humidity"] = FanSpeeds.Humidity
+            self._state["fanspeed_light"] = FanSpeeds.Light
+            self._state["fanspeed_trickle"] = FanSpeeds.Trickle
 
-        HeatDistributorSettings = await self._fan.getHeatDistributor()  # Configuration
-        self._state["heatdistributorsettings_temperaturelimit"] = (
-            HeatDistributorSettings.TemperatureLimit
-        )
-        self._state["heatdistributorsettings_fanspeedbelow"] = (
-            HeatDistributorSettings.FanSpeedBelow
-        )
-        self._state["heatdistributorsettings_fanspeedabove"] = (
-            HeatDistributorSettings.FanSpeedAbove
-        )
+            HeatDistributorSettings = await self._fan.getHeatDistributor()  # Configuration
+            self._state["heatdistributorsettings_temperaturelimit"] = (
+                HeatDistributorSettings.TemperatureLimit
+            )
+            self._state["heatdistributorsettings_fanspeedbelow"] = (
+                HeatDistributorSettings.FanSpeedBelow
+            )
+            self._state["heatdistributorsettings_fanspeedabove"] = (
+                HeatDistributorSettings.FanSpeedAbove
+            )
 
-        LightSensorSettings = await self._fan.getLightSensorSettings()  # Configuration
-        self._state["lightsensorsettings_delayedstart"] = (
-            LightSensorSettings.DelayedStart
-        )
-        self._state["lightsensorsettings_runningtime"] = LightSensorSettings.RunningTime
+            LightSensorSettings = await self._fan.getLightSensorSettings()  # Configuration
+            self._state["lightsensorsettings_delayedstart"] = (
+                LightSensorSettings.DelayedStart
+            )
+            self._state["lightsensorsettings_runningtime"] = LightSensorSettings.RunningTime
 
-        Sensitivity = await self._fan.getSensorsSensitivity()  # Configuration
-        self._state["sensitivity_humidity"] = Sensitivity.Humidity
-        self._state["sensitivity_light"] = Sensitivity.Light
+            Sensitivity = await self._fan.getSensorsSensitivity()  # Configuration
+            self._state["sensitivity_humidity"] = Sensitivity.Humidity
+            self._state["sensitivity_light"] = Sensitivity.Light
 
-        SilentHours = await self._fan.getSilentHours()  # Configuration
-        self._state["silenthours_on"] = SilentHours.On
-        self._state["silenthours_starttime"] = dt.time(
-            SilentHours.StartingHour, SilentHours.StartingMinute
-        )
-        self._state["silenthours_endtime"] = dt.time(
-            SilentHours.EndingHour, SilentHours.EndingMinute
-        )
+            SilentHours = await self._fan.getSilentHours()  # Configuration
+            self._state["silenthours_on"] = SilentHours.On
+            self._state["silenthours_starttime"] = dt.time(
+                SilentHours.StartingHour, SilentHours.StartingMinute
+            )
+            self._state["silenthours_endtime"] = dt.time(
+                SilentHours.EndingHour, SilentHours.EndingMinute
+            )
 
-        TrickleDays = await self._fan.getTrickleDays()  # Configuration
-        self._state["trickledays_weekdays"] = TrickleDays.Weekdays
-        self._state["trickledays_weekends"] = TrickleDays.Weekends
+            TrickleDays = await self._fan.getTrickleDays()  # Configuration
+            self._state["trickledays_weekdays"] = TrickleDays.Weekdays
+            self._state["trickledays_weekends"] = TrickleDays.Weekends
 
             if disconnect:
                 await self._fan.disconnect()
