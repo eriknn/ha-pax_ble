@@ -3,11 +3,14 @@ from .characteristics import *
 from homeassistant.components import bluetooth
 from struct import pack, unpack
 import datetime
+from bleak import BleakClient
 from bleak.exc import BleakError
 import binascii
 from collections import namedtuple
 import logging
 import asyncio
+from bleak import BleakClient
+from bleak.exc import BleakError
 from bleak_retry_connector import (
     establish_connection,
     BleakClientWithServiceCache,
@@ -27,8 +30,6 @@ class BaseDevice:
         self._mac = mac
         self._pin = pin
         self._client: BleakClientWithServiceCache | None = None
-        self._is_connecting = False
-        self._disconnect_callback = None
         # Characteristic UUIDs (centralized in characteristics.py ideally)
         self.chars = {
             CHARACTERISTIC_APPEARANCE: "00002a01-0000-1000-8000-00805f9b34fb",  # Not used
@@ -52,62 +53,37 @@ class BaseDevice:
             CHARACTERISTIC_STATUS: "25a824ad-3021-4de9-9f2f-60cf8d17bded",
         }
 
-    def set_disconnect_callback(self, callback):
-        """Set callback to be called when device disconnects unexpectedly."""
-        self._disconnect_callback = callback
-
-    def _handle_disconnect(self, _client):
-        """Handle unexpected disconnection."""
-        _LOGGER.warning("Device %s disconnected unexpectedly", self._mac)
-        self._client = None
-        if self._disconnect_callback:
-            try:
-                # Schedule callback in event loop since this runs in BLE thread
-                if self._hass and self._hass.loop:
-                    self._hass.loop.call_soon_threadsafe(
-                        lambda: asyncio.create_task(self._disconnect_callback())
-                    )
-            except Exception as e:
-                _LOGGER.error("Error calling disconnect callback: %s", e)
-
     async def authorize(self):
         await self.setAuth(self._pin)
 
 
-    async def connect(self, timeout: int = 45) -> bool:
+    async def connect(self) -> bool:
         """Establish a reliable connection using bleak-retry-connector."""
-        # Prevent concurrent connection attempts
-        if self._is_connecting:
-            _LOGGER.debug("Connection attempt already in progress for %s", self._mac)
-            return False
-
         # Already connected?
         if self._client and self._client.is_connected:
             return True
 
-        self._is_connecting = True
+        # Resolve the BLE device from HA's bluetooth stack
+        device = bluetooth.async_ble_device_from_address(self._hass, self._mac.upper())
+        if not device:
+            raise BleakError(f"Device {self._mac} not found")
+
+        # Best-effort cleanup of stale OS-level BLE handles (helps BlueZ reconnects)
         try:
-            # Resolve the BLE device from HA's bluetooth stack
-            device = bluetooth.async_ble_device_from_address(self._hass, self._mac.upper())
-            if not device:
-                raise BleakError(f"Device {self._mac} not found")
+            await close_stale_connections()
+        except Exception:  # best-effort
+            pass
 
-            # Best-effort cleanup of stale OS-level BLE handles (helps BlueZ reconnects)
-            try:
-                await close_stale_connections()
-            except Exception:  # best-effort
-                pass
-
+        try:
             # Use the cached-services client (faster, more reliable)
             self._client = await establish_connection(
                 BleakClientWithServiceCache,   # client class to construct
                 device,                        # HA-discovered BLEDevice
                 name=getattr(self, "name", self._mac),
-                disconnected_callback=self._handle_disconnect,
+                disconnected_callback=getattr(self, "_handle_disconnect", None),
                 use_services_cache=True,
-                max_attempts=5,                # increased for better reliability
-                retry_interval=1.0,            # increased for ESP32 compatibility
-                timeout=timeout,               # configurable timeout
+                max_attempts=3,                # internal retry/backoff
+                retry_interval=0.5,            # optional; default is fine too
             )
             _LOGGER.debug("Connected to %s", self._mac)
             return True
@@ -115,8 +91,6 @@ class BaseDevice:
             _LOGGER.warning("Failed to connect %s: %s", self._mac, err)
             self._client = None
             return False
-        finally:
-            self._is_connecting = False
 
     async def disconnect(self) -> None:
         if self._client:
@@ -139,22 +113,7 @@ class BaseDevice:
         raise NotImplementedError("Pairing not availiable for this device type.")
 
     def isConnected(self) -> bool:
-        return self._client is not None and self._client.is_connected
-
-    async def validate_connection(self) -> bool:
-        """Validate that the connection is still working by reading a basic characteristic."""
-        if not self.isConnected():
-            return False
-
-        try:
-            # Try to read device name as a connection health check
-            await asyncio.wait_for(self._client.read_gatt_char(self.chars[CHARACTERISTIC_DEVICE_NAME]), timeout=5.0)
-            return True
-        except Exception as e:
-            _LOGGER.debug("Connection validation failed for %s: %s", self._mac, e)
-            # Mark as disconnected so next operation will reconnect
-            self._client = None
-            return False
+         return self._client is not None and self._client.is_connected
 
     def _bToStr(self, val) -> str:
         return binascii.b2a_hex(val).decode("utf-8")
