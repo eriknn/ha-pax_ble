@@ -147,49 +147,50 @@ class SvensaCoordinator(BaseCoordinator):
             # Make sure we are connected
             if not await self._safe_connect():
                 raise Exception("Not connected!")
+
+            AutomaticCycles = await self._fan.getAutomaticCycles()  # Configuration
+            self._state["airing"] = AutomaticCycles.TimeMin
+            self._state["fanspeed_airing"] = AutomaticCycles.Speed
+            _LOGGER.debug(f"Automatic cycles: {AutomaticCycles}")
+
+            ConstantOperation = await self._fan.getConstantOperation()  # Configuration
+            self._state["trickle_on"] = ConstantOperation.Active
+            self._state["fanspeed_trickle"] = ConstantOperation.Speed
+            _LOGGER.debug(f"Constant Op: {ConstantOperation}")
+
+            FanMode = await self._fan.getMode()  # Configurations
+            self._state["mode"] = FanMode
+            _LOGGER.debug(f"FanMode: {FanMode}")
+
+            Humidity = await self._fan.getHumidity()  # Configuration
+            self._state["fanspeed_humidity"] = Humidity.Speed
+            self._state["sensitivity_humidity"] = Humidity.Level
+            _LOGGER.debug(f"Humidity: {Humidity}")
+
+            PresenceGas = await self._fan.getPresenceGas()  # Configuration
+            self._state["sensitivity_presence"] = PresenceGas.PresenceLevel
+            self._state["sensitivity_gas"] = PresenceGas.GasLevel
+            _LOGGER.debug(f"PresenceGas: {PresenceGas}")
+
+            Pause = await self._fan.getPause()
+            self._state["pause"] = Pause.PauseActive
+            self._state["pauseminread"] = Pause.PauseMinutes
+            if not Pause.PauseActive:
+                self._state["pausemin"] = Pause.PauseMinutes
+            else:
+                # Only useful if we start the integration while the fan is paused. Will be re-read when pause ends.
+                self._state["pausemin"] = 60
+
+            TimeFunctions = await self._fan.getTimerFunctions()  # Configuration
+            self._state["timer_runtime"] = TimeFunctions.PresenceTime
+            self._state["timer_delay"] = TimeFunctions.TimeMin
+            self._state["fanspeed_sensor"] = TimeFunctions.Speed
+            _LOGGER.debug(f"Time Functions: {TimeFunctions}")
+
+            if disconnect:
+                await self._fan.disconnect()
+            return True
+
         except Exception as e:
-            _LOGGER.warning("Error when fetching config data: %s", str(e))
+            _LOGGER.warning("Error reading config data from %s: %s", self.devicename, str(e))
             return False
-
-        AutomaticCycles = await self._fan.getAutomaticCycles()  # Configuration
-        self._state["airing"] = AutomaticCycles.TimeMin
-        self._state["fanspeed_airing"] = AutomaticCycles.Speed
-        _LOGGER.debug(f"Automatic cycles: {AutomaticCycles}")
-
-        ConstantOperation = await self._fan.getConstantOperation()  # Configuration
-        self._state["trickle_on"] = ConstantOperation.Active
-        self._state["fanspeed_trickle"] = ConstantOperation.Speed
-        _LOGGER.debug(f"Constant Op: {ConstantOperation}")
-
-        FanMode = await self._fan.getMode()  # Configurations
-        self._state["mode"] = FanMode
-        _LOGGER.debug(f"FanMode: {FanMode}")
-
-        Humidity = await self._fan.getHumidity()  # Configuration
-        self._state["fanspeed_humidity"] = Humidity.Speed
-        self._state["sensitivity_humidity"] = Humidity.Level
-        _LOGGER.debug(f"Humidity: {Humidity}")
-
-        PresenceGas = await self._fan.getPresenceGas()  # Configuration
-        self._state["sensitivity_presence"] = PresenceGas.PresenceLevel
-        self._state["sensitivity_gas"] = PresenceGas.GasLevel
-        _LOGGER.debug(f"PresenceGas: {PresenceGas}")
-
-        Pause = await self._fan.getPause()
-        self._state["pause"] = Pause.PauseActive
-        self._state["pauseminread"] = Pause.PauseMinutes
-        if not Pause.PauseActive:
-            self._state["pausemin"] = Pause.PauseMinutes
-        else:
-            # Only useful if we start the integration while the fan is paused. Will be re-read when pause ends.
-            self._state["pausemin"] = 60
-
-        TimeFunctions = await self._fan.getTimerFunctions()  # Configuration
-        self._state["timer_runtime"] = TimeFunctions.PresenceTime
-        self._state["timer_delay"] = TimeFunctions.TimeMin
-        self._state["fanspeed_sensor"] = TimeFunctions.Speed
-        _LOGGER.debug(f"Time Functions: {TimeFunctions}")
-
-        if disconnect:
-            await self._fan.disconnect()
-        return True
