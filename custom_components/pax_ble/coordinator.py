@@ -23,6 +23,11 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
     _deviceInfoLoaded = False
     _last_config_timestamp = None
 
+    # Error tracking for rate limiting
+    _consecutive_failures = 0
+    _last_error_log_time = None
+    _error_backoff_delay = 0  # seconds
+
     # Should be set by a child class
     _fan: Optional[BaseDevice] = None  # This is basically a type hint
 
