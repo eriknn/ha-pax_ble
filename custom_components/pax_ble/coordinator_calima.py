@@ -24,6 +24,9 @@ class CalimaCoordinator(BaseCoordinator):
         _LOGGER.debug("Initializing Calima!")
         self._fan = Calima(hass, mac, pin)
 
+        # Set up disconnect callback
+        self._fan.set_disconnect_callback(self._on_device_disconnect)
+
     async def read_sensordata(self, disconnect=False) -> bool:
         _LOGGER.debug("Reading sensor data")
         try:

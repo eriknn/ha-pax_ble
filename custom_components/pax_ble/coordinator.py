@@ -61,6 +61,8 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         self._state["boostmodespeedwrite"] = 2400
         self._state["boostmodesecwrite"] = 600
 
+        # Note: disconnect callback will be set up in child classes after _fan is initialized
+
     @property
     def fan(self) -> BaseDevice:
         return self._fan
@@ -78,6 +80,11 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         return self._device.identifiers
 
     def setFastPollMode(self):
+        """Enable fast polling only if device is connected."""
+        if not self._fan or not self._fan.isConnected():
+            _LOGGER.debug("Cannot enable fast poll mode - device not connected")
+            return
+
         _LOGGER.debug("Enabling fast poll mode")
         self._fast_poll_enabled = True
         self._fast_poll_count = 0
@@ -87,25 +94,99 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
     def setNormalPollMode(self):
         _LOGGER.debug("Enabling normal poll mode")
         self._fast_poll_enabled = False
-        self.update_interval = dt.timedelta(seconds=self._normal_poll_interval)
+        # Use adaptive interval based on connection health
+        interval = self._normal_poll_interval
+        if self._connection_failures > 0:
+            interval = min(self._normal_poll_interval * (2 ** self._connection_failures), self._max_backoff)
+        self.update_interval = dt.timedelta(seconds=interval)
 
     async def disconnect(self):
-        await self._fan.disconnect()
+        """Safely disconnect from device."""
+        # Cancel any pending reconnection task
+        if self._reconnection_task and not self._reconnection_task.done():
+            self._reconnection_task.cancel()
+            self._reconnection_task = None
+
+        if self._fan:
+            await self._fan.disconnect()
+
+    async def _on_device_disconnect(self):
+        """Called when device disconnects unexpectedly."""
+        _LOGGER.warning("Device %s disconnected unexpectedly", self.devicename)
+        self._connection_failures += 1
+
+        # Disable fast polling immediately
+        if self._fast_poll_enabled:
+            self.setNormalPollMode()
+
+        # Start background reconnection if not already running
+        if not self._reconnection_task or self._reconnection_task.done():
+            self._reconnection_task = asyncio.create_task(self._background_reconnect())
+
+    async def _background_reconnect(self):
+        """Background task to reconnect to device with exponential backoff."""
+        while self._connection_failures > 0 and self._connection_failures < self._max_connection_failures:
+            backoff_time = min(
+                self._fast_poll_interval * (self._backoff_multiplier ** (self._connection_failures - 1)),
+                self._max_backoff
+            )
+            _LOGGER.debug("Attempting reconnection to %s in %d seconds (attempt %d)",
+                         self.devicename, backoff_time, self._connection_failures)
+
+            await asyncio.sleep(backoff_time)
+
+            try:
+                if await self._safe_connect():
+                    _LOGGER.info("Successfully reconnected to %s", self.devicename)
+                    self._connection_failures = 0
+                    self.setNormalPollMode()
+                    # Trigger immediate data refresh
+                    await self._async_update_data()
+                    return
+                else:
+                    self._connection_failures += 1
+            except Exception as e:
+                _LOGGER.debug("Reconnection attempt failed: %s", e)
+                self._connection_failures += 1
+
+        if self._connection_failures >= self._max_connection_failures:
+            _LOGGER.error("Failed to reconnect to %s after %d attempts, giving up",
+                         self.devicename, self._max_connection_failures)
 
     async def _safe_connect(self) -> bool:
         """
-        Try up to 5× with exponential backoff.
+        Try to connect with improved error handling and validation.
         """
-        backoff = 1.0
-        for attempt in range(1, 6):
-            if await self._fan.connect():
+        if not self._fan:
+            return False
+
+        # Check if we're already connected and validate the connection
+        if self._fan.isConnected():
+            if await self._fan.validate_connection():
+                # Reset failure count on successful validation
+                if self._connection_failures > 0:
+                    _LOGGER.info("Connection to %s validated, resetting failure count", self.devicename)
+                    self._connection_failures = 0
                 return True
-            _LOGGER.debug("Coordinator connect attempt %d failed", attempt)
-            if attempt < 5:
-                await asyncio.sleep(backoff)
-                backoff *= 2
-        _LOGGER.warning("Coordinator failed to connect after 5 attempts")
-        return False
+            else:
+                _LOGGER.debug("Existing connection failed validation, reconnecting")
+
+        try:
+            # Use longer timeout for ESP32 proxies
+            timeout = 45 if self._connection_failures > 2 else 30
+            if await self._fan.connect(timeout=timeout):
+                # Validate the new connection
+                if await self._fan.validate_connection():
+                    self._connection_failures = 0
+                    return True
+                else:
+                    _LOGGER.warning("New connection failed validation")
+                    return False
+            else:
+                return False
+        except Exception as e:
+            _LOGGER.debug("Connection attempt failed: %s", e)
+            return False
 
     async def _async_update_data(self):
         _LOGGER.debug("Coordinator updating data!!")
@@ -113,31 +194,47 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         """ Counter for fast polling """
         self._update_poll_counter()
 
+        # Skip updates if we have too many connection failures
+        if self._connection_failures >= self._max_connection_failures:
+            _LOGGER.debug("Skipping update due to too many connection failures")
+            return
+
         """ Fetch device info if not already fetched """
         if not self._deviceInfoLoaded:
             try:
-                async with async_timeout.timeout(20):
+                async with async_timeout.timeout(45):
                     if await self.read_deviceinfo(disconnect=False):
                         await self._async_update_device_info()
                         self._deviceInfoLoaded = True
             except Exception as err:
                 _LOGGER.debug("Failed when loading device information: %s", str(err))
+                self._connection_failures += 1
 
         """ Fetch config data if we have no/old values """
         if dt.datetime.now().date() != self._last_config_timestamp:
             try:
-                async with async_timeout.timeout(20):
+                async with async_timeout.timeout(45):
                     if await self.read_configdata(disconnect=False):
                         self._last_config_timestamp = dt.datetime.now().date()
             except Exception as err:
                 _LOGGER.debug("Failed when loading config data: %s", str(err))
+                self._connection_failures += 1
 
         """ Fetch sensor data """
         try:
-            async with async_timeout.timeout(20):
-                await self.read_sensordata(disconnect=not self._fast_poll_enabled)
+            async with async_timeout.timeout(30):
+                success = await self.read_sensordata(disconnect=not self._fast_poll_enabled)
+                if success:
+                    # Reset connection failures on successful data read
+                    if self._connection_failures > 0:
+                        _LOGGER.debug("Successful data read, resetting connection failures")
+                        self._connection_failures = 0
+                        self.setNormalPollMode()
+                else:
+                    self._connection_failures += 1
         except Exception as err:
             _LOGGER.debug("Failed when fetching sensordata: %s", str(err))
+            self._connection_failures += 1
 
     async def _async_update_device_info(self) -> None:
         device_registry = dr.async_get(self.hass)

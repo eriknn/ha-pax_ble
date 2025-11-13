@@ -23,6 +23,9 @@ class SvensaCoordinator(BaseCoordinator):
         _LOGGER.debug("Initializing Svensa!")
         self._fan = Svensa(hass, mac, pin)
 
+        # Set up disconnect callback
+        self._fan.set_disconnect_callback(self._on_device_disconnect)
+
     async def read_sensordata(self, disconnect=False) -> bool:
         _LOGGER.debug("Reading sensor data")
         try:
@@ -77,10 +80,9 @@ class SvensaCoordinator(BaseCoordinator):
             _LOGGER.debug("Error writing data to %s: not connected", self.devicename)
             return False
 
-        # Authorize
-        await self._fan.authorize()
+            # Authorize
+            await self._fan.authorize()
 
-        try:
             # Write data
             match key:
                 case "airing" | "fanspeed_airing":
@@ -137,12 +139,12 @@ class SvensaCoordinator(BaseCoordinator):
                 case _:
                     return False
 
-        except Exception as e:
-            _LOGGER.debug("Not able to write command: %s", str(e))
-            return False
+            self.setFastPollMode()
+            return True
 
-        self.setFastPollMode()
-        return True
+        except Exception as e:
+            _LOGGER.warning("Error writing data to %s: %s", self.devicename, str(e))
+            return False
 
     async def read_configdata(self, disconnect=False) -> bool:
         try:
