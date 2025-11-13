@@ -75,10 +75,8 @@ class SvensaCoordinator(BaseCoordinator):
         try:
             # Make sure we are connected
             if not await self._safe_connect():
-                raise Exception("Not connected!")
-        except Exception as e:
-            _LOGGER.debug("Error writing data to %s: not connected", self.devicename)
-            return False
+                _LOGGER.debug("Cannot write data: not connected to %s", self.devicename)
+                return False
 
             # Authorize
             await self._fan.authorize()
@@ -143,14 +141,15 @@ class SvensaCoordinator(BaseCoordinator):
             return True
 
         except Exception as e:
-            _LOGGER.warning("Error writing data to %s: %s", self.devicename, str(e))
+            _LOGGER.debug("Error writing data to %s: %s", self.devicename, str(e))
             return False
 
     async def read_configdata(self, disconnect=False) -> bool:
         try:
             # Make sure we are connected
             if not await self._safe_connect():
-                raise Exception("Not connected!")
+                _LOGGER.debug("Cannot read config data: not connected to %s", self.devicename)
+                return False
 
             AutomaticCycles = await self._fan.getAutomaticCycles()  # Configuration
             self._state["airing"] = AutomaticCycles.TimeMin

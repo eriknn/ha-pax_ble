@@ -56,6 +56,13 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         self._device = device
         self._model = model
 
+        # Connection management
+        self._connection_failures = 0
+        self._max_connection_failures = 5
+        self._max_backoff = 300  # 5 minutes max backoff
+        self._backoff_multiplier = 2
+        self._reconnection_task = None
+
         # Initialize state in case of new integration
         self._state = {}
         self._state["boostmodespeedwrite"] = 2400
@@ -89,7 +96,6 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         self._fast_poll_enabled = True
         self._fast_poll_count = 0
         self.update_interval = dt.timedelta(seconds=self._fast_poll_interval)
-        self._schedule_refresh()
 
     def setNormalPollMode(self):
         _LOGGER.debug("Enabling normal poll mode")
