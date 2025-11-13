@@ -32,7 +32,7 @@ class CalimaCoordinator(BaseCoordinator):
         try:
             # Make sure we are connected
             if not await self._safe_connect():
-                _LOGGER.warning("Cannot read sensor data: not connected to %s", self.devicename)
+                _LOGGER.debug("Cannot read sensor data: not connected to %s", self.devicename)
                 return False
 
             FanState = await self._fan.getState()  # Sensors
@@ -61,7 +61,7 @@ class CalimaCoordinator(BaseCoordinator):
             return True
 
         except Exception as e:
-            _LOGGER.warning("Error reading sensor data from %s: %s", self.devicename, str(e))
+            _LOGGER.debug("Error reading sensor data from %s: %s", self.devicename, str(e))
             return False
 
     async def write_data(self, key) -> bool:
@@ -69,7 +69,7 @@ class CalimaCoordinator(BaseCoordinator):
         try:
             # Make sure we are connected
             if not await self._safe_connect():
-                _LOGGER.warning("Cannot write data: not connected to %s", self.devicename)
+                _LOGGER.debug("Cannot write data: not connected to %s", self.devicename)
                 return False
 
             # Authorize
@@ -134,7 +134,7 @@ class CalimaCoordinator(BaseCoordinator):
             return True
 
         except Exception as e:
-            _LOGGER.warning("Error writing data to %s: %s", self.devicename, str(e))
+            _LOGGER.debug("Error writing data to %s: %s", self.devicename, str(e))
             return False
 
     async def read_configdata(self, disconnect=False) -> bool:
@@ -193,5 +193,5 @@ class CalimaCoordinator(BaseCoordinator):
             return True
 
         except Exception as e:
-            _LOGGER.warning("Error reading config data from %s: %s", self.devicename, str(e))
+            _LOGGER.debug("Error reading config data from %s: %s", self.devicename, str(e))
             return False

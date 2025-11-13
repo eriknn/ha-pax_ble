@@ -23,13 +23,10 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
     _deviceInfoLoaded = False
     _last_config_timestamp = None
 
-    # Connection management
-    _connection_failures = 0
-    _last_connection_attempt = None
-    _max_connection_failures = 5
-    _backoff_multiplier = 2
-    _max_backoff = 300  # 5 minutes
-    _reconnection_task = None
+    # Error tracking for rate limiting
+    _consecutive_failures = 0
+    _last_error_log_time = None
+    _error_backoff_delay = 0  # seconds
 
     # Should be set by a child class
     _fan: Optional[BaseDevice] = None  # This is basically a type hint
@@ -58,6 +55,13 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         self._fan: Optional[BaseDevice] = None  # Base class for Calima/Svensa
         self._device = device
         self._model = model
+
+        # Connection management
+        self._connection_failures = 0
+        self._max_connection_failures = 5
+        self._max_backoff = 300  # 5 minutes max backoff
+        self._backoff_multiplier = 2
+        self._reconnection_task = None
 
         # Initialize state in case of new integration
         self._state = {}
@@ -92,7 +96,6 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         self._fast_poll_enabled = True
         self._fast_poll_count = 0
         self.update_interval = dt.timedelta(seconds=self._fast_poll_interval)
-        self._schedule_refresh()
 
     def setNormalPollMode(self):
         _LOGGER.debug("Enabling normal poll mode")
