@@ -205,6 +205,14 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
             _LOGGER.debug("Skipping update due to too many connection failures")
             return
 
+        # Early return on cancellation to avoid blocking HA startup
+        try:
+            # Check if we're being cancelled early
+            await asyncio.sleep(0)
+        except asyncio.CancelledError:
+            _LOGGER.debug("Update cancelled before starting")
+            raise
+
         """ Fetch device info if not already fetched """
         if not self._deviceInfoLoaded:
             try:
@@ -212,6 +220,9 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
                     if await self.read_deviceinfo(disconnect=False):
                         await self._async_update_device_info()
                         self._deviceInfoLoaded = True
+            except asyncio.CancelledError:
+                _LOGGER.debug("Device info loading was cancelled")
+                raise  # Re-raise cancellation to handle it properly
             except Exception as err:
                 _LOGGER.debug("Failed when loading device information: %s", str(err))
                 self._connection_failures += 1
@@ -222,6 +233,9 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
                 async with async_timeout.timeout(45):
                     if await self.read_configdata(disconnect=False):
                         self._last_config_timestamp = dt.datetime.now().date()
+            except asyncio.CancelledError:
+                _LOGGER.debug("Config data loading was cancelled")
+                raise  # Re-raise cancellation to handle it properly
             except Exception as err:
                 _LOGGER.debug("Failed when loading config data: %s", str(err))
                 self._connection_failures += 1
@@ -238,6 +252,9 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
                         self.setNormalPollMode()
                 else:
                     self._connection_failures += 1
+        except asyncio.CancelledError:
+            _LOGGER.debug("Sensor data loading was cancelled")
+            raise  # Re-raise cancellation to handle it properly
         except Exception as err:
             _LOGGER.debug("Failed when fetching sensordata: %s", str(err))
             self._connection_failures += 1
