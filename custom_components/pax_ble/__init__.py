@@ -97,13 +97,13 @@ async def service_request_update(hass, call: ServiceCall):
         return
 
     """Find the coordinator corresponding to the given device ID."""
-    coordinators = hass.data[DOMAIN].get(CONF_DEVICES, {})
-
-    # Iterate through all coordinators and check their device_id property
-    for coordinator in coordinators.values():
-        if getattr(coordinator, "device_id", None) == device_id:
-            await coordinator._async_update_data()
-            return
+    domain_data = hass.data.get(DOMAIN, {})
+    for entry_id, entry_data in domain_data.items():
+        devices = entry_data.get(CONF_DEVICES, {})
+        for coordinator in devices.values():
+            if getattr(coordinator, "device_id", None) == device_id:
+                await coordinator.async_request_refresh()
+                return
 
     _LOGGER.warning("No coordinator found for device ID %s", device_id)
 
