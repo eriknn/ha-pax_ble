@@ -96,7 +96,7 @@ class BaseDevice:
             # Resolve the BLE device from HA's bluetooth stack
             device = self._resolve_ble_device()
             if not device:
-                raise BleakError(f"Device {self._mac} not found in bluetooth registry")
+                raise BleakError(f"Device {self._mac} not found")
 
             # Best-effort cleanup of stale OS-level BLE handles (helps BlueZ reconnects)
             try:
@@ -154,25 +154,36 @@ class BaseDevice:
         if not self.isConnected():
             return False
 
-        # Try a fast, low-impact characteristic; fall back to device name
-        candidates = [
-            self.chars.get(CHARACTERISTIC_STATUS),
-            self.chars[CHARACTERISTIC_DEVICE_NAME],
-        ]
-        for char in candidates:
-            if not char:
-                continue
-            try:
-                await asyncio.wait_for(self._client.read_gatt_char(char), timeout=10.0)
-                return True
-            except Exception as e:
-                _LOGGER.debug("Connection validation read failed for %s on %s: %s", self._mac, char, e)
-
-        # Do not force-disconnect here; let the caller decide to retry or reconnect
-        return False
+        try:
+            # Try to read device name as a connection health check
+            await asyncio.wait_for(self._client.read_gatt_char(self.chars[CHARACTERISTIC_DEVICE_NAME]), timeout=5.0)
+            return True
+        except Exception as e:
+            _LOGGER.debug("Connection validation failed for %s: %s", self._mac, e)
+            # Mark as disconnected so next operation will reconnect
+            self._client = None
+            return False
 
     def _bToStr(self, val) -> str:
         return binascii.b2a_hex(val).decode("utf-8")
+
+    def _resolve_ble_device(self):
+        """Resolve a BLEDevice, falling back to last advertisement or cached device."""
+        address = self._mac.upper()
+        device = bluetooth.async_ble_device_from_address(self._hass, address)
+        if device:
+            self._last_ble_device = device
+            return device
+
+        async_last_service_info = getattr(bluetooth, "async_last_service_info", None)
+        if callable(async_last_service_info):
+            service_info = async_last_service_info(self._hass, address)
+            ble_device = getattr(service_info, "device", None) if service_info else None
+            if ble_device:
+                self._last_ble_device = ble_device
+                return ble_device
+
+        return self._last_ble_device
 
     async def _readUUID(self, uuid) -> bytearray:
         if not self._client:
@@ -194,29 +205,6 @@ class BaseDevice:
         return await self._with_disconnect_on_error(
             self._client.write_gatt_char(uuid, data, response=True)
         )
-
-    def _resolve_ble_device(self):
-        """Resolve a BLEDevice, falling back to cached advertisement data if needed."""
-        address = self._mac.upper()
-        device = bluetooth.async_ble_device_from_address(self._hass, address)
-        if device:
-            self._last_ble_device = device
-            return device
-
-        async_last_service_info = getattr(bluetooth, "async_last_service_info", None)
-        if callable(async_last_service_info):
-            service_info = async_last_service_info(self._hass, address)
-            ble_device = getattr(service_info, "device", None) if service_info else None
-            if ble_device:
-                _LOGGER.debug("Using last known advertisement data for %s", address)
-                self._last_ble_device = ble_device
-                return ble_device
-
-        if self._last_ble_device:
-            _LOGGER.debug("Falling back to cached BLEDevice for %s", address)
-            return self._last_ble_device
-
-        return None
 
     # --- Generic GATT Characteristics
     async def getDeviceName(self) -> str:

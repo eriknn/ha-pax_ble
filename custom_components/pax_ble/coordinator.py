@@ -178,7 +178,7 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
                 # Reset failure count on successful validation
                 if self._connection_failures > 0:
                     _LOGGER.info("Connection to %s validated, resetting failure count", self.devicename)
-                    self._reset_failures()
+                    self._connection_failures = 0
                 return True
             else:
                 _LOGGER.debug("Existing connection failed validation, reconnecting")
