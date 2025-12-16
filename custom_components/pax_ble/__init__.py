@@ -60,9 +60,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         try:
             await asyncio.wait_for(coordinator.async_request_refresh(), timeout=30)
         except (asyncio.TimeoutError, asyncio.CancelledError) as e:
-            _LOGGER.warning("Initial connection to %s timed out or was cancelled, will retry in background: %s", name, e,)
+            _LOGGER.warning("Initial connection to %s timed out or was cancelled, will retry in background: %s", name, e)
         except Exception as e:
-            _LOGGER.warning("Initial connection to %s failed, will retry in background: %s", name, e,)
+            _LOGGER.warning("Initial connection to %s failed, will retry in background: %s", name, e)
+            
         hass.data[DOMAIN][entry.entry_id][CONF_DEVICES][device_id] = coordinator
 
     # Avoid forwarding platforms multiple times
