@@ -57,18 +57,13 @@ class BaseDevice:
         self._disconnect_callback = callback
 
     def _handle_disconnect(self, _client):
-        """Handle unexpected disconnection."""
-        _LOGGER.warning("Device %s disconnected unexpectedly", self._mac)
+        """Handle unexpected disconnection.
+
+        Only logs the disconnection for debugging purposes.
+        Reconnection is handled lazily on the next poll cycle.
+        """
+        _LOGGER.debug("Device %s disconnected, will reconnect on next poll", self._mac)
         self._client = None
-        if self._disconnect_callback:
-            try:
-                # Schedule callback in event loop since this runs in BLE thread
-                if self._hass and self._hass.loop:
-                    self._hass.loop.call_soon_threadsafe(
-                        lambda: asyncio.create_task(self._disconnect_callback())
-                    )
-            except Exception as e:
-                _LOGGER.error("Error calling disconnect callback: %s", e)
 
     async def authorize(self):
         await self.setAuth(self._pin)
