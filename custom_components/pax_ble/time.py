@@ -45,7 +45,11 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
 
         # Device specific entities
         match coordinator._model:
-            case DeviceModel.CALIMA.value | DeviceModel.SVARA.value:
+            case (
+                DeviceModel.CALIMA.value
+                | DeviceModel.SVARA.value
+                | DeviceModel.LEVANTE.value
+            ):
                 for paxentity in CALIMA_ENTITIES:
                     ha_entities.append(PaxCalimaTimeEntity(coordinator, paxentity))
             case DeviceModel.SVENSA.value:

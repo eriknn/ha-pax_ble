@@ -98,6 +98,7 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         _LOGGER.debug("Discovered device: %s", discovery_info.address)
         self.device_data[CONF_MAC] = dr.format_mac(discovery_info.address)
         self.device_data[CONF_NAME] = discovery_info.name
+        self.device_data[CONF_MODEL] = self.try_get_model(discovery_info.name)
         self.context["title_placeholders"] = {"name": discovery_info.name}
 
         """Abort if we already have a discovery in process for this device"""
@@ -114,6 +115,12 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         return await self.async_step_add_device()
 
+    def try_get_model(self, name: str) -> DeviceModel | None:
+        for model in DeviceModel:
+            if model.value.lower() in name.lower():
+                return model
+        return None
+
     """##################################################
     ##################### ADD DEVICE ####################
     ##################################################"""
@@ -122,8 +129,12 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         """Handler for adding discovered device."""
         errors = {}
 
-        if user_input is None and "levante" in self.device_data.get(CONF_NAME, "").lower():
+        if (
+            user_input is None
+            and self.device_data.get(CONF_MODEL) == DeviceModel.LEVANTE
+        ):
             # Levante exposes its PIN via a readable GATT characteristic
+            # after a reboot. So we can try to auto-discover the PIN.
             try:
                 fan = BaseDevice(self.hass, self.device_data[CONF_MAC], 0)
                 if await fan.connect():
