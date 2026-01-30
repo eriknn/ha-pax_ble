@@ -122,6 +122,18 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         """Handler for adding discovered device."""
         errors = {}
 
+        if user_input is None and "levante" in self.device_data.get(CONF_NAME, "").lower():
+            # Levante exposes its PIN via a readable GATT characteristic
+            try:
+                fan = BaseDevice(self.hass, self.device_data[CONF_MAC], 0)
+                if await fan.connect():
+                    pin = await fan.getAuth()
+                    if pin != 0:
+                        self.device_data[CONF_PIN] = str(pin)
+                    await fan.disconnect()
+            except Exception:
+                _LOGGER.warning("Failed to auto-discover PIN for %s", self.device_data[CONF_MAC], exc_info=True)
+
         if user_input is not None:
             dev_mac = dr.format_mac(user_input[CONF_MAC])
             if self.device_exists(dev_mac):
