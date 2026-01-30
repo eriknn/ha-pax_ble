@@ -97,6 +97,8 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         """Handle a flow initialized by bluetooth discovery."""
         _LOGGER.debug("Discovered device: %s", discovery_info.address)
         self.device_data[CONF_MAC] = dr.format_mac(discovery_info.address)
+        self.device_data[CONF_NAME] = discovery_info.name
+        self.context["title_placeholders"] = {"name": discovery_info.name}
 
         """Abort if we already have a discovery in process for this device"""
         await self.async_set_unique_id(self.device_data[CONF_MAC])
