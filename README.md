@@ -17,7 +17,7 @@ If you've got other fans of the same'ish type, just give it a go and let me know
 
 ## Add device
 
-The integration supports discovery of devices, but only for Calima (until someone tells me how I can add multiple device-types in manifest "local_name", or if there's another way...)
+The integration supports discovery of devices for Calima and Levante.
 If discovery doesn't work you may try to add it manually through the integration configuration.
 If you have issues connecting, try cycling power on the device. It seems that the Bluetooth interface easily hangs if it's messed around with a bit.
 
@@ -28,7 +28,7 @@ For Svensa-specific instructions, see [here](svensa.md).
 A valid PIN code is required to be able to control the fan. You can add the fan without PIN, but then you'll only be able to read values.
 * For Calima/Svara you just enter the decimal value printed on the fan motor (remove from base)
 * For Svensa, the PIN is not written on the device, but should be requested from it. See [instructions for Svensa](svensa.md).
-* For Levante 50, select Calima as model but request the PIN using the steps outlined for Svensa. Enter pairing mode by powercycling the fan using the switch on the side.
+* For Levante 50, enter pairing mode by powercycling the fan using the switch on the side just before adding the device. The PIN should be discovered automatically. If this fails, see instructions for Svensa.
 
 ## Sensor data
 

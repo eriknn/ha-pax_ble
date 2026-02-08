@@ -34,5 +34,6 @@ DEFAULT_SCAN_INTERVAL_FAST: int = 5  # Seconds
 # Device models
 class DeviceModel(str, Enum):
     CALIMA = "Calima"
+    LEVANTE = "Levante"
     SVARA = "Svara"
     SVENSA = "Svensa"

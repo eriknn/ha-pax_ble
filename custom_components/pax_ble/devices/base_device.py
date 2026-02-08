@@ -27,7 +27,7 @@ class BaseDevice:
         self._mac = mac
         self._pin = pin
         self._client: BleakClientWithServiceCache | None = None
-        self._is_connecting = False
+        self._connect_lock = asyncio.Lock()
         self._disconnect_callback = None
         # Characteristic UUIDs (centralized in characteristics.py ideally)
         self.chars = {
@@ -71,47 +71,37 @@ class BaseDevice:
 
     async def connect(self, timeout: int = 45) -> bool:
         """Establish a reliable connection using bleak-retry-connector."""
-        # Prevent concurrent connection attempts
-        if self._is_connecting:
-            _LOGGER.debug("Connection attempt already in progress for %s", self._mac)
-            return False
+        async with self._connect_lock:
+            # Already connected (or another caller just connected while we waited)?
+            if self._client and self._client.is_connected:
+                return True
 
-        # Already connected?
-        if self._client and self._client.is_connected:
-            return True
-
-        self._is_connecting = True
-        try:
-            # Resolve the BLE device from HA's bluetooth stack
-            device = bluetooth.async_ble_device_from_address(self._hass, self._mac.upper())
-            if not device:
-                raise BleakError(f"Device {self._mac} not found")
-
-            # Best-effort cleanup of stale OS-level BLE handles (helps BlueZ reconnects)
             try:
-                await close_stale_connections()
-            except Exception:  # best-effort
-                pass
+                device = bluetooth.async_ble_device_from_address(self._hass, self._mac.upper())
+                if not device:
+                    raise BleakError(f"Device {self._mac} not found")
 
-            # Use the cached-services client (faster, more reliable)
-            self._client = await establish_connection(
-                BleakClientWithServiceCache,   # client class to construct
-                device,                        # HA-discovered BLEDevice
-                name=getattr(self, "name", self._mac),
-                disconnected_callback=self._handle_disconnect,
-                use_services_cache=True,
-                max_attempts=5,                # increased for better reliability
-                retry_interval=1.0,            # increased for ESP32 compatibility
-                timeout=timeout,               # configurable timeout
-            )
-            _LOGGER.debug("Connected to %s", self._mac)
-            return True
-        except Exception as err:
-            _LOGGER.warning("Failed to connect %s: %s", self._mac, err)
-            self._client = None
-            return False
-        finally:
-            self._is_connecting = False
+                try:
+                    await close_stale_connections()
+                except Exception:
+                    pass
+
+                self._client = await establish_connection(
+                    BleakClientWithServiceCache,
+                    device,
+                    name=getattr(self, "name", self._mac),
+                    disconnected_callback=self._handle_disconnect,
+                    use_services_cache=True,
+                    max_attempts=5,
+                    retry_interval=1.0,
+                    timeout=timeout,
+                )
+                _LOGGER.debug("Connected to %s", self._mac)
+                return True
+            except Exception as err:
+                _LOGGER.warning("Failed to connect %s: %s", self._mac, err)
+                self._client = None
+                return False
 
     async def disconnect(self) -> None:
         if self._client:

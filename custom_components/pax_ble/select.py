@@ -155,6 +155,9 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
             case DeviceModel.CALIMA.value:
                 for paxentity in CALIMA_ENTITIES:
                     ha_entities.append(PaxCalimaSelectEntity(coordinator, paxentity))
+            case DeviceModel.LEVANTE.value:
+                for paxentity in CALIMA_ENTITIES:
+                    ha_entities.append(PaxCalimaSelectEntity(coordinator, paxentity))
             case DeviceModel.SVENSA.value:
                 for paxentity in SVENSA_ENTITIES:
                     ha_entities.append(PaxCalimaSelectEntity(coordinator, paxentity))

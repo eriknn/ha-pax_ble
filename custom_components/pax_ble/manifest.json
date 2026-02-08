@@ -2,7 +2,8 @@
 	"domain": "pax_ble",
 	"name": "Pax Bluetooth",
 	"bluetooth": [
-		{"local_name": "PAX Calima"}
+		{"local_name": "PAX Calima"},
+		{"local_name": "Pax Levante"}
 	],
 	"codeowners": ["@eriknn"],
 	"config_flow": true,

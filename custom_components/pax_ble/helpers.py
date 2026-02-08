@@ -22,7 +22,7 @@ def getCoordinator(hass, device_data, dev):
     # Set up coordinator
     coordinator = None
     match DeviceModel(model):
-        case DeviceModel.CALIMA | DeviceModel.SVARA:
+        case DeviceModel.CALIMA | DeviceModel.SVARA | DeviceModel.LEVANTE:
             coordinator = CalimaCoordinator(
                 hass, dev, model, mac, pin, scan_interval, scan_interval_fast
             )
