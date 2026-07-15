@@ -3,6 +3,8 @@ import logging
 
 from typing import Optional
 
+from homeassistant.util import dt as dt_util
+
 from .coordinator import BaseCoordinator
 from .devices.calima import Calima
 
@@ -26,6 +28,7 @@ class CalimaCoordinator(BaseCoordinator):
 
         # Set up disconnect callback
         self._fan.set_disconnect_callback(self._on_device_disconnect)
+        self._last_clock_sync_check: Optional[dt.datetime] = None
 
     async def read_sensordata(self, disconnect=False) -> bool:
         _LOGGER.debug("Reading sensor data")
@@ -34,6 +37,8 @@ class CalimaCoordinator(BaseCoordinator):
             if not await self._safe_connect():
                 _LOGGER.debug("Cannot read sensor data: not connected to %s", self.devicename)
                 return False
+
+            await self._sync_clock_if_needed()
 
             FanState = await self._fan.getState()  # Sensors
             BoostMode = await self._fan.getBoostMode()  # Sensors?
@@ -62,6 +67,51 @@ class CalimaCoordinator(BaseCoordinator):
 
         except Exception as e:
             _LOGGER.debug("Error reading sensor data from %s: %s", self.devicename, str(e))
+            return False
+
+    async def _sync_clock_if_needed(self, force: bool = False) -> bool:
+        now = dt_util.now()
+        if (
+            not force
+            and self._last_clock_sync_check is not None
+            and now - self._last_clock_sync_check < dt.timedelta(minutes=10)
+        ):
+            return True
+
+        try:
+            fan_time = await self._fan.getTime()
+            current_seconds = now.hour * 3600 + now.minute * 60 + now.second
+            fan_seconds = fan_time.Hour * 3600 + fan_time.Minute * 60 + fan_time.Second
+            time_delta = abs(current_seconds - fan_seconds)
+            time_delta = min(time_delta, 86400 - time_delta)
+
+            if fan_time.DayOfWeek == now.isoweekday() and time_delta <= 120:
+                self._last_clock_sync_check = now
+                return True
+
+            await self._fan.authorize()
+            await self._fan.setTime(
+                now.isoweekday(),
+                now.hour,
+                now.minute,
+                now.second,
+            )
+            self._last_clock_sync_check = now
+            _LOGGER.info(
+                "Synced clock for %s from day=%s %02d:%02d:%02d to day=%s %02d:%02d:%02d",
+                self.devicename,
+                fan_time.DayOfWeek,
+                fan_time.Hour,
+                fan_time.Minute,
+                fan_time.Second,
+                now.isoweekday(),
+                now.hour,
+                now.minute,
+                now.second,
+            )
+            return True
+        except Exception as e:
+            _LOGGER.warning("Unable to sync clock for %s: %s", self.devicename, str(e))
             return False
 
     async def write_data(self, key) -> bool:
