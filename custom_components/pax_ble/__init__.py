@@ -76,8 +76,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Set up update listener
     entry.async_on_unload(entry.add_update_listener(update_listener))
 
-    # Register services
-    hass.services.async_register(DOMAIN, "request_update", partial(service_request_update, hass))
+    # Register services (only once across all entries)
+    if not hass.services.has_service(DOMAIN, "request_update"):
+        hass.services.async_register(DOMAIN, "request_update", partial(service_request_update, hass))
 
     return True
 
@@ -96,14 +97,12 @@ async def service_request_update(hass, call: ServiceCall):
         _LOGGER.error("No device entry found for device ID %s", device_id)
         return
 
-    """Find the coordinator corresponding to the given device ID."""
-    coordinators = hass.data[DOMAIN].get(CONF_DEVICES, {})
-
-    # Iterate through all coordinators and check their device_id property
-    for coordinator in coordinators.values():
-        if getattr(coordinator, "device_id", None) == device_id:
-            await coordinator._async_update_data()
-            return
+    # Find the coordinator corresponding to the given device ID
+    for entry_data in hass.data.get(DOMAIN, {}).values():
+        for coordinator in entry_data.get(CONF_DEVICES, {}).values():
+            if coordinator.device_id == device_id:
+                await coordinator._async_update_data()
+                return
 
     _LOGGER.warning("No coordinator found for device ID %s", device_id)
 
@@ -135,6 +134,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Unload entries
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+    # Clear per-entry state so a config-entry reload can forward platforms again
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id, None)
 
     return unload_ok
 
