@@ -56,18 +56,43 @@ class BaseDevice:
         """Set callback to be called when device disconnects unexpectedly."""
         self._disconnect_callback = callback
 
-    def _handle_disconnect(self, _client):
+    def _handle_disconnect(self, client):
         """Handle unexpected disconnection.
 
         Only logs the disconnection for debugging purposes.
         Reconnection is handled lazily on the next poll cycle.
         """
         _LOGGER.debug("Device %s disconnected, will reconnect on next poll", self._mac)
-        self._client = None
+        # Only clear if this callback is for the client we still own - a late
+        # callback for an old ACL must not orphan a newer connection (#101).
+        if self._client is client:
+            self._client = None
 
     async def authorize(self):
         await self.setAuth(self._pin)
 
+    def _take_client(self):
+        """Atomically clear and return the current client. Caller holds _connect_lock."""
+        client = self._client
+        self._client = None
+        return client
+
+    async def _disconnect_client(self, client) -> None:
+        """Await Bleak disconnect for a client already removed from the slot."""
+        if client is None:
+            return
+        try:
+            await client.disconnect()
+        except Exception as e:
+            _LOGGER.warning("Error disconnecting %s: %s", self._mac, e)
+
+    def _has_sensor_characteristic(self, sensor_uuid: str) -> bool:
+        if not self._client:
+            return False
+        try:
+            return self._client.services.get_characteristic(sensor_uuid) is not None
+        except Exception:
+            return False
 
     async def connect(
         self, timeout: int = 45, *, use_services_cache: bool = True
@@ -78,8 +103,7 @@ class BaseDevice:
 
         async with self._connect_lock:
             if self._client and self._client.is_connected:
-                # Already connected still needs a usable GATT map for polling.
-                if self._client.services.get_characteristic(sensor_uuid) is not None:
+                if self._has_sensor_characteristic(sensor_uuid):
                     return True
                 _LOGGER.debug(
                     "Already connected to %s but SENSOR_DATA missing; reconnecting",
@@ -89,19 +113,26 @@ class BaseDevice:
                     await self._client.clear_cache()
                 except Exception:
                     pass
-                try:
-                    await self._client.disconnect()
-                except Exception:
-                    pass
-                self._client = None
+                stale = self._take_client()
+                cache_attempts = (False,)
             elif self._client is not None:
-                try:
-                    await self._client.disconnect()
-                except Exception:
-                    pass
-                self._client = None
+                stale = self._take_client()
+            else:
+                stale = None
 
-            for use_cache in cache_attempts:
+        await self._disconnect_client(stale)
+
+        for use_cache in cache_attempts:
+            to_close = []
+            success = False
+            retry_uncached = False
+            async with self._connect_lock:
+                if self._client and self._client.is_connected:
+                    if self._has_sensor_characteristic(sensor_uuid):
+                        return True
+                if self._client is not None:
+                    to_close.append(self._take_client())
+
                 try:
                     device = bluetooth.async_ble_device_from_address(
                         self._hass, self._mac.upper()
@@ -125,59 +156,54 @@ class BaseDevice:
                         timeout=timeout,
                     )
 
-                    if self._client.services.get_characteristic(sensor_uuid) is not None:
+                    if self._has_sensor_characteristic(sensor_uuid):
                         _LOGGER.debug("Connected to %s", self._mac)
-                        return True
-
-                    # Stale/incomplete GATT cache: clear and retry once without cache.
-                    if use_cache:
+                        success = True
+                    elif use_cache:
                         _LOGGER.debug(
                             "SENSOR_DATA missing after cached connect for %s; "
                             "retrying without cache",
                             self._mac,
                         )
                         try:
-                            await self._client.clear_cache()
+                            if self._client is not None:
+                                await self._client.clear_cache()
                         except Exception:
                             pass
-                        try:
-                            await self._client.disconnect()
-                        except Exception:
-                            pass
-                        self._client = None
-                        continue
-
-                    _LOGGER.warning(
-                        "Connected to %s but SENSOR_DATA not in GATT services",
-                        self._mac,
-                    )
-                    try:
-                        await self._client.disconnect()
-                    except Exception:
-                        pass
-                    self._client = None
-                    return False
-
+                        to_close.append(self._take_client())
+                        retry_uncached = True
+                    else:
+                        _LOGGER.warning(
+                            "Connected to %s but SENSOR_DATA not in GATT services",
+                            self._mac,
+                        )
+                        to_close.append(self._take_client())
                 except Exception as err:
                     _LOGGER.warning("Failed to connect %s: %s", self._mac, err)
-                    if self._client is not None:
-                        try:
-                            await self._client.disconnect()
-                        except Exception:
-                            pass
-                        self._client = None
-                    return False
+                    to_close.append(self._take_client())
 
-            return False
+            for client in to_close:
+                await self._disconnect_client(client)
+            if success:
+                # Re-check after releasing the lock: a concurrent disconnect() may have
+                # cleared the slot between establish success and our return.
+                if self.isConnected() and self._has_sensor_characteristic(sensor_uuid):
+                    return True
+                _LOGGER.debug(
+                    "Connection to %s was dropped before connect() returned",
+                    self._mac,
+                )
+                return False
+            if not retry_uncached:
+                return False
+
+        return False
 
     async def disconnect(self) -> None:
-        if self._client:
-            try:
-                await self._client.disconnect()
-            except Exception as e:
-                _LOGGER.warning("Error disconnecting %s: %s", self._mac, e)
-            finally:
-                self._client = None
+        async with self._connect_lock:
+            client = self._take_client()
+        # Release lock before awaiting Bleak so connect is not blocked on HCI teardown.
+        await self._disconnect_client(client)
 
     async def _with_disconnect_on_error(self, coro):
         try:
@@ -200,30 +226,31 @@ class BaseDevice:
         BleakGATTServiceCollection even when BlueZ exposes it, which produced
         "Characteristic 00002a00 was not found!" after a successful connect (#101).
 
-        Serialize with connect() via _connect_lock so validate/disconnect cannot race
-        a cache-retry reconnect. Does not perform GATT ReadValue - dead ACL links are
-        caught by the next sensor read via _with_disconnect_on_error.
+        Slot clear is serialized with connect() via _connect_lock; Bleak disconnect
+        runs after the lock is released so a slow HCI teardown cannot block reconnect.
+        Dead ACL links are caught by the next sensor read via _with_disconnect_on_error.
         """
         async with self._connect_lock:
             if not self.isConnected():
-                if self._client is not None:
-                    await self.disconnect()
-                return False
-
-            sensor_uuid = self.chars[CHARACTERISTIC_SENSOR_DATA]
-            try:
-                if self._client.services.get_characteristic(sensor_uuid) is not None:
-                    return True
-            except Exception as err:
+                client = self._take_client() if self._client is not None else None
+                ok = False
+            else:
+                sensor_uuid = self.chars[CHARACTERISTIC_SENSOR_DATA]
+                try:
+                    if self._client.services.get_characteristic(sensor_uuid) is not None:
+                        return True
+                except Exception as err:
+                    _LOGGER.debug(
+                        "Connection validation failed for %s: %s", self._mac, err
+                    )
                 _LOGGER.debug(
-                    "Connection validation failed for %s: %s", self._mac, err
+                    "Connection validation missing SENSOR_DATA for %s", self._mac
                 )
+                client = self._take_client()
+                ok = False
 
-            _LOGGER.debug(
-                "Connection validation missing SENSOR_DATA for %s", self._mac
-            )
-            await self.disconnect()
-            return False
+        await self._disconnect_client(client)
+        return ok
 
     def _bToStr(self, val) -> str:
         return binascii.b2a_hex(val).decode("utf-8")

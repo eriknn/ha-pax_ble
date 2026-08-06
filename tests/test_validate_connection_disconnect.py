@@ -234,6 +234,76 @@ class ValidateConnectionTests(unittest.IsolatedAsyncioTestCase):
         fresh.is_connected = True
         fresh.services = _services_with_sensor(True)
         fresh.disconnect = AsyncMock()
+        kwargs_seen = []
+
+        async def fake_establish(*args, **kwargs):
+            kwargs_seen.append(kwargs.get("use_services_cache"))
+            return fresh
+
+        with patch.object(
+            base_device.bluetooth,
+            "async_ble_device_from_address",
+            return_value=MagicMock(),
+        ), patch.object(
+            base_device, "close_stale_connections", new=AsyncMock()
+        ), patch.object(
+            base_device, "establish_connection", side_effect=fake_establish
+        ):
+            ok = await device.connect()
+
+        self.assertTrue(ok)
+        stale.clear_cache.assert_awaited_once()
+        stale.disconnect.assert_awaited()
+        self.assertEqual(kwargs_seen, [False])
+        self.assertIs(device._client, fresh)
+
+    async def test_disconnect_clears_slot_before_await(self):
+        device = FakeDevice()
+        cleared = asyncio.Event()
+        old = MagicMock()
+
+        async def slow_disconnect():
+            # Slot must already be empty before Bleak disconnect yields.
+            self.assertIsNone(device._client)
+            cleared.set()
+
+        old.disconnect = slow_disconnect
+        device._client = old
+
+        await device.disconnect()
+
+        self.assertTrue(cleared.is_set())
+        self.assertIsNone(device._client)
+
+    async def test_handle_disconnect_ignores_stale_client(self):
+        device = FakeDevice()
+        old, new = MagicMock(), MagicMock()
+        device._client = new
+        device._handle_disconnect(old)
+        self.assertIs(device._client, new)
+        device._handle_disconnect(new)
+        self.assertIsNone(device._client)
+
+    async def test_validate_disconnect_under_lock_no_deadlock(self):
+        device = FakeDevice()
+        client = MagicMock()
+        client.is_connected = True
+        client.services = _services_with_sensor(False)
+        client.disconnect = AsyncMock()
+        device._client = client
+
+        ok = await asyncio.wait_for(device.validate_connection(), timeout=2)
+
+        self.assertFalse(ok)
+        client.disconnect.assert_awaited()
+        self.assertIsNone(device._client)
+
+    async def test_connect_returns_false_if_slot_cleared_before_return(self):
+        device = FakeDevice()
+        fresh = MagicMock()
+        fresh.is_connected = True
+        fresh.services = _services_with_sensor(True)
+        fresh.disconnect = AsyncMock()
 
         with patch.object(
             base_device.bluetooth,
@@ -243,13 +313,16 @@ class ValidateConnectionTests(unittest.IsolatedAsyncioTestCase):
             base_device, "close_stale_connections", new=AsyncMock()
         ), patch.object(
             base_device, "establish_connection", new=AsyncMock(return_value=fresh)
+        ), patch.object(
+            # connect() only uses the isConnected() method for the post-lock
+            # success re-check; in-lock paths use client.is_connected.
+            device,
+            "isConnected",
+            return_value=False,
         ):
             ok = await device.connect()
 
-        self.assertTrue(ok)
-        stale.clear_cache.assert_awaited_once()
-        stale.disconnect.assert_awaited()
-        self.assertIs(device._client, fresh)
+        self.assertFalse(ok)
 
 
 if __name__ == "__main__":
