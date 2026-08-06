@@ -137,8 +137,9 @@ class BaseDevice:
             return True
         except Exception as e:
             _LOGGER.debug("Connection validation failed for %s: %s", self._mac, e)
-            # Mark as disconnected so next operation will reconnect
-            self._client = None
+            # Tear down the ACL link - only nulling _client leaves a BlueZ/hci0 zombie
+            # that can block proxies (see https://github.com/eriknn/ha-pax_ble/issues/101).
+            await self.disconnect()
             return False
 
     def _bToStr(self, val) -> str:
