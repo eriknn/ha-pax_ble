@@ -69,39 +69,106 @@ class BaseDevice:
         await self.setAuth(self._pin)
 
 
-    async def connect(self, timeout: int = 45) -> bool:
+    async def connect(
+        self, timeout: int = 45, *, use_services_cache: bool = True
+    ) -> bool:
         """Establish a reliable connection using bleak-retry-connector."""
+        sensor_uuid = self.chars[CHARACTERISTIC_SENSOR_DATA]
+        cache_attempts = (True, False) if use_services_cache else (False,)
+
         async with self._connect_lock:
-            # Already connected (or another caller just connected while we waited)?
             if self._client and self._client.is_connected:
-                return True
-
-            try:
-                device = bluetooth.async_ble_device_from_address(self._hass, self._mac.upper())
-                if not device:
-                    raise BleakError(f"Device {self._mac} not found")
-
+                # Already connected still needs a usable GATT map for polling.
+                if self._client.services.get_characteristic(sensor_uuid) is not None:
+                    return True
+                _LOGGER.debug(
+                    "Already connected to %s but SENSOR_DATA missing; reconnecting",
+                    self._mac,
+                )
                 try:
-                    await close_stale_connections()
+                    await self._client.clear_cache()
                 except Exception:
                     pass
-
-                self._client = await establish_connection(
-                    BleakClientWithServiceCache,
-                    device,
-                    name=getattr(self, "name", self._mac),
-                    disconnected_callback=self._handle_disconnect,
-                    use_services_cache=True,
-                    max_attempts=5,
-                    retry_interval=1.0,
-                    timeout=timeout,
-                )
-                _LOGGER.debug("Connected to %s", self._mac)
-                return True
-            except Exception as err:
-                _LOGGER.warning("Failed to connect %s: %s", self._mac, err)
+                try:
+                    await self._client.disconnect()
+                except Exception:
+                    pass
                 self._client = None
-                return False
+            elif self._client is not None:
+                try:
+                    await self._client.disconnect()
+                except Exception:
+                    pass
+                self._client = None
+
+            for use_cache in cache_attempts:
+                try:
+                    device = bluetooth.async_ble_device_from_address(
+                        self._hass, self._mac.upper()
+                    )
+                    if not device:
+                        raise BleakError(f"Device {self._mac} not found")
+
+                    try:
+                        await close_stale_connections()
+                    except Exception:
+                        pass
+
+                    self._client = await establish_connection(
+                        BleakClientWithServiceCache,
+                        device,
+                        name=getattr(self, "name", self._mac),
+                        disconnected_callback=self._handle_disconnect,
+                        use_services_cache=use_cache,
+                        max_attempts=5,
+                        retry_interval=1.0,
+                        timeout=timeout,
+                    )
+
+                    if self._client.services.get_characteristic(sensor_uuid) is not None:
+                        _LOGGER.debug("Connected to %s", self._mac)
+                        return True
+
+                    # Stale/incomplete GATT cache: clear and retry once without cache.
+                    if use_cache:
+                        _LOGGER.debug(
+                            "SENSOR_DATA missing after cached connect for %s; "
+                            "retrying without cache",
+                            self._mac,
+                        )
+                        try:
+                            await self._client.clear_cache()
+                        except Exception:
+                            pass
+                        try:
+                            await self._client.disconnect()
+                        except Exception:
+                            pass
+                        self._client = None
+                        continue
+
+                    _LOGGER.warning(
+                        "Connected to %s but SENSOR_DATA not in GATT services",
+                        self._mac,
+                    )
+                    try:
+                        await self._client.disconnect()
+                    except Exception:
+                        pass
+                    self._client = None
+                    return False
+
+                except Exception as err:
+                    _LOGGER.warning("Failed to connect %s: %s", self._mac, err)
+                    if self._client is not None:
+                        try:
+                            await self._client.disconnect()
+                        except Exception:
+                            pass
+                        self._client = None
+                    return False
+
+            return False
 
     async def disconnect(self) -> None:
         if self._client:
@@ -127,18 +194,34 @@ class BaseDevice:
         return self._client is not None and self._client.is_connected
 
     async def validate_connection(self) -> bool:
-        """Validate that the connection is still working by reading a basic characteristic."""
-        if not self.isConnected():
-            return False
+        """Validate the link without an extra GATT read.
 
-        try:
-            # Try to read device name as a connection health check
-            await asyncio.wait_for(self._client.read_gatt_char(self.chars[CHARACTERISTIC_DEVICE_NAME]), timeout=5.0)
-            return True
-        except Exception as e:
-            _LOGGER.debug("Connection validation failed for %s: %s", self._mac, e)
-            # Tear down the ACL link - only nulling _client leaves a BlueZ/hci0 zombie
-            # that can block proxies (see https://github.com/eriknn/ha-pax_ble/issues/101).
+        GAP Device Name (00002a00) is a poor health check: Bleak often omits it from
+        BleakGATTServiceCollection even when BlueZ exposes it, which produced
+        "Characteristic 00002a00 was not found!" after a successful connect (#101).
+
+        Serialize with connect() via _connect_lock so validate/disconnect cannot race
+        a cache-retry reconnect. Does not perform GATT ReadValue - dead ACL links are
+        caught by the next sensor read via _with_disconnect_on_error.
+        """
+        async with self._connect_lock:
+            if not self.isConnected():
+                if self._client is not None:
+                    await self.disconnect()
+                return False
+
+            sensor_uuid = self.chars[CHARACTERISTIC_SENSOR_DATA]
+            try:
+                if self._client.services.get_characteristic(sensor_uuid) is not None:
+                    return True
+            except Exception as err:
+                _LOGGER.debug(
+                    "Connection validation failed for %s: %s", self._mac, err
+                )
+
+            _LOGGER.debug(
+                "Connection validation missing SENSOR_DATA for %s", self._mac
+            )
             await self.disconnect()
             return False
 
