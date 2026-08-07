@@ -60,7 +60,15 @@ bluetooth_proxy:
 esp32_ble_tracker:
 ```
 
-When config is applied, go ahead and add the pax using ha webgui. 
+When config is applied, go ahead and add the pax using ha webgui.
+
+### Calima/Svara dashboard metrics example
+
+Example Home Assistant entities card for a Vent-Axia Svara (Calima-compatible) fan, showing the sensors and controls exposed by this integration (including firmware/hardware from the device registry):
+
+<p align="center">
+  <img src="docs/images/calima-svara-dashboard-metrics.png" alt="Example Home Assistant dashboard for a Calima/Svara extractor fan" width="420" />
+</p>
 
 ## Thanks
 
