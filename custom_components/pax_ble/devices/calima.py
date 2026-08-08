@@ -74,7 +74,9 @@ class Calima(BaseDevice):
             trigger = "Humidity ventilation"
 
         return FanState(
-            round(math.log2(v[0] - 30) * 10, 2) if v[0] > 30 else 0,
+            # See the note in svensa.py: None (-> "unknown") rather than 0,
+            # so an unconvertible raw value is not reported as a measured 0%.
+            round(math.log2(v[0] - 30) * 10, 2) if v[0] > 30 else None,
             v[1] / 4 - 2.6,
             v[2],
             v[3],

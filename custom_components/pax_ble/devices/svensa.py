@@ -109,7 +109,12 @@ class Svensa(BaseDevice):
 
         # FanState = namedtuple("FanState", "Humidity AirQuality Temp Light RPM Mode")
         return FanState(
-            round(15 * math.log2(v[2]) - 75, 2) if v[2] > 35 else 0,
+            # Below the threshold the raw value cannot be converted at all
+            # (log2 of <= 0 is a domain error, and low values give negative
+            # percentages), so there is no reading to report. Return None,
+            # which Home Assistant renders as "unknown", rather than 0 -
+            # which presents "no reading" as a measured 0% RH.
+            round(15 * math.log2(v[2]) - 75, 2) if v[2] > 35 else None,
             v[3],
             v[9],
             v[4],
