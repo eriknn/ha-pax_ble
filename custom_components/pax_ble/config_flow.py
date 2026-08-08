@@ -424,8 +424,17 @@ class PaxOptionsFlowHandler(OptionsFlow):
         errors = {}
 
         if user_input is not None:
-            # Update device in config entry
-            new_data = self.config_entry.data.copy()
+            # Update device in config entry.
+            #
+            # .copy() is shallow, so new_data[CONF_DEVICES] would be the same
+            # dict object as config_entry.data[CONF_DEVICES]; updating it in
+            # place mutates the live entry, async_update_entry() then compares
+            # the entry against itself, finds no change, and skips both the
+            # save and the update listener that reloads the entry.
+            new_data = dict(self.config_entry.data)
+            new_data[CONF_DEVICES] = {
+                mac: dict(cfg) for mac, cfg in new_data[CONF_DEVICES].items()
+            }
             new_data[CONF_DEVICES][self.selected_device].update(user_input)
             self.hass.config_entries.async_update_entry(
                 self.config_entry, data=new_data
