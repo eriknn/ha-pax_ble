@@ -285,6 +285,11 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         _LOGGER.debug("Set_Data: %s %s", key, value)
         self._state[key] = value
 
+        # Publish straight away. Callers set the value here and only tell Home
+        # Assistant after the device write returns, which leaves the state
+        # machine reporting the old value for the whole duration of that write.
+        self.async_update_listeners()
+
     async def read_deviceinfo(self, disconnect=False) -> bool:
         _LOGGER.debug("Reading device information")
         try:
