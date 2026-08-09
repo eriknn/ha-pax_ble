@@ -1,7 +1,11 @@
 import logging
 
 from collections import namedtuple
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.const import CONF_DEVICES
 from homeassistant.const import UnitOfVolumeFlowRate, UnitOfTemperature, UnitOfTime
@@ -39,7 +43,7 @@ ENTITIES = [
         "flow",
         "Flow",
         UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
-        None,
+        SensorDeviceClass.VOLUME_FLOW_RATE,
         None,
         "mdi:weather-windy",
     ),
@@ -103,6 +107,16 @@ class PaxCalimaSensorEntity(PaxCalimaEntity, SensorEntity):
         """Sensor Entity properties"""
         self._attr_device_class = paxentity.deviceClass
         self._attr_native_unit_of_measurement = paxentity.units
+        # volume_flow_rate enables m³/h ↔ L/s unit conversion; suggest L/s
+        # (Vent-Axia / UK). MEASUREMENT for statistics on numeric sensors.
+        if paxentity.key == "flow":
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_suggested_unit_of_measurement = (
+                UnitOfVolumeFlowRate.LITERS_PER_SECOND
+            )
+            self._attr_suggested_display_precision = 0
+        elif paxentity.key in ("humidity", "temperature", "light", "rpm"):
+            self._attr_state_class = SensorStateClass.MEASUREMENT
 
     @property
     def native_value(self):

@@ -62,7 +62,7 @@ class CalimaCoordinator(BaseCoordinator):
                 self._state["light"] = FanState.Light
                 self._state["rpm"] = FanState.RPM
                 if FanState.RPM > 400:
-                    self._state["flow"] = int(FanState.RPM * 0.05076 - 14)
+                    self._state["flow"] = round(FanState.RPM * 0.05076 - 14, 2)
                 else:
                     self._state["flow"] = 0
                 self._state["state"] = FanState.Mode
