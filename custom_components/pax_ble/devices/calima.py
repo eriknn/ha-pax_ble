@@ -191,10 +191,11 @@ class Calima(BaseDevice):
         )
 
     async def setLightSensorSettings(self, delayed, running) -> None:
-        if delayed not in (0, 5, 10):
-            raise ValueError("Delayed must be 0, 5 or 10 minutes")
-        if running not in (5, 10, 15, 30, 60):
-            raise ValueError("Running time must be 5, 10, 15, 30 or 60 minutes")
+        # Align with Vent-Axia app / select options: delayed 0 or 1-10; running 5-60.
+        if delayed not in (0, *range(1, 11)):
+            raise ValueError("Delayed must be 0 or 1-10 minutes")
+        if running not in range(5, 61):
+            raise ValueError("Running time must be 5-60 minutes")
 
         await self._writeUUID(
             self.chars[CHARACTERISTIC_TIME_FUNCTIONS], pack("<2B", delayed, running)
