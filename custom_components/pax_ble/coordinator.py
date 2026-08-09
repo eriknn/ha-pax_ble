@@ -6,7 +6,7 @@ import logging
 from abc import ABC, abstractmethod
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceEntry
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from typing import Optional
 
 from .devices.base_device import BaseDevice
@@ -59,6 +59,7 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         # Connection management
         self._connection_failures = 0
         self._max_connection_failures = 5
+        self._recovery_skips = 0  # polls skipped since giving up (see _async_update_data)
         self._max_backoff = 300  # 5 minutes max backoff
         self._backoff_multiplier = 2
         self._reconnection_task = None
@@ -211,10 +212,54 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         """ Counter for fast polling """
         self._update_poll_counter()
 
-        # Skip updates if we have too many connection failures
+        # Periodically let a given-up-on device try again.
+        #
+        # Once _connection_failures reaches _max_connection_failures the
+        # branch below stops polling entirely, and _background_reconnect has
+        # already exited (its loop runs only while failures < max), so
+        # nothing retries and the device stays dead until the integration is
+        # reloaded. Measured: a fan audible at -75 dBm, well inside working
+        # range, sat unavailable with no connection attempt made at all.
+        #
+        # Stepping the counter back to one below the limit lets exactly one
+        # attempt through. Success resets it to 0; failure pushes it back
+        # over the limit, so a device that is genuinely gone costs one
+        # connection attempt per probe rather than one per poll.
+        #
+        # The interval is deliberately long: a failing connect runs to a
+        # 30-45s timeout while holding a BLE proxy connection slot, and that
+        # blocking can stop every other device from being polled. Recovery
+        # should be cheap, not fast.
         if self._connection_failures >= self._max_connection_failures:
-            _LOGGER.debug("Skipping update due to too many connection failures")
-            return
+            self._recovery_skips += 1
+            if self._recovery_skips >= 6:
+                self._recovery_skips = 0
+                self._connection_failures = self._max_connection_failures - 1
+                _LOGGER.info(
+                    "Retrying %s after giving up - one probe attempt",
+                    self.devicename,
+                )
+        elif self._recovery_skips:
+            self._recovery_skips = 0
+
+        # Skip updates if we have too many connection failures.
+        #
+        # Raise rather than return: returning is how a DataUpdateCoordinator
+        # reports a SUCCESSFUL poll, so a bare `return` here leaves
+        # last_update_success True and every entity "available", still
+        # showing the value it last managed to read - indefinitely, because
+        # this branch never retries either. A device the integration has
+        # stopped polling must not keep presenting a stale reading as if it
+        # were current.
+        if self._connection_failures >= self._max_connection_failures:
+            raise UpdateFailed(
+                "Not polling %s: %d consecutive failures (limit %d)"
+                % (
+                    self.devicename,
+                    self._connection_failures,
+                    self._max_connection_failures,
+                )
+            )
 
         # Early return on cancellation to avoid blocking HA startup
         try:
@@ -269,6 +314,27 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         except Exception as err:
             _LOGGER.debug("Failed when fetching sensordata: %s", str(err))
             self._connection_failures += 1
+
+        # Report a sustained inability to read the device.
+        #
+        # Every failure path above only increments a counter and falls
+        # through, and returning normally is how this coordinator signals a
+        # SUCCESSFUL poll - so without this, last_update_success stays True
+        # and the entities keep publishing the value they last managed to
+        # read. A running fan can sit on screen at "Idle / 0 rpm" for hours
+        # with nothing marked unavailable.
+        #
+        # A threshold rather than the first failure: an occasional missed
+        # poll is normal for BLE and self-corrects on the next cycle, and
+        # flapping every entity unavailable on one blip would make the
+        # signal worthless. 3 is ~15 min at the default 300s scan_interval
+        # and sits below _max_connection_failures (5) on purpose, so the
+        # outage is visible while reconnection is still being attempted.
+        if self._connection_failures >= 3:
+            raise UpdateFailed(
+                "No successful read from %s in %d consecutive attempts"
+                % (self.devicename, self._connection_failures)
+            )
 
     async def _async_update_device_info(self) -> None:
         device_registry = dr.async_get(self.hass)
