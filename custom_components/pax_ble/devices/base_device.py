@@ -127,13 +127,31 @@ class BaseDevice:
         return self._client is not None and self._client.is_connected
 
     async def validate_connection(self) -> bool:
-        """Validate that the connection is still working by reading a basic characteristic."""
+        """Validate the connection without touching GAP Device Name.
+
+        BlueZ deliberately hides the GAP service (0x1800) from GATT clients,
+        so on any connection routed through a local adapter the Device Name
+        characteristic is absent from the service collection and a read of it
+        raises instantly - failing validation on a healthy connection.
+        Connections via ESPHome proxies expose it and passed, so failures
+        tracked which radio won the routing race rather than any real fault.
+
+        Check membership of the fan's own SENSOR_DATA characteristic instead:
+        it lives in the Pax service, which no backend filters, and the check
+        is local. A genuinely dead link is still caught by the GATT operation
+        that follows, whose error path disconnects.
+        """
         if not self.isConnected():
             return False
 
         try:
-            # Try to read device name as a connection health check
-            await asyncio.wait_for(self._client.read_gatt_char(self.chars[CHARACTERISTIC_DEVICE_NAME]), timeout=5.0)
+            found = self._client.services.get_characteristic(
+                self.chars[CHARACTERISTIC_SENSOR_DATA]
+            )
+            if found is None:
+                raise BleakError(
+                    "SENSOR_DATA characteristic not in service collection"
+                )
             return True
         except Exception as e:
             _LOGGER.debug("Connection validation failed for %s: %s", self._mac, e)
