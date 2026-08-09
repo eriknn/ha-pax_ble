@@ -107,13 +107,12 @@ class PaxCalimaSensorEntity(PaxCalimaEntity, SensorEntity):
         """Sensor Entity properties"""
         self._attr_device_class = paxentity.deviceClass
         self._attr_native_unit_of_measurement = paxentity.units
-        # volume_flow_rate enables m³/h ↔ L/s unit conversion; suggest L/s
-        # (Vent-Axia / UK). MEASUREMENT for statistics on numeric sensors.
+        # volume_flow_rate enables HA unit conversion (m³/h, L/s, …).
+        # Do not force a suggested display unit - Nordic installs typically
+        # keep m³/h; users can pick L/s in entity settings if they want.
+        # MEASUREMENT for statistics on numeric sensors.
         if paxentity.key == "flow":
             self._attr_state_class = SensorStateClass.MEASUREMENT
-            self._attr_suggested_unit_of_measurement = (
-                UnitOfVolumeFlowRate.LITERS_PER_SECOND
-            )
             self._attr_suggested_display_precision = 0
         elif paxentity.key in ("humidity", "temperature", "light", "rpm"):
             self._attr_state_class = SensorStateClass.MEASUREMENT
