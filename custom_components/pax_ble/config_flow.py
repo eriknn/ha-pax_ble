@@ -183,16 +183,15 @@ class PaxConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                         )
                     else:
                         # Integration found, update with new device
-                        new_data = self.config_entry.data.copy()
+                        new_data = dict(self.config_entry.data)
+                        new_data[CONF_DEVICES] = {
+                            mac: dict(cfg)
+                            for mac, cfg in new_data[CONF_DEVICES].items()
+                        }
                         new_data[CONF_DEVICES][dev_mac] = user_input
 
                         self.hass.config_entries.async_update_entry(
                             self.config_entry, data=new_data
-                        )
-                        self.hass.config_entries._async_schedule_save()
-
-                        await self.hass.config_entries.async_reload(
-                            self.config_entry.entry_id
                         )
 
                         return self.async_abort(
@@ -298,15 +297,15 @@ class PaxOptionsFlowHandler(OptionsFlow):
 
                 if pin_verified:
                     # Add device to config entry
-                    new_data = self.config_entry.data.copy()
+                    new_data = dict(self.config_entry.data)
+                    new_data[CONF_DEVICES] = {
+                        mac: dict(cfg)
+                        for mac, cfg in new_data[CONF_DEVICES].items()
+                    }
                     new_data[CONF_DEVICES][user_input[CONF_MAC]] = user_input
 
                     self.hass.config_entries.async_update_entry(
                         self.config_entry, data=new_data
-                    )
-                    self.hass.config_entries._async_schedule_save()
-                    await self.hass.config_entries.async_reload(
-                        self.config_entry.entry_id
                     )
 
                     return self.async_abort(
@@ -473,7 +472,11 @@ class PaxOptionsFlowHandler(OptionsFlow):
             ]
 
             # Remove device from config entry
-            new_data = self.config_entry.data.copy()
+            new_data = dict(self.config_entry.data)
+            new_data[CONF_DEVICES] = {
+                mac: dict(cfg)
+                for mac, cfg in new_data[CONF_DEVICES].items()
+            }
             new_data[CONF_DEVICES].pop(self.selected_device)
 
             await self.async_remove_device(
@@ -482,7 +485,6 @@ class PaxOptionsFlowHandler(OptionsFlow):
             self.hass.config_entries.async_update_entry(
                 self.config_entry, data=new_data
             )
-            self.hass.config_entries._async_schedule_save()
 
             return self.async_abort(
                 reason="remove_success",
