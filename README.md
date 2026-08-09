@@ -33,7 +33,7 @@ A valid PIN code is required to be able to control the fan. You can add the fan 
 ## Sensor data
 
 The sensors for temp/humidity/light seem to be a bit inaccurate, or I'm not converting them correctly, so don't expect them to be as accurate as from other dedicated sensors.
-The humidity sensor will show 0 when humidity is low!
+The humidity sensor will show `unknown` when the reading is too low to convert - roughly below normal indoor humidity. (Previously this displayed as a misleading 0.)
 Airflow is just a conversion of the fan speed based on a linear correlation between those two. This is a bit inaccurate at best, as the true flow will vary greatly depending on how your fan is mounted.
 
 ## Good to know
