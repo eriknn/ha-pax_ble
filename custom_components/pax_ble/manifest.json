@@ -1,17 +1,18 @@
 {
 	"domain": "pax_ble",
-	"name": "Pax Bluetooth",
+	"name": "Pax & Vent-Axia Bluetooth",
 	"bluetooth": [
 		{"local_name": "PAX Calima"},
-		{"local_name": "Pax Levante"}
+		{"local_name": "Pax Levante"},
+		{"local_name": "Vent-Axia Svara"}
 	],
 	"codeowners": ["@eriknn"],
 	"config_flow": true,
 	"dependencies": ["bluetooth"],
-	"documentation": "https://github.com/eriknn/ha-pax",
+	"documentation": "https://github.com/eriknn/ha-pax_ble",
+	"integration_type": "device",
 	"iot_class": "local_polling",
-	"issue_tracker": "https://github.com/eriknn/ha-pax/issues",
+	"issue_tracker": "https://github.com/eriknn/ha-pax_ble/issues",
 	"loggers": ["custom_components.pax_ble"],
-	"requirements": ["bleak-retry-connector>=3.7.0"],
 	"version": "1.1.25"
 }
