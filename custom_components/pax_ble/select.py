@@ -21,13 +21,14 @@ OPTIONS = {
         "120": "120 min",
     },
     "automatic_cycles": {"0": "Off", "1": "30 min", "2": "60 min", "3": "90 min"},
-    "lightsensorsettings_delayedstart": {"0": "No delay", "5": "5 min", "10": "10 min"},
+    # Match Vent-Axia / Pax app ranges (1-10 / 5-60 min, 1-min steps).
+    # Keep "0": "No delay" for firmware values and older devices already at 0.
+    "lightsensorsettings_delayedstart": {
+        "0": "No delay",
+        **{str(i): f"{i} min" for i in range(1, 11)},
+    },
     "lightsensorsettings_runningtime": {
-        "5": "5 min",
-        "10": "10 min",
-        "15": "15 min",
-        "30": "30 min",
-        "60": "60 min",
+        str(i): f"{i} min" for i in range(5, 61)
     },
     "sensitivity": {
         "0": "Off",
