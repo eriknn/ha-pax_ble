@@ -30,7 +30,11 @@ OPTIONS = {
     "lightsensorsettings_runningtime": {
         str(i): f"{i} min" for i in range(5, 61)
     },
-    # Svensa timer_runtime uses setTimerFunctions presenceTimeMin (5/10/15/30/60 only).
+    # Svensa entity key has always been timer_runtime; it previously reused
+    # OPTIONS["lightsensorsettings_runningtime"] only because the label sets
+    # looked alike. That sharing is unsafe once Calima light-sensor running
+    # time expands to 5-60: setTimerFunctions still accepts 5/10/15/30/60 only.
+    # Keep a dedicated OPTIONS entry keyed like the entity / coordinator field.
     "timer_runtime": {
         str(i): f"{i} min" for i in (5, 10, 15, 30, 60)
     },
