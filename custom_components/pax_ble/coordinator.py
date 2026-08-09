@@ -97,6 +97,12 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         self._fast_poll_count = 0
         self.update_interval = dt.timedelta(seconds=self._fast_poll_interval)
 
+        # Assigning update_interval only stores the value - the coordinator's
+        # setter does not re-arm the already-scheduled refresh, so the next poll
+        # still lands at the old interval (up to scan_interval away) and values
+        # just written to the device keep reading stale.
+        self._schedule_refresh()
+
     def setNormalPollMode(self):
         _LOGGER.debug("Enabling normal poll mode")
         self._fast_poll_enabled = False
