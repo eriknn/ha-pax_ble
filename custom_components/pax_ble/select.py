@@ -152,10 +152,9 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
 
         # Device specific entities
         match coordinator._model:
-            case DeviceModel.CALIMA.value:
-                for paxentity in CALIMA_ENTITIES:
-                    ha_entities.append(PaxCalimaSelectEntity(coordinator, paxentity))
-            case DeviceModel.LEVANTE.value:
+            # Svara uses the Calima characteristic set; wire the same config
+            # selects as Calima/Levante so sensitivity / light-sensor / cycles appear.
+            case DeviceModel.CALIMA.value | DeviceModel.LEVANTE.value | DeviceModel.SVARA.value:
                 for paxentity in CALIMA_ENTITIES:
                     ha_entities.append(PaxCalimaSelectEntity(coordinator, paxentity))
             case DeviceModel.SVENSA.value:
