@@ -30,6 +30,10 @@ OPTIONS = {
     "lightsensorsettings_runningtime": {
         str(i): f"{i} min" for i in range(5, 61)
     },
+    # Svensa timer_runtime uses setTimerFunctions presenceTimeMin (5/10/15/30/60 only).
+    "timer_runtime": {
+        str(i): f"{i} min" for i in (5, 10, 15, 30, 60)
+    },
     "sensitivity": {
         "0": "Off",
         "1": "Low sensitivity",
@@ -114,7 +118,7 @@ SVENSA_ENTITIES = [
         "Timer Runtime",
         EntityCategory.CONFIG,
         "mdi:timer-outline",
-        OPTIONS["lightsensorsettings_runningtime"],
+        OPTIONS["timer_runtime"],
     ),
     PaxEntity(
         "timer_delay",
