@@ -112,6 +112,11 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
             interval = min(self._normal_poll_interval * (2 ** self._connection_failures), self._max_backoff)
         self.update_interval = dt.timedelta(seconds=interval)
 
+        # Same re-arm as setFastPollMode(): assigning update_interval only
+        # stores the value, so the pending tick would still fire once at
+        # the old (fast) interval before the normal interval takes effect.
+        self._schedule_refresh()
+
     async def disconnect(self):
         """Safely disconnect from device."""
         # Cancel any pending reconnection task
