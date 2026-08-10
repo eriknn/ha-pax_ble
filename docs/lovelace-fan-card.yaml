@@ -1,0 +1,505 @@
+# Pax BLE - graphical fan card for Lovelace
+#
+# A compact, tablet-friendly card: fan state and a timed Boost toggle on the
+# left, narrow value bars with the numeric value kept inside each bar on the
+# right. Read-only by construction apart from Boost, which is safe to expose
+# on a wall tablet because setBoostMode() takes a duration and the fan returns
+# to normal by itself - a kiosk user cannot leave the fan in a state it will
+# not exit on its own. (Pause and Trickle latch, so they are deliberately not
+# on this card.)
+#
+# REQUIRES (all installable via HACS, frontend section):
+#   - decluttering-card   (this file is a decluttering template)
+#   - card-mod            (styling; also provides custom:mod-card)
+#   - mushroom            (mushroom-template-card renders the bars)
+#   - lovelace-template-entity-row
+#
+# INSTALL: merge the `pax_fan_graphic:` block below into your
+# `decluttering_templates:` (either in ui-lovelace.yaml or a dashboard's raw
+# config), then place the card with:
+#
+#   - type: custom:decluttering-card
+#     template: pax_fan_graphic
+#     variables:
+#       - fan: bathroom_fan     # entity prefix: sensor.<fan>_rpm etc.
+#       - name: Bathroom
+#
+# VARIABLES
+#   fan        entity prefix as minted by this integration (no domain,
+#              no trailing underscore)
+#   name       display name - titles the card
+#   low_below  humidity readings below this show as "Humidity Low" instead of
+#              a number (default 30; set 0 to disable). Some units report
+#              ambient RH below the convertible range at normal room humidity,
+#              so a low number is less trustworthy than "Low".
+#   temp_max / air_max / flow_max / rpm_max / light_max
+#              bar full-scale values. Defaults: 40 C / 3000 ppm / 140 m3/h /
+#              2500 rpm / 100 lx. Display scaling only.
+#
+# NOTES
+#   - The Humidity / Air Quality / Light bars hide themselves when the
+#     matching sensitivity select is "Off" - a sensor that is not influencing
+#     the fan is decoration. The check fails OPEN: if the select is
+#     unavailable, the bar shows rather than silently vanishing.
+#   - Unavailable is loud: the bar's track tints red and the text goes red,
+#     and no fill is drawn, so a dead fan cannot look busy.
+#   - Tapping the Fan Speed bar force-polls the fan (update_entity refreshes
+#     the whole coordinator, so all entities update together). Double-tap
+#     opens rpm history.
+#   - The last-poll time (bottom left) is an absolute clock time on purpose:
+#     a relative "N minutes ago" only re-renders on state changes, so it
+#     freezes between polls and lies. The now() + air_quality references in
+#     that template are load-bearing - they force re-renders.
+#   - The bars position their text against the bar itself via the
+#     ha-tile-info rules; if a Mushroom update ever renders the text below
+#     the bar instead of inside it, that block is where to look.
+
+pax_fan_graphic:
+  default:
+    - fan: ""
+    - name: "Pax Fan"
+    - low_below: 30
+    - temp_max: 40
+    - air_max: 3000
+    - flow_max: 140
+    - rpm_max: 2500
+    - light_max: 100
+
+  card:
+    type: custom:mod-card
+    card_mod:
+      style: |
+        /* Height is content-driven; the bottom pad mirrors the bars' 14px
+           top offset so the card ends as tight as it starts. */
+        ha-card {
+          border: 1px solid var(--divider-color);
+          border-radius: 12px;
+          background: var(--card-background-color);
+          padding: 0px 0px 6px 0px !important;
+          margin: 0px !important;
+          overflow: hidden !important;
+        }
+
+    card:
+      type: grid
+      columns: 2
+      square: false
+      cards:
+        # ---- LEFT: state, Boost, countdown, last poll --------------------
+        - type: entities
+          title: "[[name]]"
+          card_mod:
+            style: |
+              ha-card {
+                border: none !important;
+                box-shadow: none !important;
+                background: none !important;
+                padding: 0px !important;
+              }
+              .card-header {
+                font-size: 14px !important;
+                font-weight: 500 !important;
+                padding: 8px 12px 6px 12px !important;
+                margin-bottom: 4px !important;
+                color: rgba(128,128,255,1);
+              }
+              /* The entities card's own 16px bottom padding becomes a
+                 mystery gap with content-driven height - remove it. */
+              .card-content {
+                padding-bottom: 0px !important;
+              }
+          entities:
+            - type: custom:template-entity-row
+              entity: sensor.[[fan]]_state
+              name: >
+                {%- set v = states('sensor.[[fan]]_state') -%}
+                {%- if v in ['unavailable','unknown'] -%}Unavailable
+                {%- elif v == 'Constant Speed' -%}Constant
+                {%- else -%}{{ v }}{%- endif -%}
+              icon: mdi:fan
+              state: ""
+              color: >
+                {%- set v = states('sensor.[[fan]]_state') -%}
+                {%- if v in ['unavailable','unknown'] -%}
+                  rgba(255,87,51,1)
+                {%- elif v == 'Idle' -%}
+                {%- else -%}
+                  rgba(64,64,255,1)
+                {%- endif -%}
+
+            # Boost control - icon + toggle only; the countdown gets its own
+            # row so it cannot truncate against the toggle.
+            - type: custom:template-entity-row
+              entity: switch.[[fan]]_boostmode
+              name: " "
+              icon: mdi:wind-power
+              toggle: true
+              # With no text, the empty .info still flexes and shoves the
+              # toggle to the far end; collapse it so the toggle sits by the
+              # icon. The -10px compensates ha-switch's touch-target inset.
+              card_mod:
+                style: |
+                  .info {
+                    flex: 0 0 0 !important;
+                    margin: 0 !important;
+                  }
+                  ha-entity-toggle {
+                    margin-left: -10px !important;
+                  }
+
+            # Countdown - blank at rest, "(N minutes)" while boosting.
+            # Ceil, not round: 90s left reads "(2 minutes)" and it can never
+            # show "(0 minutes)" while still on.
+            - type: custom:template-entity-row
+              entity: switch.[[fan]]_boostmode
+              icon: ""
+              state: ""
+              name: >
+                {%- if is_state('switch.[[fan]]_boostmode','on') -%}
+                  {%- set raw = state_attr('switch.[[fan]]_boostmode','Boost time remaining') | string -%}
+                  {%- set s = raw | replace('s','') | trim | int(0) -%}
+                  {%- set m = (s / 60) | round(0, 'ceil') | int -%}
+                  ({{ m }} minute{{ 's' if m != 1 }})
+                {%- else -%}
+                  {{ ' ' }}
+                {%- endif -%}
+              card_mod:
+                style: |
+                  .info {
+                    color: rgba(128,128,128,1) !important;
+                  }
+
+            # Last poll, absolute time. Reads last_reported (bumps every
+            # poll), not last_updated (value changes only). The now() and
+            # air_quality references force the re-renders - see NOTES.
+            - type: custom:template-entity-row
+              entity: sensor.[[fan]]_state
+              icon: ""
+              state: ""
+              name: >
+                {%- set _tick = now() -%}
+                {%- set _poll = states('sensor.[[fan]]_air_quality') -%}
+                {%- set s = states['sensor.[[fan]]_state'] -%}
+                {%- if s -%}
+                  ({{ (s.last_reported | as_local).strftime('%H:%M:%S') }})
+                {%- endif -%}
+              card_mod:
+                style: |
+                  .info {
+                    color: rgba(128,128,128,1) !important;
+                    font-size: 11px !important;
+                  }
+
+          grid_options:
+            columns: 6
+            rows: auto
+          show_header_toggle: false
+          state_color: true
+
+        # ---- RIGHT: narrow bars, value text inside each ------------------
+        # A vertical-stack renders no ha-card of its own, so spacing lives on
+        # the bars' margins; the first bar carries the top offset.
+        - type: vertical-stack
+          cards:
+            # 1. Fan Speed - flat grey. Tap = force-poll, double-tap = history.
+            - type: custom:mushroom-template-card
+              entity: sensor.[[fan]]_rpm
+              primary: ""
+              tap_action:
+                action: call-service
+                service: homeassistant.update_entity
+                data:
+                  entity_id: sensor.[[fan]]_rpm
+              double_tap_action:
+                action: more-info
+              secondary: >
+                {%- set v = states('sensor.[[fan]]_rpm') -%}
+                {%- if v in ['unavailable','unknown'] -%}Fan Speed —
+                {%- else -%}Fan Speed {{ v | float(0) | round(0) }} rpm{%- endif -%}
+              card_mod:
+                style: >
+                  {% set v = states('sensor.[[fan]]_rpm') %}
+                  ha-card {
+                    background:
+                    {% if v in ['unavailable','unknown'] %}
+                      rgba(244,67,54,0.15)
+                    {% else %}
+                      linear-gradient(90deg,
+                        rgba(128,128,128,0.35) 0%,
+                        rgba(128,128,128,0.35) {{ ([ (v | float(0) / [[rpm_max]] * 100), 100 ] | min) | round(1) }}%,
+                        rgba(128,128,128,0.1) 0%
+                      )
+                    {% endif %} !important;
+                    height: 26px !important;
+                    position: relative !important;
+                    margin: 14px 12px 8px 0 !important;
+                    border-radius: 8px !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                  }
+                  ha-card .container, ha-card .content { position: static !important; }
+                  ha-tile-info {
+                    position: absolute !important;
+                    left: 10px !important;
+                    top: 50% !important;
+                    transform: translateY(-50%) !important;
+                    width: auto !important;
+                    right: auto !important;
+                    text-align: left !important;
+                  }
+                  ha-tile-info span {
+                    font-size: 11px !important;
+                    font-weight: 400 !important;
+                    color: {% if v in ['unavailable','unknown'] %}rgba(255,87,51,1){% else %}white{% endif %} !important;
+                  }
+
+            # 2. Humidity - blue ramp; "Humidity Low" below low_below.
+            - type: conditional
+              conditions:
+                - entity: select.[[fan]]_sensitivity_humidity
+                  state_not: "Off"
+              card:
+                type: custom:mushroom-template-card
+                entity: sensor.[[fan]]_humidity
+                primary: ""
+                secondary: >
+                  {%- set v = states('sensor.[[fan]]_humidity') -%}
+                  {%- if v == 'unavailable' -%}Humidity —
+                  {%- elif v == 'unknown' or ([[low_below]] | float(0) > 0
+                           and v | float(999) < [[low_below]] | float(0)) -%}Humidity Low
+                  {%- else -%}Humidity {{ v | float(0) | round(0) }}%{%- endif -%}
+                card_mod:
+                  style: >
+                    {% set v = states('sensor.[[fan]]_humidity') %}
+                    {% set low = v == 'unknown' or ([[low_below]] | float(0) > 0
+                                 and v | float(999) < [[low_below]] | float(0)) %}
+                    ha-card {
+                      background:
+                      {% if v == 'unavailable' %}
+                        rgba(244,67,54,0.15)
+                      {% elif low %}
+                        rgba(128,128,128,0.1)
+                      {% else %}
+                        linear-gradient(90deg,
+                          rgba(3,169,244,0.15) 0%,
+                          rgba(3,169,244,0.5) {{ ([ (v | float(0)), 100 ] | min) | round(1) }}%,
+                          rgba(128,128,128,0.1) 0%
+                        )
+                      {% endif %} !important;
+                      height: 26px !important;
+                      position: relative !important;
+                      margin: 0 12px 8px 0 !important;
+                      border-radius: 8px !important;
+                      border: none !important;
+                      box-shadow: none !important;
+                    }
+                    ha-card .container, ha-card .content { position: static !important; }
+                    ha-tile-info {
+                      position: absolute !important;
+                      left: 10px !important;
+                      top: 50% !important;
+                      transform: translateY(-50%) !important;
+                      width: auto !important;
+                      right: auto !important;
+                      text-align: left !important;
+                    }
+                    ha-tile-info span {
+                      font-size: 11px !important;
+                      font-weight: 400 !important;
+                      color: {% if v == 'unavailable' %}rgba(255,87,51,1){% else %}white{% endif %} !important;
+                    }
+
+            # 3. Temperature - blue start, red end.
+            - type: custom:mushroom-template-card
+              entity: sensor.[[fan]]_temperature
+              primary: ""
+              secondary: >
+                {%- set v = states('sensor.[[fan]]_temperature') -%}
+                {%- if v in ['unavailable','unknown'] -%}Temp —
+                {%- else -%}Temp {{ v | float(0) | round(0) }}°C{%- endif -%}
+              card_mod:
+                style: >
+                  {% set v = states('sensor.[[fan]]_temperature') %}
+                  ha-card {
+                    background:
+                    {% if v in ['unavailable','unknown'] %}
+                      rgba(244,67,54,0.15)
+                    {% else %}
+                      linear-gradient(90deg,
+                        rgba(33,150,243,0.45) 0%,
+                        rgba(244,67,54,0.55) {{ ([ (v | float(0) / [[temp_max]] * 100), 100 ] | min) | round(1) }}%,
+                        rgba(128,128,128,0.1) 0%
+                      )
+                    {% endif %} !important;
+                    height: 26px !important;
+                    position: relative !important;
+                    margin: 0 12px 8px 0 !important;
+                    border-radius: 8px !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                  }
+                  ha-card .container, ha-card .content { position: static !important; }
+                  ha-tile-info {
+                    position: absolute !important;
+                    left: 10px !important;
+                    top: 50% !important;
+                    transform: translateY(-50%) !important;
+                    width: auto !important;
+                    right: auto !important;
+                    text-align: left !important;
+                  }
+                  ha-tile-info span {
+                    font-size: 11px !important;
+                    font-weight: 400 !important;
+                    color: {% if v in ['unavailable','unknown'] %}rgba(255,87,51,1){% else %}white{% endif %} !important;
+                  }
+
+            # 4. Air Quality - same treatment as humidity.
+            - type: conditional
+              conditions:
+                - entity: select.[[fan]]_sensitivity_gas
+                  state_not: "Off"
+              card:
+                type: custom:mushroom-template-card
+                entity: sensor.[[fan]]_air_quality
+                primary: ""
+                secondary: >
+                  {%- set v = states('sensor.[[fan]]_air_quality') -%}
+                  {%- if v in ['unavailable','unknown'] -%}Air Quality —
+                  {%- else -%}Air Quality {{ v | float(0) | round(0) }} ppm{%- endif -%}
+                card_mod:
+                  style: >
+                    {% set v = states('sensor.[[fan]]_air_quality') %}
+                    ha-card {
+                      background:
+                      {% if v in ['unavailable','unknown'] %}
+                        rgba(244,67,54,0.15)
+                      {% else %}
+                        linear-gradient(90deg,
+                          rgba(3,169,244,0.15) 0%,
+                          rgba(3,169,244,0.5) {{ ([ (v | float(0) / [[air_max]] * 100), 100 ] | min) | round(1) }}%,
+                          rgba(128,128,128,0.1) 0%
+                        )
+                      {% endif %} !important;
+                      height: 26px !important;
+                      position: relative !important;
+                      margin: 0 12px 8px 0 !important;
+                      border-radius: 8px !important;
+                      border: none !important;
+                      box-shadow: none !important;
+                    }
+                    ha-card .container, ha-card .content { position: static !important; }
+                    ha-tile-info {
+                      position: absolute !important;
+                      left: 10px !important;
+                      top: 50% !important;
+                      transform: translateY(-50%) !important;
+                      width: auto !important;
+                      right: auto !important;
+                      text-align: left !important;
+                    }
+                    ha-tile-info span {
+                      font-size: 11px !important;
+                      font-weight: 400 !important;
+                      color: {% if v in ['unavailable','unknown'] %}rgba(255,87,51,1){% else %}white{% endif %} !important;
+                    }
+
+            # 5. Air Flow - flat grey.
+            - type: custom:mushroom-template-card
+              entity: sensor.[[fan]]_flow
+              primary: ""
+              secondary: >
+                {%- set v = states('sensor.[[fan]]_flow') -%}
+                {%- if v in ['unavailable','unknown'] -%}Air Flow —
+                {%- else -%}Air Flow {{ v | float(0) | round(0) }} m³/h{%- endif -%}
+              card_mod:
+                style: >
+                  {% set v = states('sensor.[[fan]]_flow') %}
+                  ha-card {
+                    background:
+                    {% if v in ['unavailable','unknown'] %}
+                      rgba(244,67,54,0.15)
+                    {% else %}
+                      linear-gradient(90deg,
+                        rgba(128,128,128,0.35) 0%,
+                        rgba(128,128,128,0.35) {{ ([ (v | float(0) / [[flow_max]] * 100), 100 ] | min) | round(1) }}%,
+                        rgba(128,128,128,0.1) 0%
+                      )
+                    {% endif %} !important;
+                    height: 26px !important;
+                    position: relative !important;
+                    margin: 0 12px 8px 0 !important;
+                    border-radius: 8px !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                  }
+                  ha-card .container, ha-card .content { position: static !important; }
+                  ha-tile-info {
+                    position: absolute !important;
+                    left: 10px !important;
+                    top: 50% !important;
+                    transform: translateY(-50%) !important;
+                    width: auto !important;
+                    right: auto !important;
+                    text-align: left !important;
+                  }
+                  ha-tile-info span {
+                    font-size: 11px !important;
+                    font-weight: 400 !important;
+                    color: {% if v in ['unavailable','unknown'] %}rgba(255,87,51,1){% else %}white{% endif %} !important;
+                  }
+
+            # 6. Light - flat grey; the "presence" sensitivity gates it (on
+            # these fans that select controls the light sensor).
+            - type: conditional
+              conditions:
+                - entity: select.[[fan]]_sensitivity_presence
+                  state_not: "Off"
+              card:
+                type: custom:mushroom-template-card
+                entity: sensor.[[fan]]_light
+                primary: ""
+                secondary: >
+                  {%- set v = states('sensor.[[fan]]_light') -%}
+                  {%- if v in ['unavailable','unknown'] -%}Light —
+                  {%- else -%}Light {{ v | float(0) | round(0) }} lx{%- endif -%}
+                card_mod:
+                  style: >
+                    {% set v = states('sensor.[[fan]]_light') %}
+                    ha-card {
+                      background:
+                      {% if v in ['unavailable','unknown'] %}
+                        rgba(244,67,54,0.15)
+                      {% else %}
+                        linear-gradient(90deg,
+                          rgba(128,128,128,0.35) 0%,
+                          rgba(128,128,128,0.35) {{ ([ (v | float(0) / [[light_max]] * 100), 100 ] | min) | round(1) }}%,
+                          rgba(128,128,128,0.1) 0%
+                        )
+                      {% endif %} !important;
+                      height: 26px !important;
+                      position: relative !important;
+                      margin: 0 12px 8px 0 !important;
+                      border-radius: 8px !important;
+                      border: none !important;
+                      box-shadow: none !important;
+                    }
+                    ha-card .container, ha-card .content { position: static !important; }
+                    ha-tile-info {
+                      position: absolute !important;
+                      left: 10px !important;
+                      top: 50% !important;
+                      transform: translateY(-50%) !important;
+                      width: auto !important;
+                      right: auto !important;
+                      text-align: left !important;
+                    }
+                    ha-tile-info span {
+                      font-size: 11px !important;
+                      font-weight: 400 !important;
+                      color: {% if v in ['unavailable','unknown'] %}rgba(255,87,51,1){% else %}white{% endif %} !important;
+                    }
+
+          grid_options:
+            columns: 6
+            rows: auto
