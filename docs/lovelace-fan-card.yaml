@@ -150,14 +150,29 @@ pax_fan_graphic:
             # Countdown - blank at rest, "(N minutes)" while boosting.
             # Ceil, not round: 90s left reads "(2 minutes)" and it can never
             # show "(0 minutes)" while still on.
+            #
+            # For the first 15s of a boost the CONFIGURED duration is shown
+            # instead of the live countdown: the switch flips on
+            # optimistically while "Boost time remaining" still holds the
+            # tail of the PREVIOUS boost until the first poll refreshes it,
+            # so a fresh 10-minute boost would briefly read "(1 minute)".
+            # A fresh boost is the configured duration by definition; the
+            # live attribute takes over once re-read (attribute updates emit
+            # state events, so the handover re-renders on its own).
             - type: custom:template-entity-row
               entity: switch.[[fan]]_boostmode
               icon: ""
               state: ""
               name: >
                 {%- if is_state('switch.[[fan]]_boostmode','on') -%}
-                  {%- set raw = state_attr('switch.[[fan]]_boostmode','Boost time remaining') | string -%}
-                  {%- set s = raw | replace('s','') | trim | int(0) -%}
+                  {%- set sw = states['switch.[[fan]]_boostmode'] -%}
+                  {%- set fresh = sw and (now() - sw.last_changed).total_seconds() < 15 -%}
+                  {%- if fresh -%}
+                    {%- set s = states('number.[[fan]]_boostmode_time') | int(0) -%}
+                  {%- else -%}
+                    {%- set raw = state_attr('switch.[[fan]]_boostmode','Boost time remaining') | string -%}
+                    {%- set s = raw | replace('s','') | trim | int(0) -%}
+                  {%- endif -%}
                   {%- set m = (s / 60) | round(0, 'ceil') | int -%}
                   ({{ m }} minute{{ 's' if m != 1 }})
                 {%- else -%}
