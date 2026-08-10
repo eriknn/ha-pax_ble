@@ -70,6 +70,16 @@ Example Home Assistant entities card for a Vent-Axia Svara (Calima-compatible) f
   <img src="docs/images/calima-svara-dashboard-metrics.png" alt="Example Home Assistant dashboard for a Calima/Svara extractor fan" width="420" />
 </p>
 
+### Graphical fan card
+
+A compact, tablet-friendly Lovelace card: fan state and a timed Boost toggle on the left, narrow value bars with the reading kept inside each bar on the right. Bars for humidity / air quality / light hide themselves when the matching sensitivity is Off, humidity below the convertible range shows as "Low" rather than a misleading number, and an unavailable fan goes red.
+
+<p align="center">
+  <img src="docs/images/pax-fan-card.png" alt="Graphical fan card example" width="378" />
+</p>
+
+The decluttering template lives in [docs/lovelace-fan-card.yaml](docs/lovelace-fan-card.yaml) - install notes, required HACS frontend modules (decluttering-card, card-mod, mushroom, template-entity-row) and the full variable list are in the file header.
+
 ## Thanks
 
 - [@PatrickE94](https://github.com/PatrickE94/pycalima) for the Calima driver
