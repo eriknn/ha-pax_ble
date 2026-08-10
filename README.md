@@ -74,6 +74,8 @@ Example Home Assistant entities card for a Vent-Axia Svara (Calima-compatible) f
 
 A compact, tablet-friendly Lovelace card: fan state and a timed Boost toggle on the left, narrow value bars with the reading kept inside each bar on the right. Bars for humidity / air quality / light hide themselves when the matching sensitivity is Off, humidity below the convertible range shows as "Low" rather than a misleading number, and an unavailable fan goes red.
 
+**Written for the Svensa family (including PureAir Sense)** - it references two entities other models do not expose (`sensor.<fan>_air_quality` and `select.<fan>_sensitivity_presence`). Calima / Svara owners need three small substitutions, documented in the file header.
+
 <p align="center">
   <img src="docs/images/pax-fan-card.png" alt="Graphical fan card example" width="378" />
 </p>
