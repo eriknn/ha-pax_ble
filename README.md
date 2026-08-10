@@ -82,6 +82,13 @@ A compact, tablet-friendly Lovelace card: fan state and a timed Boost toggle on 
 
 The decluttering template lives in [docs/lovelace-fan-card.yaml](docs/lovelace-fan-card.yaml) - install notes, required HACS frontend modules (decluttering-card, card-mod, mushroom, template-entity-row) and the full variable list are in the file header.
 
+Unavailable is deliberately loud - a dead fan renders red with no bar fills, and the last-poll clock freezes at the failure time (left: a fan cut off at the mains; right: the same fan minutes after power returned):
+
+<p align="center">
+  <img src="docs/images/pax-fan-card-unavailable.png" alt="Fan card, unavailable state" width="378" />
+  <img src="docs/images/pax-fan-card-recovered.jpg" alt="Fan card, recovered" width="378" />
+</p>
+
 ## Thanks
 
 - [@PatrickE94](https://github.com/PatrickE94/pycalima) for the Calima driver
