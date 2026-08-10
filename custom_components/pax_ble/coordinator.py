@@ -59,6 +59,13 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         # Connection management
         self._connection_failures = 0
         self._max_connection_failures = 5
+        # Report failures to the coordinator once this many consecutive
+        # polls have failed - deliberately below _max_connection_failures so
+        # the outage is visible while reconnection is still being attempted.
+        self._failure_report_threshold = 3
+        # After giving up, let one probe attempt through every this-many
+        # skipped polls (counted at the normal interval; see _async_update_data).
+        self._recovery_probe_skips = 6
         self._recovery_skips = 0  # polls skipped since giving up (see _async_update_data)
         self._max_backoff = 300  # 5 minutes max backoff
         self._backoff_multiplier = 2
@@ -231,8 +238,14 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         # blocking can stop every other device from being polled. Recovery
         # should be cheap, not fast.
         if self._connection_failures >= self._max_connection_failures:
+            # Anchor the probe cadence to the normal interval: if fast poll
+            # was still armed when the device gave up, the skip counter
+            # would otherwise run at the fast interval and probe within
+            # seconds rather than the intended half hour.
+            if self._fast_poll_enabled:
+                self.setNormalPollMode()
             self._recovery_skips += 1
-            if self._recovery_skips >= 6:
+            if self._recovery_skips >= self._recovery_probe_skips:
                 self._recovery_skips = 0
                 self._connection_failures = self._max_connection_failures - 1
                 _LOGGER.info(
@@ -327,10 +340,10 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
         # A threshold rather than the first failure: an occasional missed
         # poll is normal for BLE and self-corrects on the next cycle, and
         # flapping every entity unavailable on one blip would make the
-        # signal worthless. 3 is ~15 min at the default 300s scan_interval
-        # and sits below _max_connection_failures (5) on purpose, so the
-        # outage is visible while reconnection is still being attempted.
-        if self._connection_failures >= 3:
+        # signal worthless. The default (3) is ~15 min at the default 300s
+        # scan_interval and sits below _max_connection_failures on purpose,
+        # so the outage is visible while reconnection is still attempted.
+        if self._connection_failures >= self._failure_report_threshold:
             raise UpdateFailed(
                 "No successful read from %s in %d consecutive attempts"
                 % (self.devicename, self._connection_failures)
