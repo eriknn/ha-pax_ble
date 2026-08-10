@@ -14,6 +14,21 @@
 #   - mushroom            (mushroom-template-card renders the bars)
 #   - lovelace-template-entity-row
 #
+# DEVICE SCOPE: written for the SVENSA family (including PureAir Sense).
+# Two referenced entities are Svensa-only, so on Calima / Svara make these
+# substitutions before use:
+#   1. Light bar gate: replace select.[[fan]]_sensitivity_presence with
+#      select.[[fan]]_sensitivity_light (the equivalent select on those
+#      models).
+#   2. Air Quality bar: delete it - there is no air quality sensor. Remove
+#      the whole mushroom-template-card block whose entity is
+#      sensor.[[fan]]_air_quality.
+#   3. Last-poll re-render tick: the bottom-left clock template also
+#      references sensor.[[fan]]_air_quality purely to force re-renders
+#      (see NOTES). Replace those references with any sensor of the same
+#      fan that updates every poll, e.g. sensor.[[fan]]_rpm - the value is
+#      never displayed, it only makes the template re-evaluate.
+#
 # INSTALL: merge the `pax_fan_graphic:` block below into your
 # `decluttering_templates:` (either in ui-lovelace.yaml or a dashboard's raw
 # config), then place the card with:
