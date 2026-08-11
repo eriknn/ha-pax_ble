@@ -1,0 +1,50 @@
+name: Documentation report
+description: Ask us about docs
+title: "[Docs]: "
+labels:
+  - documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        README, [docs/svensa.md](docs/svensa.md), and dashboard examples live in the repo. Tell us what was missing or wrong.
+
+  - type: textarea
+    id: topic
+    attributes:
+      label: What were you trying to do?
+      placeholder: "Pair a Svensa fan / set up an ESPHome proxy / use the Lovelace fan card …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: location
+    attributes:
+      label: Where did you look?
+      description: README section, file path, HACS description, etc.
+      placeholder: "README → Add device / docs/lovelace-fan-card.yaml"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What was unclear or incorrect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement (optional)
+      description: Wording, extra step, screenshot idea — optional
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate
+          required: true

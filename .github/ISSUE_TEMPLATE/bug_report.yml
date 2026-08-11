@@ -23,6 +23,36 @@ body:
       required: true
 
   - type: input
+    id: fan_hw_fw
+    attributes:
+      label: Fan hardware / firmware (if known)
+      description: From the device page in Home Assistant or the fan label — one line per fan if you have several
+      placeholder: "Svara — HW 1.2, FW 3.4.1"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: ble_path
+    attributes:
+      label: How does Home Assistant reach the fan(s)?
+      options:
+        - Home Assistant built-in Bluetooth
+        - ESPHome Bluetooth proxy
+        - Other Bluetooth proxy
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: ble_hardware
+    attributes:
+      label: Bluetooth adapter or proxy hardware
+      description: Free text — e.g. Intel AX200, Raspberry Pi 5 onboard BT, Shelly BLU Gateway, ESP32 DevKit running ESPHome
+      placeholder: "ESPHome proxy on M5 AtomS3 …"
+    validations:
+      required: false
+
+  - type: input
     id: ha_version
     attributes:
       label: Home Assistant version

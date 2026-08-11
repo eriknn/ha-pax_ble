@@ -1,0 +1,52 @@
+name: Feature request
+description: Suggest an idea for this project
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem first, then the change you want. Mention fan model if it only applies to Calima/Svara or Svensa.
+
+  - type: dropdown
+    id: fan_model
+    attributes:
+      label: Applies to
+      options:
+        - All supported models
+        - Pax Calima / Vent-Axia Svara / Levante (Calima driver)
+        - Vent-Axia Svensa / PureAir Sense
+        - Not model-specific
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What is hard, missing, or awkward today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered (optional)
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate
+          required: true
