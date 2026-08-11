@@ -2,9 +2,9 @@
 
 ## Installation
 
-**Recommended (HACS):** `eriknn/ha-pax_ble` is in the [HACS default store](https://hacs.xyz/docs/faq/default_repositories/). Search for **Pax BLE** under **HACS → Integrations**. You do not need **HACS → Custom repositories** unless you are tracking a fork.
+**Recommended (HACS):** `eriknn/ha-pax_ble` is listed in the [HACS default repositories](https://github.com/hacs/default). Search for **Pax BLE** under **HACS → Integrations**. You do not need [**Custom repositories**](https://www.hacs.xyz/docs/faq/custom_repositories/) unless you are tracking a fork.
 
-1. Install [HACS](https://hacs.xyz/docs/setup/download) if needed, then open **HACS → Integrations**, search **Pax BLE**, and download.
+1. Install [HACS](https://www.hacs.xyz/docs/use/download/download/) if needed, then open **HACS → Integrations**, search **Pax BLE**, and download.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & services → Add integration**, search for **Pax Bluetooth**, and follow the prompts.
 
