@@ -18,7 +18,8 @@ If you've got other fans of the same'ish type, just give it a go and let me know
 
 ## Add device
 
-The supported models share the Calima driver. Automatic Bluetooth discovery is configured for **PAX Calima**, **Pax Levante**, and **Vent-Axia-Svara**. Many Svara units still advertise as `PAX Calima`, in which case discovery may work but the model may show as **Calima**. Either label uses the same driver - set **Svara** when adding manually if you prefer the name to match your hardware.
+The supported models share the Calima driver. Automatic Bluetooth discovery is configured for **PAX Calima**, **Pax Levante**, and **Vent-Axia-Svara**.
+Many Svara units still advertise as `PAX Calima`, in which case discovery may work but the model may show as Calima. Either label uses the same driver - set Svara when adding manually if you prefer the name to match your hardware.
 
 Add via **Settings → Devices & services → Pax Bluetooth → Add device**, or enter MAC + model manually if discovery does not appear.
 
