@@ -1,0 +1,100 @@
+name: Bug report
+description: Something is not working as expected
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Fill in what you can; logs matter most for connection and HACS issues.
+
+  - type: dropdown
+    id: fan_model
+    attributes:
+      label: Fan model
+      options:
+        - Pax Calima
+        - Vent-Axia Svara
+        - Vent-Axia Svensa / PureAir Sense
+        - Pax Levante 50
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      description: Settings → About → Home Assistant Core (e.g. 2026.8.0)
+      placeholder: "2026.8.0"
+    validations:
+      required: true
+
+  - type: input
+    id: integration_version
+    attributes:
+      label: Pax BLE version
+      description: HACS → Integrations → Pax BLE, or manifest.json version if installed manually
+      placeholder: "1.1.24"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install_method
+    attributes:
+      label: How is Pax BLE installed?
+      options:
+        - HACS (default repo)
+        - HACS (custom repository)
+        - Manual copy to custom_components
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What you did, in order
+      placeholder: |
+        1. HACS → Update Pax BLE to v1.1.24
+        2. Restart Home Assistant
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include exact error text from the UI if shown
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: |
+        Settings → System → Logs → search `pax_ble` or `hacs` → paste lines from when the problem happened.
+        For HACS download failures, enable HACS debug logging first (HACS → Settings).
+      render: shell
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate
+          required: true
+        - label: I did not attach secrets (PIN codes, tokens, full MAC addresses if you prefer privacy)
+          required: true
