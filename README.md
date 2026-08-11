@@ -2,7 +2,7 @@
 
 ## Installation
 
-Download using HACS (manually add repo) or manually put it in the custom_components folder.
+Download using HACS (manually add repo) or manually put it in the `custom_components` folder.
 
 ## Supported devices
 
