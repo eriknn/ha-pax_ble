@@ -9,6 +9,7 @@ from collections import namedtuple
 import logging
 import asyncio
 from bleak_retry_connector import (
+    clear_cache,
     establish_connection,
     BleakClientWithServiceCache,
     close_stale_connections,
@@ -140,23 +141,60 @@ class BaseDevice:
         it lives in the Pax service, which no backend filters, and the check
         is local. A genuinely dead link is still caught by the GATT operation
         that follows, whose error path disconnects.
+
+        On failure the link is TORN DOWN, never abandoned: dropping the
+        client object while the ACL stays up leaves the fan captive to a
+        dead connection on BlueZ (these devices hold one link), so every
+        retry fails until the ACL times out - the post-reload hang. And
+        because a stale BlueZ service cache can hide SENSOR_DATA from a
+        perfectly healthy fan, the cache is cleared and the connection
+        retried ONCE before failure is declared. clear_cache() is
+        best-effort: it is a BlueZ-side fix, and backends without a cache
+        (ESPHome proxies) pass straight through to the retry.
         """
         if not self.isConnected():
             return False
-
-        try:
-            found = self._client.services.get_characteristic(
-                self.chars[CHARACTERISTIC_SENSOR_DATA]
-            )
-            if found is None:
-                raise BleakError(
-                    "SENSOR_DATA characteristic not in service collection"
-                )
+        if self._sensor_data_present():
             return True
+
+        _LOGGER.warning(
+            "Validation failed for %s - disconnecting and clearing the GATT "
+            "cache, then retrying once",
+            self._mac,
+        )
+        await self.disconnect()
+        try:
+            await clear_cache(self._mac)
+        except Exception:
+            _LOGGER.debug(
+                "clear_cache failed for %s", self._mac, exc_info=True
+            )
+        if not await self.connect():
+            return False
+        if self._sensor_data_present():
+            _LOGGER.info(
+                "Validation recovered for %s after cache clear", self._mac
+            )
+            return True
+        # Still invalid on a fresh connection and cache: a real fault.
+        # Tear this link down too - leaving it up would recreate the
+        # zombie this path exists to prevent.
+        await self.disconnect()
+        return False
+
+    def _sensor_data_present(self) -> bool:
+        """Local membership check for the fan's SENSOR_DATA characteristic."""
+        try:
+            return (
+                self._client.services.get_characteristic(
+                    self.chars[CHARACTERISTIC_SENSOR_DATA]
+                )
+                is not None
+            )
         except Exception as e:
-            _LOGGER.debug("Connection validation failed for %s: %s", self._mac, e)
-            # Mark as disconnected so next operation will reconnect
-            self._client = None
+            _LOGGER.debug(
+                "Connection validation failed for %s: %s", self._mac, e
+            )
             return False
 
     def _bToStr(self, val) -> str:
