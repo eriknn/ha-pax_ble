@@ -17,16 +17,16 @@ Custom HACS repository: You do not need a [custom repository](https://www.hacs.x
 This integration was originally meant to just support Pax Calima, but as other fans have been made that builds on the same concept, this 
 integration now supports:
 
-* Pax Calima
+* Pax Calima (Nordic naming scheme)
 * Pax Levante 50
-* Vent-Axia Svara - Calima-compatible (no air-quality sensor); UK units usually advertise as `Vent-Axia Svara`, Nordic Calima as `PAX Calima`
+* Vent-Axia Svara (Calima-compatible, no air-quality sensor, UK(+) name scheme)
 * Vent-Axia Svensa (PureAir Sense model family)
 
 If you've got other fans of the same'ish type, just give it a go and let me know how it works out :)
 
 ## Add device
 
-The supported models share the Calima driver. Automatic Bluetooth discovery is configured for **PAX Calima**, **Pax Levante**, and **Vent-Axia Svara**. UK Vent-Axia Svara fans use the last name; Nordic Pax Calima use `PAX Calima`. Same protocol, different BLE local name.
+The supported models share the Calima driver. Automatic Bluetooth discovery is configured for **PAX Calima**, **Pax Levante**, and **Vent-Axia Svara**.
 
 Many Svara units still advertise as `PAX Calima`, in which case discovery may work but the model may show as Calima. Either label uses the same driver - set Svara when adding manually if you prefer the name to match your hardware.
 
