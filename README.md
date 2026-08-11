@@ -2,11 +2,11 @@
 
 ## Installation
 
-**Recommended (HACS):** Search for **Pax BLE** under **HACS → Integrations**.
+**Recommended (HACS):** Search for **Pax & Vent-Axia BLE** under **HACS → Integrations**.
 
-1. Install [HACS](https://www.hacs.xyz/docs/use/download/download/) if needed, then open **HACS → Integrations**, search **Pax BLE**, and download.
+1. Install [HACS](https://www.hacs.xyz/docs/use/download/download/) if needed, then open **HACS → Integrations**, search **Pax** or **Vent-Axia**, and download.
 2. Restart Home Assistant.
-3. Go to **Settings → Devices & services → Add integration**, search for **Pax Bluetooth**, and follow the prompts.
+3. Go to **Settings → Devices & services → Add integration**, search for **Pax & Vent-Axia Bluetooth**, and follow the prompts.
 
 Manual install: copy the `custom_components/pax_ble` folder into your config `custom_components` directory, restart, then use **Add integration** as above.
 
@@ -17,19 +17,20 @@ Custom HACS repository: You do not need a [custom repository](https://www.hacs.x
 This integration was originally meant to just support Pax Calima, but as other fans have been made that builds on the same concept, this 
 integration now supports:
 
-* Pax Calima
+* Pax Calima (Nordic naming scheme)
 * Pax Levante 50
-* Vent-Axia Svara - Calima-compatible (no air-quality sensor)
+* Vent-Axia Svara (Calima-compatible, no air-quality sensor, UK(+) name scheme)
 * Vent-Axia Svensa (PureAir Sense model family)
 
 If you've got other fans of the same'ish type, just give it a go and let me know how it works out :)
 
 ## Add device
 
-The supported models share the Calima driver. Automatic Bluetooth discovery is configured for **PAX Calima**, **Pax Levante**, and **Vent-Axia-Svara**.
+The supported models share the Calima driver. Automatic Bluetooth discovery is configured for **PAX Calima**, **Pax Levante**, and **Vent-Axia Svara**.
+
 Many Svara units still advertise as `PAX Calima`, in which case discovery may work but the model may show as Calima. Either label uses the same driver - set Svara when adding manually if you prefer the name to match your hardware.
 
-Add via **Settings → Devices & services → Pax Bluetooth → Add device**, or enter MAC + model manually if discovery does not appear.
+Add via **Settings → Devices & services → Pax & Vent-Axia Bluetooth → Add device**, or enter MAC + model manually if discovery does not appear.
 
 If you have issues connecting, try cycling power on the device. It seems that the Bluetooth interface easily hangs if it's messed around with a bit.
 
