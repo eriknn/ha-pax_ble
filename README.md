@@ -1,4 +1,4 @@
-# Home Assistant Custom Component for Pax & Vent-Axia Extractor Fans
+# Home Assistant Custom Component for Pax & Vent-Axia Extractor Fans (Calima BLE protocol)
 
 ## Installation
 
