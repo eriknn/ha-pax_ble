@@ -9,7 +9,8 @@
 3. Go to **Settings → Devices & services → Add integration**, search for **Pax Bluetooth**, and follow the prompts.
 
 Manual install: copy the `custom_components/pax_ble` folder into your config `custom_components` directory, restart, then use **Add integration** as above.
-Custom HACS repository: You do not need a [custom HACS repository](https://www.hacs.xyz/docs/faq/custom_repositories/) unless you are tracking a fork.
+
+Custom HACS repository: You do not need a [custom repository](https://www.hacs.xyz/docs/faq/custom_repositories/) unless you are tracking a fork.
 
 ## Supported devices
 
