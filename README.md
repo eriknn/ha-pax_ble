@@ -8,31 +8,26 @@ Download using HACS (manually add repo) or manually put it in the custom_compone
 
 This integration was originally meant to just support Pax Calima, but as other fans have been made that builds on the same concept, this 
 integration now supports:
+
 * Pax Calima
 * Pax Levante 50
-* Vent-Axia Svara - Calima-compatible (same driver and Home Assistant entities as Calima/Levante; no air-quality sensor)
-* Vent-Axia Svensa (PureAir Sense family - separate driver and GATT characteristic map; see [docs/svensa.md](docs/svensa.md))
+* Vent-Axia Svara - Calima-compatible (no air-quality sensor)
+* Vent-Axia Svensa (PureAir Sense model family)
 
 If you've got other fans of the same'ish type, just give it a go and let me know how it works out :)
 
 ## Add device
 
-### Calima, Vent-Axia Svara, and Pax Levante
+The supported models share the Calima driver. Automatic Bluetooth discovery is configured for **PAX Calima**, **Pax Levante**, and **Vent-Axia-Svara**. Many Svara units still advertise as `PAX Calima`, in which case discovery may work but the model may show as **Calima**. Either label uses the same driver - set **Svara** when adding manually if you prefer the name to match your hardware.
 
-These models share the Calima driver (`devices/calima.py`, `CalimaCoordinator`). Automatic Bluetooth discovery is configured for **PAX Calima** and **Pax Levante** only (`manifest.json`). Vent-Axia Svara is not listed there; many Svara units still advertise as `PAX Calima`, in which case discovery may work but the model may show as **Calima**. Either label uses the same driver - set **Svara** when adding manually if you prefer the name to match your hardware.
-
-Add via **Settings → Devices & services → Pax Bluetooth → Add device**, or enter MAC + model manually if discovery does not appear. PIN: decimal value printed on the fan motor (remove from base).
+Add via **Settings → Devices & services → Pax Bluetooth → Add device**, or enter MAC + model manually if discovery does not appear.
 
 If you have issues connecting, try cycling power on the device. It seems that the Bluetooth interface easily hangs if it's messed around with a bit.
-
-### Vent-Axia Svensa / PureAir Sense
-
-Svensa is not the Calima characteristic map. It uses a separate driver (`devices/svensa.py`, `SvensaCoordinator`) with different GATT characteristics (the `7c4adc…` UUIDs in code, rather than the `f508408a…` / `528b80e8…` set used by Calima/Svara/Levante). Connection is still BLE GATT over the same integration; PIN retrieval and the entities exposed in Home Assistant differ. See [docs/svensa.md](docs/svensa.md).
 
 ## PIN code
 
 A valid PIN code is required to be able to control the fan. You can add the fan without PIN, but then you'll only be able to read values.
-* For Calima/Svara you just enter the decimal value printed on the fan motor (remove from base)
+* For Calima/Svara you enter the decimal value printed on the fan motor (remove from base)
 * For Svensa, the PIN is not written on the device, but should be requested from it. See [instructions for Svensa](docs/svensa.md).
 * For Levante 50, enter pairing mode by powercycling the fan using the switch on the side just before adding the device. The PIN should be discovered automatically. If this fails, see instructions for Svensa.
 
@@ -43,7 +38,6 @@ The humidity sensor will show `unknown` when the reading is too low to convert -
 Airflow is just a conversion of the fan speed based on a linear correlation between those two. This is a bit inaccurate at best, as the true flow will vary greatly depending on how your fan is mounted.
 
 ## Good to know
-
 Speed and duration for boostmode are local variables in home assistant, and as such will not influence boostmode from the app. These variables will also be reset to default if you re-add a device.
 
 Configuration parameters are read only on Home Assistant startup, and subsequently once every day, to get any changes made from elsewhere.
@@ -54,7 +48,7 @@ Setting speed to less than 800 RPM might stall the fan, depending on the specifi
 
 ### ESP32 bluetooth proxy
 
-If your home assistant instance does not have Bluetooth, you can use a standalone ESP32 with [ESPHome](https://esphome.io/). Use the following ESPHome config to set up the bluetooth proxy. 
+If your home assistant instance does not have Bluetooth, you can use a standalone ESP32 with [ESPHome](https://esphome.io/). Use the following ESPHome config to set up the bluetooth proxy:
 
 ```yaml
 esp32:
@@ -66,13 +60,13 @@ bluetooth_proxy:
 esp32_ble_tracker:
 ```
 
-When config is applied, go ahead and add the pax using ha webgui.
+When config is applied, go ahead and add the Pax device using HA web GUI.
 
 ## Dashboards
 
 ### Calima/Svara dashboard metrics example
 
-Example Home Assistant entities card for a Vent-Axia Svara (Calima-compatible) fan, showing the sensors and controls exposed by this integration (including firmware/hardware from the device registry):
+Example Home Assistant entities card for a Vent-Axia Svara fan, showing the sensors and controls exposed by this integration:
 
 <p align="center">
   <img src="docs/images/calima-svara-dashboard-metrics.png" alt="Example Home Assistant dashboard for a Calima/Svara extractor fan" width="420" />
