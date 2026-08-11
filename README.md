@@ -1,4 +1,4 @@
-# Home assistant Custom component for Pax Calima
+# Home Assistant Custom Component for Pax & Vent-Axia Extractor Fans
 
 ## Installation
 
