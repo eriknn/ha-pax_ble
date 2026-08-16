@@ -44,7 +44,11 @@ A valid PIN code is required to be able to control the fan. You can add the fan 
 ## Sensor data
 
 The sensors for temp/humidity/light seem to be a bit inaccurate, or I'm not converting them correctly, so don't expect them to be as accurate as from other dedicated sensors.
-The humidity sensor will show `unknown` when the reading is too low to convert - roughly below normal indoor humidity.
+
+### Humidity shows unknown
+
+On Calima, Svara, and Levante the humidity characteristic is often `0` at normal indoor RH, below the conversion range, so the entity state is `unknown`. That is expected from the fan. A connected humidity sensor in Home Assistant is a number or `unknown`; the integration cannot store a label such as Humidity Low. The [example Lovelace card](#graphical-fan-card) labels that state as Humidity Low.
+
 Airflow is just a conversion of the fan speed based on a linear correlation between those two. This is a bit inaccurate at best, as the true flow will vary greatly depending on how your fan is mounted.
 
 ## Good to know
@@ -84,7 +88,7 @@ Example Home Assistant entities card for a Vent-Axia Svara fan, showing the sens
 
 ### Graphical fan card
 
-A compact, tablet-friendly Lovelace card: fan state and a timed Boost toggle on the left, narrow value bars with the reading kept inside each bar on the right. Bars for humidity / air quality / light hide themselves when the matching sensitivity is Off, humidity below the convertible range shows as "Low" rather than a misleading number, and an unavailable fan goes red.
+A compact, tablet-friendly Lovelace card: fan state and a timed Boost toggle on the left, narrow value bars with the reading kept inside each bar on the right. Bars for humidity / air quality / light hide themselves when the matching sensitivity is Off, humidity below the convertible range shows as "Humidity Low" rather than a misleading number, and an unavailable fan goes red.
 
 **Written for the Svensa family (including PureAir Sense)** - it references two entities other models do not expose (`sensor.<fan>_air_quality` and `select.<fan>_sensitivity_presence`). Calima / Svara owners need three small substitutions, documented in the file header.
 

@@ -4,9 +4,7 @@ Report security vulnerabilities **privately**, not in public issues.
 
 ## Report
 
-Use [GitHub Security Advisories](https://github.com/eriknn/ha-pax_ble/security/advisories/new) on this repository.
-
-If you cannot use advisories, open **Report a security vulnerability** under Issues and keep details minimal — maintainers will follow up privately.
+Use [GitHub Security Advisories](https://github.com/eriknn/ha-pax_ble/security/advisories/new) on this repository. Do not open a public issue.
 
 ## Scope
 

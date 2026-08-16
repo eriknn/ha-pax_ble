@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Setup docs (README)
-    url: https://github.com/eriknn/ha-pax_ble#readme
-    about: Installation, supported models, and dashboard examples
+  - name: Humidity shows unknown
+    url: https://github.com/eriknn/ha-pax_ble/blob/main/README.md#humidity-shows-unknown
+    about: Expected on Calima, Svara, and Levante at normal indoor RH.
   - name: Svensa / PureAir Sense pairing
     url: https://github.com/eriknn/ha-pax_ble/blob/main/docs/svensa.md
     about: MAC and PIN steps for Svensa (not on the motor label)
