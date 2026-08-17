@@ -84,7 +84,9 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
                 for paxentity in SVENSA_ENTITIES:
                     ha_entities.append(PaxCalimaSwitchEntity(coordinator, paxentity))
 
-    async_add_devices(ha_entities, True)
+    # No update_before_add - see sensor.py: pre-add updates would run the
+    # first BLE connection inside platform setup and block startup.
+    async_add_devices(ha_entities, False)
 
 
 class PaxCalimaSwitchEntity(PaxCalimaEntity, SwitchEntity):

@@ -37,12 +37,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id][CONF_DEVICES] = {}
 
     # Create one coordinator for each device
-    first_iteration = True
+    coordinators = []
     for device_id in entry.data[CONF_DEVICES]:
-        if not first_iteration:
-            await asyncio.sleep(10)
-        first_iteration = False
-
         device_data = entry.data[CONF_DEVICES][device_id]
         name = device_data[CONF_NAME]
         mac = device_data[CONF_MAC]
@@ -56,15 +52,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
         coordinator = getCoordinator(hass, device_data, dev)
-        # Don't block setup on initial connection - let it happen in background
-        try:
-            await asyncio.wait_for(coordinator.async_request_refresh(), timeout=30)
-        except (asyncio.TimeoutError, asyncio.CancelledError) as e:
-            _LOGGER.warning("Initial connection to %s timed out or was cancelled, will retry in background: %s", name, e)
-        except Exception as e:
-            _LOGGER.warning("Initial connection to %s failed, will retry in background: %s", name, e)
-
         hass.data[DOMAIN][entry.entry_id][CONF_DEVICES][device_id] = coordinator
+        coordinators.append((name, coordinator))
 
     # Avoid forwarding platforms multiple times
     if not hass.data[DOMAIN][entry.entry_id].get("forwarded"):
@@ -72,6 +61,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN][entry.entry_id]["forwarded"] = True
     else:
         _LOGGER.debug("Platforms already forwarded for entry %s", entry.entry_id)
+
+    # Initial connections run in the background so that setup - and with it
+    # Home Assistant startup - is not gated on one serial BLE connection per
+    # device (a 10s stagger per device makes that over a minute on a larger
+    # installation). Entities are created immediately and fill in as each
+    # device is read. The task is tied to the entry, so a reload cancels it.
+    entry.async_create_background_task(
+        hass,
+        _async_initial_refresh(coordinators),
+        name="pax_ble initial refresh",
+    )
 
     # Set up update listener
     entry.async_on_unload(entry.add_update_listener(update_listener))
@@ -81,6 +81,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_register(DOMAIN, "request_update", partial(service_request_update, hass))
 
     return True
+
+async def _async_initial_refresh(coordinators):
+    """Perform each coordinator's first refresh, one device at a time.
+
+    Serial on purpose: connecting to every device at once on startup can
+    exhaust the connection slots of shared BLE proxies, which blocks all
+    devices, not just the new ones. The pause between devices keeps the
+    proxies free for whichever connection is in flight.
+    """
+    first_iteration = True
+    for name, coordinator in coordinators:
+        if not first_iteration:
+            await asyncio.sleep(10)
+        first_iteration = False
+
+        try:
+            await asyncio.wait_for(coordinator.async_request_refresh(), timeout=30)
+        except asyncio.CancelledError:
+            raise
+        except asyncio.TimeoutError as e:
+            _LOGGER.warning("Initial connection to %s timed out, will retry in background: %s", name, e)
+        except Exception as e:
+            _LOGGER.warning("Initial connection to %s failed, will retry in background: %s", name, e)
+
 
 # Service-call to update values
 async def service_request_update(hass, call: ServiceCall):
