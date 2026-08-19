@@ -1,6 +1,7 @@
 """Support for Pax fans."""
 
 import asyncio
+import contextlib
 import logging
 
 from functools import partial
@@ -66,12 +67,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Home Assistant startup - is not gated on one serial BLE connection per
     # device (a 10s stagger per device makes that over a minute on a larger
     # installation). Entities are created immediately and fill in as each
-    # device is read. The task is tied to the entry, so a reload cancels it.
-    entry.async_create_background_task(
+    # device is read. The task is stored so that async_unload_entry can cancel
+    # it before disconnecting.
+    initial_refresh_task = entry.async_create_background_task(
         hass,
         _async_initial_refresh(coordinators),
         name="pax_ble initial refresh",
     )
+    hass.data[DOMAIN][entry.entry_id]["initial_refresh_task"] = initial_refresh_task
 
     # Set up update listener
     entry.async_on_unload(entry.add_update_listener(update_listener))
@@ -97,7 +100,11 @@ async def _async_initial_refresh(coordinators):
         first_iteration = False
 
         try:
-            await asyncio.wait_for(coordinator.async_request_refresh(), timeout=30)
+            # async_refresh() rather than async_request_refresh(): the latter
+            # goes through the coordinator's debouncer and can return without
+            # having refreshed, which would defeat both the timeout and the
+            # one-device-at-a-time pacing this loop exists to provide.
+            await asyncio.wait_for(coordinator.async_refresh(), timeout=30)
         except asyncio.CancelledError:
             raise
         except asyncio.TimeoutError as e:
@@ -151,8 +158,20 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.debug("Unloading Pax BLE entry!")
 
+    entry_data = hass.data[DOMAIN].get(entry.entry_id, {})
+
+    # Stop the initial refresh chain before disconnecting. Core runs this
+    # function first and only cancels the entry's background tasks afterwards,
+    # so without this a reload can disconnect a device while its connect is
+    # still in flight.
+    initial_refresh_task = entry_data.pop("initial_refresh_task", None)
+    if initial_refresh_task is not None and not initial_refresh_task.done():
+        initial_refresh_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await initial_refresh_task
+
     # Make sure we are disconnected
-    devices = hass.data[DOMAIN].get(entry.entry_id, {}).get(CONF_DEVICES, {})
+    devices = entry_data.get(CONF_DEVICES, {})
     for dev_id, coordinator in devices.items():
         await coordinator.disconnect()
 
