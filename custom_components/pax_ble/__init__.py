@@ -102,13 +102,21 @@ async def _async_initial_refresh(coordinators):
         try:
             # async_refresh() rather than async_request_refresh(): the latter
             # goes through the coordinator's debouncer and can return without
-            # having refreshed, which would defeat both the timeout and the
-            # one-device-at-a-time pacing this loop exists to provide.
-            await asyncio.wait_for(coordinator.async_refresh(), timeout=30)
+            # having refreshed, which would defeat the one-device-at-a-time
+            # pacing this loop exists to provide.
+            #
+            # No outer timeout. This task is off the setup path, so nothing
+            # is waiting on it, and a healthy first refresh can legitimately
+            # take well over 30s (the coordinator budgets deviceinfo, config
+            # and sensor reads separately, each over a multi-attempt
+            # connect). An outer bound would cancel a slow-but-working
+            # refresh mid-connect, and nothing on that cancellation path
+            # disconnects - the abandoned client could keep holding a proxy
+            # connection slot. The coordinator's own per-step timeouts
+            # already bound how long this can wait.
+            await coordinator.async_refresh()
         except asyncio.CancelledError:
             raise
-        except asyncio.TimeoutError as e:
-            _LOGGER.warning("Initial connection to %s timed out, will retry in background: %s", name, e)
         except Exception as e:
             _LOGGER.warning("Initial connection to %s failed, will retry in background: %s", name, e)
 
