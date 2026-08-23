@@ -70,8 +70,13 @@ class BaseDevice:
         await self.setAuth(self._pin)
 
 
-    async def connect(self, timeout: int = 45) -> bool:
-        """Establish a reliable connection using bleak-retry-connector."""
+    async def connect(self, timeout: int = 45, use_services_cache: bool = True) -> bool:
+        """Establish a reliable connection using bleak-retry-connector.
+
+        use_services_cache=False forces a fresh service discovery - used by
+        the validation-recovery path, where a stale cache may be the reason
+        the previous connection failed the membership check.
+        """
         async with self._connect_lock:
             # Already connected (or another caller just connected while we waited)?
             if self._client and self._client.is_connected:
@@ -92,7 +97,7 @@ class BaseDevice:
                     device,
                     name=getattr(self, "name", self._mac),
                     disconnected_callback=self._handle_disconnect,
-                    use_services_cache=True,
+                    use_services_cache=use_services_cache,
                     max_attempts=5,
                     retry_interval=1.0,
                     timeout=timeout,
@@ -105,13 +110,18 @@ class BaseDevice:
                 return False
 
     async def disconnect(self) -> None:
-        if self._client:
-            try:
-                await self._client.disconnect()
-            except Exception as e:
-                _LOGGER.warning("Error disconnecting %s: %s", self._mac, e)
-            finally:
-                self._client = None
+        # Serialized with connect(): an unsynchronized disconnect can
+        # interleave with a connect() that has not yet assigned _client,
+        # miss the fresh connection entirely, and leave it up while the
+        # caller believes the device is disconnected.
+        async with self._connect_lock:
+            if self._client:
+                try:
+                    await self._client.disconnect()
+                except Exception as e:
+                    _LOGGER.warning("Error disconnecting %s: %s", self._mac, e)
+                finally:
+                    self._client = None
 
     async def _with_disconnect_on_error(self, coro):
         try:
@@ -157,40 +167,76 @@ class BaseDevice:
         if self._sensor_data_present():
             return True
 
-        _LOGGER.warning(
+        # INFO, not WARNING: this fires on transient misses that recover on
+        # the retry below. The WARNING belongs to the retry being exhausted.
+        _LOGGER.info(
             "Validation failed for %s - disconnecting and clearing the GATT "
             "cache, then retrying once",
             self._mac,
         )
         await self.disconnect()
+        cache_cleared = False
         try:
-            await clear_cache(self._mac)
+            # clear_cache() reports failure by returning False rather than
+            # raising, and is a no-op on backends without a cache (ESPHome
+            # proxies, non-Linux hosts).
+            cache_cleared = bool(await clear_cache(self._mac))
         except Exception:
             _LOGGER.debug(
-                "clear_cache failed for %s", self._mac, exc_info=True
+                "clear_cache raised for %s", self._mac, exc_info=True
             )
-        if not await self.connect():
+        if not cache_cleared:
+            _LOGGER.debug(
+                "GATT cache for %s was not cleared - no cache on this "
+                "backend, or the clear failed",
+                self._mac,
+            )
+        # Fresh service discovery on the retry: if the cache did not clear,
+        # use_services_cache=True would hand back the same stale service
+        # collection that just failed the membership check; if it did clear,
+        # the flag makes no difference. Either way the cache has nothing to
+        # offer this path.
+        if not await self.connect(use_services_cache=False):
             return False
         if self._sensor_data_present():
             _LOGGER.info(
-                "Validation recovered for %s after cache clear", self._mac
+                "Validation recovered for %s after reconnect (cache "
+                "cleared: %s)",
+                self._mac,
+                cache_cleared,
             )
             return True
-        # Still invalid on a fresh connection and cache: a real fault.
+        # Still invalid on a fresh connection and discovery: a real fault.
         # Tear this link down too - leaving it up would recreate the
         # zombie this path exists to prevent.
+        _LOGGER.warning(
+            "Validation for %s still failing after reconnect (cache "
+            "cleared: %s) - tearing the link down",
+            self._mac,
+            cache_cleared,
+        )
         await self.disconnect()
         return False
 
     def _sensor_data_present(self) -> bool:
         """Local membership check for the fan's SENSOR_DATA characteristic."""
         try:
-            return (
+            present = (
                 self._client.services.get_characteristic(
                     self.chars[CHARACTERISTIC_SENSOR_DATA]
                 )
                 is not None
             )
+            if not present:
+                # Keep the specific cause visible - without this line the
+                # missing characteristic collapses into the generic
+                # validation-failure messages.
+                _LOGGER.debug(
+                    "SENSOR_DATA characteristic not in service collection "
+                    "for %s",
+                    self._mac,
+                )
+            return present
         except Exception as e:
             _LOGGER.debug(
                 "Connection validation failed for %s: %s", self._mac, e

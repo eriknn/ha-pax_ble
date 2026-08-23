@@ -194,7 +194,19 @@ class BaseCoordinator(DataUpdateCoordinator, ABC):
                     self._connection_failures = 0
                 return True
             else:
-                _LOGGER.debug("Existing connection failed validation, reconnecting")
+                # validate_connection() has already recovered as far as it
+                # can: torn the link down, cleared the GATT cache and
+                # retried once on a fresh service discovery. Falling through
+                # to connect() + validate_connection() again doubled the
+                # whole cycle - more connects at 30-45s each against a
+                # shared proxy connection slot. Report the failure and let
+                # the caller's failure accounting decide when to try again.
+                _LOGGER.debug(
+                    "Existing connection to %s failed validation and "
+                    "recovery",
+                    self.devicename,
+                )
+                return False
 
         try:
             # Use longer timeout for ESP32 proxies
