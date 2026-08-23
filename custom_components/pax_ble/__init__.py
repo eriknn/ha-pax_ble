@@ -1,6 +1,7 @@
 """Support for Pax fans."""
 
 import asyncio
+import contextlib
 import logging
 
 from functools import partial
@@ -37,12 +38,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id][CONF_DEVICES] = {}
 
     # Create one coordinator for each device
-    first_iteration = True
+    coordinators = []
     for device_id in entry.data[CONF_DEVICES]:
-        if not first_iteration:
-            await asyncio.sleep(10)
-        first_iteration = False
-
         device_data = entry.data[CONF_DEVICES][device_id]
         name = device_data[CONF_NAME]
         mac = device_data[CONF_MAC]
@@ -56,15 +53,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
         coordinator = getCoordinator(hass, device_data, dev)
-        # Don't block setup on initial connection - let it happen in background
-        try:
-            await asyncio.wait_for(coordinator.async_request_refresh(), timeout=30)
-        except (asyncio.TimeoutError, asyncio.CancelledError) as e:
-            _LOGGER.warning("Initial connection to %s timed out or was cancelled, will retry in background: %s", name, e)
-        except Exception as e:
-            _LOGGER.warning("Initial connection to %s failed, will retry in background: %s", name, e)
-
         hass.data[DOMAIN][entry.entry_id][CONF_DEVICES][device_id] = coordinator
+        coordinators.append((name, coordinator))
 
     # Avoid forwarding platforms multiple times
     if not hass.data[DOMAIN][entry.entry_id].get("forwarded"):
@@ -72,6 +62,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN][entry.entry_id]["forwarded"] = True
     else:
         _LOGGER.debug("Platforms already forwarded for entry %s", entry.entry_id)
+
+    # Initial connections run in the background so that setup - and with it
+    # Home Assistant startup - is not gated on one serial BLE connection per
+    # device (a 10s stagger per device makes that over a minute on a larger
+    # installation). Entities are created immediately and fill in as each
+    # device is read. The task is stored so that async_unload_entry can cancel
+    # it before disconnecting.
+    initial_refresh_task = entry.async_create_background_task(
+        hass,
+        _async_initial_refresh(coordinators),
+        name="pax_ble initial refresh",
+    )
+    hass.data[DOMAIN][entry.entry_id]["initial_refresh_task"] = initial_refresh_task
 
     # Set up update listener
     entry.async_on_unload(entry.add_update_listener(update_listener))
@@ -81,6 +84,42 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_register(DOMAIN, "request_update", partial(service_request_update, hass))
 
     return True
+
+async def _async_initial_refresh(coordinators):
+    """Perform each coordinator's first refresh, one device at a time.
+
+    Serial on purpose: connecting to every device at once on startup can
+    exhaust the connection slots of shared BLE proxies, which blocks all
+    devices, not just the new ones. The pause between devices keeps the
+    proxies free for whichever connection is in flight.
+    """
+    first_iteration = True
+    for name, coordinator in coordinators:
+        if not first_iteration:
+            await asyncio.sleep(10)
+        first_iteration = False
+
+        try:
+            # async_refresh() rather than async_request_refresh(): the latter
+            # goes through the coordinator's debouncer and can return without
+            # having refreshed, which would defeat the one-device-at-a-time
+            # pacing this loop exists to provide.
+            #
+            # No outer timeout. This task is off the setup path, so nothing
+            # is waiting on it, and a healthy first refresh can legitimately
+            # take well over 30s (the coordinator budgets deviceinfo, config
+            # and sensor reads separately, each over a multi-attempt
+            # connect). An outer bound would cancel a slow-but-working
+            # refresh mid-connect, and nothing on that cancellation path
+            # disconnects - the abandoned client could keep holding a proxy
+            # connection slot. The coordinator's own per-step timeouts
+            # already bound how long this can wait.
+            await coordinator.async_refresh()
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            _LOGGER.warning("Initial connection to %s failed, will retry in background: %s", name, e)
+
 
 # Service-call to update values
 async def service_request_update(hass, call: ServiceCall):
@@ -127,8 +166,20 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.debug("Unloading Pax BLE entry!")
 
+    entry_data = hass.data[DOMAIN].get(entry.entry_id, {})
+
+    # Stop the initial refresh chain before disconnecting. Core runs this
+    # function first and only cancels the entry's background tasks afterwards,
+    # so without this a reload can disconnect a device while its connect is
+    # still in flight.
+    initial_refresh_task = entry_data.pop("initial_refresh_task", None)
+    if initial_refresh_task is not None and not initial_refresh_task.done():
+        initial_refresh_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await initial_refresh_task
+
     # Make sure we are disconnected
-    devices = hass.data[DOMAIN].get(entry.entry_id, {}).get(CONF_DEVICES, {})
+    devices = entry_data.get(CONF_DEVICES, {})
     for dev_id, coordinator in devices.items():
         await coordinator.disconnect()
 
