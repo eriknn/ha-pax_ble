@@ -53,6 +53,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
         coordinator = getCoordinator(hass, device_data, dev)
+        # Polling stays disarmed until this device's first background refresh
+        # has run: with a short scan_interval (the config flow allows 5s) the
+        # first entity listener would otherwise schedule interval polls that
+        # overlap the serial first-refresh chain below.
+        coordinator.update_interval = None
         hass.data[DOMAIN][entry.entry_id][CONF_DEVICES][device_id] = coordinator
         coordinators.append((name, coordinator))
 
@@ -115,10 +120,32 @@ async def _async_initial_refresh(coordinators):
             # connection slot. The coordinator's own per-step timeouts
             # already bound how long this can wait.
             await coordinator.async_refresh()
-        except asyncio.CancelledError:
-            raise
         except Exception as e:
+            # async_refresh() reports failure through last_update_success
+            # rather than raising, so this only guards against an unexpected
+            # error in one device ending the chain for the rest.
+            # (CancelledError is a BaseException and propagates past this.)
             _LOGGER.warning("Initial connection to %s failed, will retry in background: %s", name, e)
+
+        # Free the connection before moving to the next device,
+        # unconditionally: no flag reliably marks the case that matters. A
+        # partially failed refresh (connected, then a read timed out) stays
+        # under the failure-report threshold, so last_update_success remains
+        # True - yet the deviceinfo and config reads connect with
+        # disconnect=False and the sensor read only disconnects on success,
+        # leaving that established connection holding a shared proxy slot
+        # into the next device's connect. After a fully successful refresh
+        # this is an idempotent no-op. It also stops any background
+        # reconnect a failure started; the regular poll armed below is the
+        # retry path. Deliberately not a finally: on cancellation,
+        # async_unload_entry disconnects every coordinator itself.
+        with contextlib.suppress(Exception):
+            await coordinator.disconnect()
+
+        # First attempt is done, either way - arm regular polling. Assigning
+        # update_interval alone does not re-arm an already-scheduled refresh;
+        # setNormalPollMode() restores the configured interval and re-arms.
+        coordinator.setNormalPollMode()
 
 
 # Service-call to update values
