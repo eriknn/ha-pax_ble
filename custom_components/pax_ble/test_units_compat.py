@@ -2,7 +2,6 @@
 
 import importlib.util
 import pathlib
-import re
 import sys
 import types
 import unittest
@@ -11,14 +10,15 @@ _ENUM_SENTINEL = "from-enum"
 _LEGACY_SENTINEL = "from-legacy"
 
 
-def _load_parts_per_million(has_unit_of_ratio: bool) -> str:
+def _load_parts_per_million(mode: str) -> str:
     """Load const.PARTS_PER_MILLION with a mocked homeassistant.const."""
-    tag = "ratio" if has_unit_of_ratio else "legacy"
+    tag = mode
     ha_const = types.ModuleType(f"homeassistant.const.{tag}")
     ha_const.CONCENTRATION_PARTS_PER_MILLION = _LEGACY_SENTINEL
-    if has_unit_of_ratio:
+    if mode in ("ratio", "ratio_incomplete"):
         class UnitOfRatio:
-            PARTS_PER_MILLION = _ENUM_SENTINEL
+            if mode == "ratio":
+                PARTS_PER_MILLION = _ENUM_SENTINEL
 
         ha_const.UnitOfRatio = UnitOfRatio
 
@@ -57,22 +57,20 @@ def _load_parts_per_million(has_unit_of_ratio: bool) -> str:
     return module.PARTS_PER_MILLION
 
 
-_SENSOR_UNIT_OF_RATIO_IMPORT = re.compile(
-    r"from\s+homeassistant\.const\s+import\s+(?:UnitOfRatio|.*\bUnitOfRatio\b)"
-)
-
-
 class PartsPerMillionCompatTests(unittest.TestCase):
     def test_uses_unit_of_ratio_when_available(self):
-        self.assertEqual(_load_parts_per_million(True), _ENUM_SENTINEL)
+        self.assertEqual(_load_parts_per_million("ratio"), _ENUM_SENTINEL)
 
     def test_falls_back_without_unit_of_ratio(self):
-        self.assertEqual(_load_parts_per_million(False), _LEGACY_SENTINEL)
+        self.assertEqual(_load_parts_per_million("legacy"), _LEGACY_SENTINEL)
 
-    def test_sensor_does_not_import_unit_of_ratio_directly(self):
+    def test_falls_back_when_unit_of_ratio_incomplete(self):
+        self.assertEqual(_load_parts_per_million("ratio_incomplete"), _LEGACY_SENTINEL)
+
+    def test_sensor_does_not_reference_unit_of_ratio(self):
         """Regression guard for #142: sensor.py must use const.PARTS_PER_MILLION."""
         source = pathlib.Path(__file__).with_name("sensor.py").read_text()
-        self.assertIsNone(_SENSOR_UNIT_OF_RATIO_IMPORT.search(source))
+        self.assertNotIn("UnitOfRatio", source)
         self.assertIn("PARTS_PER_MILLION", source)
 
 
