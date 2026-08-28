@@ -7,7 +7,7 @@ try:
     from homeassistant.const import UnitOfRatio
 
     PARTS_PER_MILLION = UnitOfRatio.PARTS_PER_MILLION
-except ImportError:  # HA < 2026.7
+except (ImportError, AttributeError):  # HA < 2026.7, or incomplete UnitOfRatio
     from homeassistant.const import CONCENTRATION_PARTS_PER_MILLION as PARTS_PER_MILLION
 
 # Global Constants
