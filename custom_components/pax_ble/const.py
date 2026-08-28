@@ -1,6 +1,15 @@
 from enum import Enum
 from homeassistant.const import Platform
 
+# ppm unit across HA cores: UnitOfRatio landed in 2026.7; CONCENTRATION_PARTS_PER_MILLION
+# is deprecated from 2026.8 (removal 2027.8). Both resolve to "ppm" at runtime.
+try:
+    from homeassistant.const import UnitOfRatio
+
+    PARTS_PER_MILLION = UnitOfRatio.PARTS_PER_MILLION
+except (ImportError, AttributeError):  # HA < 2026.7, or incomplete UnitOfRatio
+    from homeassistant.const import CONCENTRATION_PARTS_PER_MILLION as PARTS_PER_MILLION
+
 # Global Constants
 DOMAIN: str = "pax_ble"
 PLATFORMS = [

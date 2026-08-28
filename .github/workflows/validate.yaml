@@ -16,3 +16,7 @@ jobs:
         uses: "hacs/action@main"
         with:
           category: "integration"
+      - name: Unit tests (no HA runtime)
+        run: |
+          python3 custom_components/pax_ble/test_units_compat.py -v
+          python3 custom_components/pax_ble/test_device_lookup.py -v
