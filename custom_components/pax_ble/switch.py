@@ -13,6 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PaxAttribute = namedtuple("PaxAttribute", ["key", "descriptor", "unit"])
 boostmode_attribute = PaxAttribute("boostmodesecread", "Boost time remaining", " s")
+pause_attribute = PaxAttribute("pausesecread", "Pause time remaining", " s")
 
 PaxEntity = namedtuple(
     "PaxEntity", ["key", "entityName", "category", "icon", "attributes"]
@@ -21,6 +22,7 @@ ENTITIES = [
     PaxEntity("boostmode", "BoostMode", None, "mdi:wind-power", boostmode_attribute),
 ]
 CALIMA_ENTITIES = [
+    PaxEntity("pause", "Pause", None, "mdi:pause", pause_attribute),
     PaxEntity(
         "trickledays_weekdays",
         "TrickleDays Weekdays",

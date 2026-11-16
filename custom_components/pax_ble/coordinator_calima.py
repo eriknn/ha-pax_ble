@@ -32,6 +32,10 @@ class CalimaCoordinator(BaseCoordinator):
         self._last_clock_sync_check: Optional[dt.datetime] = None
         self._operation_lock = asyncio.Lock()
 
+        # Pause length is local to HA, like the boost speed/time. The Pax app
+        # always pauses for 15 minutes.
+        self._state["pausesecwrite"] = 900
+
     async def _async_update_data(self):
         async with self._operation_lock:
             return await super()._async_update_data()
@@ -67,9 +71,18 @@ class CalimaCoordinator(BaseCoordinator):
                     self._state["flow"] = 0
                 self._state["state"] = FanState.Mode
 
-                self._state["boostmode"] = BoostMode.OnOff
+                # The Calima has no pause characteristic. The Pax app pauses
+                # the fan by running boost at 0 rpm, so a boost with speed 0
+                # is reported as pause, not as boost.
+                paused = bool(BoostMode.OnOff) and BoostMode.Speed == 0
+                if paused and FanState.Mode == "Boost":
+                    self._state["state"] = "Pause"
+
+                self._state["boostmode"] = int(bool(BoostMode.OnOff) and not paused)
                 self._state["boostmodespeedread"] = BoostMode.Speed
-                self._state["boostmodesecread"] = BoostMode.Seconds
+                self._state["boostmodesecread"] = 0 if paused else BoostMode.Seconds
+                self._state["pause"] = int(paused)
+                self._state["pausesecread"] = BoostMode.Seconds if paused else 0
 
             if disconnect:
                 await self._fan.disconnect()
@@ -248,6 +261,16 @@ class CalimaCoordinator(BaseCoordinator):
                         int(self._state["boostmodespeedwrite"]),
                         int(self._state["boostmodesecwrite"]),
                     )
+                    # Boost and pause share the boost characteristic.
+                    self._state["pause"] = 0
+                case "pause":
+                    # Same write as the Pax app's Pause button: boost at 0 rpm.
+                    # The fan rejects durations above 900 s.
+                    seconds = min(900, max(60, int(self._state.get("pausesecwrite") or 900)))
+                    await self._fan.setBoostMode(
+                        int(self._state["pause"]), 0, seconds
+                    )
+                    self._state["boostmode"] = 0
                 case "fanspeed_humidity" | "fanspeed_light" | "fanspeed_trickle":
                     await self._fan.setFanSpeedSettings(
                         int(self._state["fanspeed_humidity"]),

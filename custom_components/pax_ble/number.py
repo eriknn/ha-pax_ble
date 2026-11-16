@@ -21,6 +21,8 @@ OPTIONS["fanspeed"] = OptionsTuple(800, 2400, 25)
 OPTIONS["temperature"] = OptionsTuple(5, 50, 1)
 OPTIONS["boostmodesec"] = OptionsTuple(60, 900, 1)
 OPTIONS["boostmodespeed"] = OptionsTuple(1000, 2400, 25)
+# Calima pause is a 0 rpm boost; the fan rejects more than 900 s.
+OPTIONS["pausesec"] = OptionsTuple(60, 900, 1)
 
 PaxEntity = namedtuple(
     "PaxEntity",
@@ -124,6 +126,17 @@ RESTOREENTITIES = [
         OPTIONS["boostmodespeed"],
     ),
 ]
+CALIMA_RESTOREENTITIES = [
+    PaxEntity(
+        "pausesecwrite",
+        "Pause Time",
+        UnitOfTime.SECONDS,
+        None,
+        EntityCategory.CONFIG,
+        "mdi:timer-pause-outline",
+        OPTIONS["pausesec"],
+    ),
+]
 
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
@@ -153,6 +166,10 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
             ):
                 for paxentity in CALIMA_ENTITIES:
                     ha_entities.append(PaxCalimaNumberEntity(coordinator, paxentity))
+                for paxentity in CALIMA_RESTOREENTITIES:
+                    ha_entities.append(
+                        PaxCalimaRestoreNumberEntity(coordinator, paxentity)
+                    )
             case DeviceModel.SVENSA.value:
                 for paxentity in SVENSA_ENTITIES:
                     ha_entities.append(PaxCalimaNumberEntity(coordinator, paxentity))
