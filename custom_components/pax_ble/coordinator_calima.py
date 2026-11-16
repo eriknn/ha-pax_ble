@@ -6,6 +6,13 @@ from typing import Optional
 
 from homeassistant.util import dt as dt_util
 
+from .boost_state import (
+    PAUSE_DEFAULT_SECONDS,
+    boost_read_state,
+    boost_write_state,
+    pause_seconds,
+    pause_write_state,
+)
 from .coordinator import BaseCoordinator
 from .devices.calima import Calima
 
@@ -34,7 +41,7 @@ class CalimaCoordinator(BaseCoordinator):
 
         # Pause length is local to HA, like the boost speed/time. The Pax app
         # always pauses for 15 minutes.
-        self._state["pausesecwrite"] = 900
+        self._state["pausesecwrite"] = PAUSE_DEFAULT_SECONDS
 
     async def _async_update_data(self):
         async with self._operation_lock:
@@ -69,20 +76,15 @@ class CalimaCoordinator(BaseCoordinator):
                     self._state["flow"] = round(FanState.RPM * 0.05076 - 14, 2)
                 else:
                     self._state["flow"] = 0
-                self._state["state"] = FanState.Mode
-
-                # The Calima has no pause characteristic. The Pax app pauses
-                # the fan by running boost at 0 rpm, so a boost with speed 0
-                # is reported as pause, not as boost.
-                paused = bool(BoostMode.OnOff) and BoostMode.Speed == 0
-                if paused and FanState.Mode == "Boost":
-                    self._state["state"] = "Pause"
-
-                self._state["boostmode"] = int(bool(BoostMode.OnOff) and not paused)
-                self._state["boostmodespeedread"] = BoostMode.Speed
-                self._state["boostmodesecread"] = 0 if paused else BoostMode.Seconds
-                self._state["pause"] = int(paused)
-                self._state["pausesecread"] = BoostMode.Seconds if paused else 0
+                # Boost at 0 rpm is the Pax app's pause; see boost_state.py.
+                self._state.update(
+                    boost_read_state(
+                        BoostMode.OnOff,
+                        BoostMode.Speed,
+                        BoostMode.Seconds,
+                        FanState.Mode,
+                    )
+                )
 
             if disconnect:
                 await self._fan.disconnect()
@@ -261,16 +263,34 @@ class CalimaCoordinator(BaseCoordinator):
                         int(self._state["boostmodespeedwrite"]),
                         int(self._state["boostmodesecwrite"]),
                     )
-                    # Boost and pause share the boost characteristic.
-                    self._state["pause"] = 0
+                    # Boost and pause share the boost characteristic, so a
+                    # boost write also ends a pause.
+                    self._state.update(
+                        boost_write_state(
+                            self._state["boostmode"],
+                            self._state["boostmodesecwrite"],
+                            self._state.get("state"),
+                        )
+                    )
+                    # Refresh State and the remaining-time attributes now,
+                    # not at the next poll.
+                    self.async_update_listeners()
                 case "pause":
                     # Same write as the Pax app's Pause button: boost at 0 rpm.
-                    # The fan rejects durations above 900 s.
-                    seconds = min(900, max(60, int(self._state.get("pausesecwrite") or 900)))
+                    seconds = pause_seconds(self._state.get("pausesecwrite"))
                     await self._fan.setBoostMode(
                         int(self._state["pause"]), 0, seconds
                     )
-                    self._state["boostmode"] = 0
+                    self._state.update(
+                        pause_write_state(
+                            self._state["pause"],
+                            seconds,
+                            self._state.get("state"),
+                        )
+                    )
+                    # Refresh State and the remaining-time attributes now,
+                    # not at the next poll.
+                    self.async_update_listeners()
                 case "fanspeed_humidity" | "fanspeed_light" | "fanspeed_trickle":
                     await self._fan.setFanSpeedSettings(
                         int(self._state["fanspeed_humidity"]),
