@@ -50,22 +50,15 @@ def boost_read_state(
     }
 
 
-def _state_after_off(current_state: str | None, read_mode: str | None) -> str | None:
-    """State after Boost or Pause is turned off.
-
-    The fan picks the next mode itself (trickle, humidity, light...), so the
-    coordinator reads it back right after the write. A read that still says
-    Boost is the fan not having switched yet, and a failed read gives None:
-    in both cases keep the current State until the next poll rather than
-    reporting unknown.
-    """
-    if read_mode and read_mode != STATE_BOOST:
-        return read_mode
+def _after_off(current_state: str | None) -> str | None:
+    # The fan picks the next mode itself (trickle, humidity, light...).
+    # Keep the current State until the next poll reads it, as before
+    # Pause existed, rather than reporting unknown or an extra BLE read.
     return current_state
 
 
 def boost_write_state(
-    on: Any, seconds: int, current_state: str | None, read_mode: str | None = None
+    on: Any, seconds: int, current_state: str | None
 ) -> dict[str, Any]:
     """Coordinator state after a successful BoostMode write."""
     if int(on):
@@ -77,7 +70,7 @@ def boost_write_state(
             "pausesecread": 0,
         }
     return {
-        "state": _state_after_off(current_state, read_mode),
+        "state": _after_off(current_state),
         "boostmode": 0,
         "boostmodesecread": 0,
         "pause": 0,
@@ -86,7 +79,7 @@ def boost_write_state(
 
 
 def pause_write_state(
-    on: Any, seconds: int, current_state: str | None, read_mode: str | None = None
+    on: Any, seconds: int, current_state: str | None
 ) -> dict[str, Any]:
     """Coordinator state after a successful Pause write."""
     if int(on):
@@ -98,7 +91,7 @@ def pause_write_state(
             "pausesecread": int(seconds),
         }
     return {
-        "state": _state_after_off(current_state, read_mode),
+        "state": _after_off(current_state),
         "boostmode": 0,
         "boostmodesecread": 0,
         "pause": 0,

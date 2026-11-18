@@ -72,20 +72,10 @@ class PauseWriteStateTests(unittest.TestCase):
         self.assertEqual(state["boostmodesecread"], 0)
 
     def test_pause_off_clears_pause(self):
-        state = pause_write_state(0, 900, "Pause", "Trickle ventilation")
+        state = pause_write_state(0, 900, "Pause")
         self.assertEqual(state["pause"], 0)
         self.assertEqual(state["pausesecread"], 0)
-        self.assertEqual(state["state"], "Trickle ventilation")
-
-    def test_pause_off_read_still_boost_keeps_state(self):
-        # The fan has not switched yet: keep Pause until the next poll,
-        # never report it as Boost or unknown.
-        state = pause_write_state(0, 900, "Pause", "Boost")
-        self.assertEqual(state["state"], "Pause")
-        self.assertEqual(state["pause"], 0)
-
-    def test_pause_off_failed_read_keeps_state(self):
-        state = pause_write_state(0, 900, "Pause", None)
+        # State stays until the next poll; never unknown.
         self.assertEqual(state["state"], "Pause")
 
     def test_pause_off_keeps_unrelated_state(self):
@@ -103,19 +93,11 @@ class BoostWriteStateTests(unittest.TestCase):
         self.assertEqual(state["pausesecread"], 0)
 
     def test_boost_off_clears_boost(self):
-        state = boost_write_state(0, 600, "Boost", "Humidity ventilation")
+        state = boost_write_state(0, 600, "Boost")
         self.assertEqual(state["boostmode"], 0)
         self.assertEqual(state["boostmodesecread"], 0)
         self.assertEqual(state["pause"], 0)
-        self.assertEqual(state["state"], "Humidity ventilation")
-
-    def test_boost_off_never_unknown(self):
-        # Read still says Boost, or failed: keep the old State, not None.
-        self.assertEqual(boost_write_state(0, 600, "Boost", "Boost")["state"], "Boost")
-        self.assertEqual(boost_write_state(0, 600, "Boost", None)["state"], "Boost")
-
-    def test_boost_on_ignores_read_mode(self):
-        state = boost_write_state(1, 600, "Trickle ventilation", "Trickle ventilation")
+        # State stays until the next poll; never unknown.
         self.assertEqual(state["state"], "Boost")
 
     def test_boost_off_keeps_unrelated_state(self):
