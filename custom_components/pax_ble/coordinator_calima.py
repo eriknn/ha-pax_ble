@@ -6,6 +6,13 @@ from typing import Optional
 
 from homeassistant.util import dt as dt_util
 
+from .boost_state import (
+    PAUSE_DEFAULT_SECONDS,
+    boost_read_state,
+    boost_write_state,
+    pause_seconds,
+    pause_write_state,
+)
 from .coordinator import BaseCoordinator
 from .devices.calima import Calima
 
@@ -31,6 +38,10 @@ class CalimaCoordinator(BaseCoordinator):
         self._fan.set_disconnect_callback(self._on_device_disconnect)
         self._last_clock_sync_check: Optional[dt.datetime] = None
         self._operation_lock = asyncio.Lock()
+
+        # Pause length is local to HA, like the boost speed/time. The Pax app
+        # always pauses for 15 minutes.
+        self._state["pausesecwrite"] = PAUSE_DEFAULT_SECONDS
 
     async def _async_update_data(self):
         async with self._operation_lock:
@@ -65,11 +76,15 @@ class CalimaCoordinator(BaseCoordinator):
                     self._state["flow"] = round(FanState.RPM * 0.05076 - 14, 2)
                 else:
                     self._state["flow"] = 0
-                self._state["state"] = FanState.Mode
-
-                self._state["boostmode"] = BoostMode.OnOff
-                self._state["boostmodespeedread"] = BoostMode.Speed
-                self._state["boostmodesecread"] = BoostMode.Seconds
+                # Boost at 0 rpm is the Pax app's pause; see boost_state.py.
+                self._state.update(
+                    boost_read_state(
+                        BoostMode.OnOff,
+                        BoostMode.Speed,
+                        BoostMode.Seconds,
+                        FanState.Mode,
+                    )
+                )
 
             if disconnect:
                 await self._fan.disconnect()
@@ -248,6 +263,34 @@ class CalimaCoordinator(BaseCoordinator):
                         int(self._state["boostmodespeedwrite"]),
                         int(self._state["boostmodesecwrite"]),
                     )
+                    # Boost and pause share the boost characteristic, so a
+                    # boost write also ends a pause.
+                    self._state.update(
+                        boost_write_state(
+                            self._state["boostmode"],
+                            self._state["boostmodesecwrite"],
+                            self._state.get("state"),
+                        )
+                    )
+                    # Refresh State and the remaining-time attributes now,
+                    # not at the next poll.
+                    self.async_update_listeners()
+                case "pause":
+                    # Same write as the Pax app's Pause button: boost at 0 rpm.
+                    seconds = pause_seconds(self._state.get("pausesecwrite"))
+                    await self._fan.setBoostMode(
+                        int(self._state["pause"]), 0, seconds
+                    )
+                    self._state.update(
+                        pause_write_state(
+                            self._state["pause"],
+                            seconds,
+                            self._state.get("state"),
+                        )
+                    )
+                    # Refresh State and the remaining-time attributes now,
+                    # not at the next poll.
+                    self.async_update_listeners()
                 case "fanspeed_humidity" | "fanspeed_light" | "fanspeed_trickle":
                     await self._fan.setFanSpeedSettings(
                         int(self._state["fanspeed_humidity"]),

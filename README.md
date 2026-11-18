@@ -54,6 +54,8 @@ Airflow is just a conversion of the fan speed based on a linear correlation betw
 ## Good to know
 Speed and duration for boostmode are local variables in home assistant, and as such will not influence boostmode from the app. These variables will also be reset to default if you re-add a device.
 
+Calima, Svara and Levante have a Pause switch that stops the fan for the "Pause Time" (60-900 s, default 900 s = the app's 15 minutes), after which the fan returns to normal by itself. This is the same command the Pax app sends: boost at 0 rpm. The fan rejects pauses longer than 900 s. While paused the State sensor shows "Pause" and the BoostMode switch is off; turning Pause off, or turning BoostMode on, ends the pause.
+
 Configuration parameters are read only on Home Assistant startup, and subsequently once every day, to get any changes made from elsewhere.
 
 Fast scan interval refers to the interval after a write has been made. This allows for quick feedback when the fan is controlled and does not disconnect between reads. This fast interval will remain for 10 reads.
