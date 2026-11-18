@@ -75,7 +75,8 @@ class PauseWriteStateTests(unittest.TestCase):
         state = pause_write_state(0, 900, "Pause")
         self.assertEqual(state["pause"], 0)
         self.assertEqual(state["pausesecread"], 0)
-        self.assertIsNone(state["state"])
+        # State stays until the next poll; never unknown.
+        self.assertEqual(state["state"], "Pause")
 
     def test_pause_off_keeps_unrelated_state(self):
         state = pause_write_state(0, 900, "Humidity ventilation")
@@ -96,7 +97,8 @@ class BoostWriteStateTests(unittest.TestCase):
         self.assertEqual(state["boostmode"], 0)
         self.assertEqual(state["boostmodesecread"], 0)
         self.assertEqual(state["pause"], 0)
-        self.assertIsNone(state["state"])
+        # State stays until the next poll; never unknown.
+        self.assertEqual(state["state"], "Boost")
 
     def test_boost_off_keeps_unrelated_state(self):
         state = boost_write_state(0, 600, "Light ventilation")

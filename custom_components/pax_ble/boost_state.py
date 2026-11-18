@@ -50,10 +50,11 @@ def boost_read_state(
     }
 
 
-def _after_off(current_state: str | None, mode: str) -> str | None:
-    # The fan picks the next mode itself (trickle, humidity, light...);
-    # report unknown until the next read rather than a stale Boost/Pause.
-    return None if current_state == mode else current_state
+def _after_off(current_state: str | None) -> str | None:
+    # The fan picks the next mode itself (trickle, humidity, light...).
+    # Keep the current State until the next poll reads it, as before
+    # Pause existed, rather than reporting unknown or an extra BLE read.
+    return current_state
 
 
 def boost_write_state(
@@ -69,7 +70,7 @@ def boost_write_state(
             "pausesecread": 0,
         }
     return {
-        "state": _after_off(current_state, STATE_BOOST),
+        "state": _after_off(current_state),
         "boostmode": 0,
         "boostmodesecread": 0,
         "pause": 0,
@@ -90,7 +91,7 @@ def pause_write_state(
             "pausesecread": int(seconds),
         }
     return {
-        "state": _after_off(current_state, STATE_PAUSE),
+        "state": _after_off(current_state),
         "boostmode": 0,
         "boostmodesecread": 0,
         "pause": 0,
