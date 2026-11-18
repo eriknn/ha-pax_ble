@@ -50,14 +50,22 @@ def boost_read_state(
     }
 
 
-def _after_off(current_state: str | None, mode: str) -> str | None:
-    # The fan picks the next mode itself (trickle, humidity, light...);
-    # report unknown until the next read rather than a stale Boost/Pause.
-    return None if current_state == mode else current_state
+def _state_after_off(current_state: str | None, read_mode: str | None) -> str | None:
+    """State after Boost or Pause is turned off.
+
+    The fan picks the next mode itself (trickle, humidity, light...), so the
+    coordinator reads it back right after the write. A read that still says
+    Boost is the fan not having switched yet, and a failed read gives None:
+    in both cases keep the current State until the next poll rather than
+    reporting unknown.
+    """
+    if read_mode and read_mode != STATE_BOOST:
+        return read_mode
+    return current_state
 
 
 def boost_write_state(
-    on: Any, seconds: int, current_state: str | None
+    on: Any, seconds: int, current_state: str | None, read_mode: str | None = None
 ) -> dict[str, Any]:
     """Coordinator state after a successful BoostMode write."""
     if int(on):
@@ -69,7 +77,7 @@ def boost_write_state(
             "pausesecread": 0,
         }
     return {
-        "state": _after_off(current_state, STATE_BOOST),
+        "state": _state_after_off(current_state, read_mode),
         "boostmode": 0,
         "boostmodesecread": 0,
         "pause": 0,
@@ -78,7 +86,7 @@ def boost_write_state(
 
 
 def pause_write_state(
-    on: Any, seconds: int, current_state: str | None
+    on: Any, seconds: int, current_state: str | None, read_mode: str | None = None
 ) -> dict[str, Any]:
     """Coordinator state after a successful Pause write."""
     if int(on):
@@ -90,7 +98,7 @@ def pause_write_state(
             "pausesecread": int(seconds),
         }
     return {
-        "state": _after_off(current_state, STATE_PAUSE),
+        "state": _state_after_off(current_state, read_mode),
         "boostmode": 0,
         "boostmodesecread": 0,
         "pause": 0,

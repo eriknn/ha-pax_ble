@@ -270,6 +270,9 @@ class CalimaCoordinator(BaseCoordinator):
                             self._state["boostmode"],
                             self._state["boostmodesecwrite"],
                             self._state.get("state"),
+                            await self._read_mode_after_off(
+                                self._state["boostmode"]
+                            ),
                         )
                     )
                     # Refresh State and the remaining-time attributes now,
@@ -286,6 +289,7 @@ class CalimaCoordinator(BaseCoordinator):
                             self._state["pause"],
                             seconds,
                             self._state.get("state"),
+                            await self._read_mode_after_off(self._state["pause"]),
                         )
                     )
                     # Refresh State and the remaining-time attributes now,
@@ -338,6 +342,23 @@ class CalimaCoordinator(BaseCoordinator):
             return False
         finally:
             await self._fan.disconnect()
+
+    async def _read_mode_after_off(self, on) -> Optional[str]:
+        """Read the fan's mode after Boost/Pause is turned off.
+
+        Still connected from the write, so this is one extra read. Returns
+        None when on, or when the read fails.
+        """
+        if int(on):
+            return None
+        try:
+            fan_state = await self._fan.getState()
+            return fan_state.Mode if fan_state is not None else None
+        except Exception as e:
+            _LOGGER.debug(
+                "Could not read mode after write to %s: %s", self.devicename, str(e)
+            )
+            return None
 
     async def _ensure_config_keys(self, *keys: str) -> bool:
         try:
