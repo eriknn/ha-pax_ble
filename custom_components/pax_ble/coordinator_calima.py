@@ -14,6 +14,12 @@ from .boost_state import (
     pause_write_state,
 )
 from .coordinator import BaseCoordinator
+from .long_stop import (
+    LONG_STOP_KEYS,
+    LONG_STOP_OFF,
+    long_stop_ended,
+    saved_settings,
+)
 from .devices.calima import Calima
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,6 +48,11 @@ class CalimaCoordinator(BaseCoordinator):
         # Pause length is local to HA, like the boost speed/time. The Pax app
         # always pauses for 15 minutes.
         self._state["pausesecwrite"] = PAUSE_DEFAULT_SECONDS
+
+        # Long stop: see long_stop.py. The saved settings are restored from
+        # the switch's attributes after a restart.
+        self._state["long_stop"] = 0
+        self._state["long_stop_saved"] = None
 
     async def _async_update_data(self):
         async with self._operation_lock:
@@ -330,6 +341,8 @@ class CalimaCoordinator(BaseCoordinator):
                 case _:
                     return False
 
+            if key in LONG_STOP_KEYS and self._check_long_stop_ended():
+                self.async_update_listeners()
             self.setFastPollMode()
             return True
 
@@ -338,6 +351,132 @@ class CalimaCoordinator(BaseCoordinator):
             return False
         finally:
             await self._fan.disconnect()
+
+    async def set_long_stop(self, on: bool) -> bool:
+        """Start or end a long stop. See long_stop.py."""
+        async with self._operation_lock:
+            return await self._set_long_stop(on)
+
+    async def _set_long_stop(self, on: bool) -> bool:
+        if not on:
+            saved = saved_settings(self._state.get("long_stop_saved"))
+            if saved is None:
+                _LOGGER.warning(
+                    "No saved settings to restore on %s, ending the stop "
+                    "without changing the fan",
+                    self.devicename,
+                )
+                self._end_long_stop()
+                self.async_update_listeners()
+                return True
+
+        try:
+            if not await self._safe_connect():
+                _LOGGER.debug("Cannot write data: not connected to %s", self.devicename)
+                return False
+
+            if (
+                not await self._sync_clock_if_needed()
+                and not await self._safe_connect()
+            ):
+                return False
+
+            await self._fan.authorize()
+
+            if on:
+                if not self._state.get("long_stop"):
+                    # Read the settings from the fan: the config is only
+                    # polled once a day, so the cached values may predate a
+                    # change made in the Pax app.
+                    if not (
+                        await self._ensure_config_keys(
+                            "trickledays_weekdays", "trickledays_weekends"
+                        )
+                        and await self._ensure_config_keys(
+                            "sensitivity_humidity", "sensitivity_light"
+                        )
+                    ):
+                        return False
+                    self._state["automatic_cycles"] = (
+                        await self._fan.getAutomaticCycles()
+                    )
+                    saved = saved_settings(self._state)
+                    if saved is None:
+                        return False
+                    # Mark the stop before writing, so a write that fails
+                    # halfway is retried with these settings rather than
+                    # saving the half-written ones.
+                    self._state["long_stop_saved"] = saved
+                    self._state["long_stop"] = 1
+
+                # A running boost or pause would end on its own, but the
+                # switch should mean the fan is stopped now.
+                if self._state.get("boostmode") or self._state.get("pause"):
+                    await self._fan.setBoostMode(
+                        0,
+                        int(self._state["boostmodespeedwrite"]),
+                        int(self._state["boostmodesecwrite"]),
+                    )
+                    self._state.update(
+                        boost_write_state(
+                            0,
+                            self._state["boostmodesecwrite"],
+                            self._state.get("state"),
+                        )
+                    )
+                values = LONG_STOP_OFF
+            else:
+                values = saved
+
+            await self._fan.setTrickleDays(
+                values["trickledays_weekdays"], values["trickledays_weekends"]
+            )
+            await self._fan.setSensorsSensitivity(
+                values["sensitivity_humidity"], values["sensitivity_light"]
+            )
+            await self._fan.setAutomaticCycles(values["automatic_cycles"])
+            self._state.update(values)
+
+            if not on:
+                self._end_long_stop()
+            self.async_update_listeners()
+            self.setFastPollMode()
+            return True
+
+        except Exception as e:
+            _LOGGER.warning(
+                "Could not %s the long stop on %s: %s",
+                "start" if on else "end",
+                self.devicename,
+                str(e),
+            )
+            self.async_update_listeners()
+            return False
+        finally:
+            await self._fan.disconnect()
+
+    def restore_long_stop(self, saved) -> None:
+        """Restore a long stop that was on before Home Assistant restarted."""
+        settings = saved_settings(saved)
+        if settings is None:
+            return
+        self._state["long_stop"] = 1
+        self._state["long_stop_saved"] = settings
+
+    def _end_long_stop(self) -> None:
+        self._state["long_stop"] = 0
+        self._state["long_stop_saved"] = None
+
+    def _check_long_stop_ended(self) -> bool:
+        """End the long stop if one of its settings was turned back on."""
+        if not long_stop_ended(self._state.get("long_stop"), self._state):
+            return False
+        _LOGGER.info(
+            "A setting that starts %s was turned on, ending the long stop",
+            self.devicename,
+        )
+        self._end_long_stop()
+        return True
 
     async def _ensure_config_keys(self, *keys: str) -> bool:
         try:
@@ -459,6 +598,8 @@ class CalimaCoordinator(BaseCoordinator):
             TrickleDays = await self._fan.getTrickleDays()  # Configuration
             self._state["trickledays_weekdays"] = TrickleDays.Weekdays
             self._state["trickledays_weekends"] = TrickleDays.Weekends
+
+            self._check_long_stop_ended()
 
             if disconnect:
                 await self._fan.disconnect()

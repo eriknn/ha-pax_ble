@@ -56,6 +56,8 @@ Speed and duration for boostmode are local variables in home assistant, and as s
 
 Calima, Svara and Levante have a Pause switch that stops the fan for the "Pause Time" (60-900 s, default 900 s = the app's 15 minutes), after which the fan returns to normal by itself. This is the same command the Pax app sends: boost at 0 rpm. The fan rejects pauses longer than 900 s. While paused the State sensor shows "Pause" and the BoostMode switch is off; turning Pause off, or turning BoostMode on, ends the pause.
 
+They also have a Stop switch for longer stops. The fan has no off state, but it stays at 0 rpm while nothing can start it. Turning Stop on reads TrickleDays Weekdays/Weekends, Sensitivity Humidity/Light and Automatic Cycles from the fan, saves them, ends any boost or pause and turns them all off. Turning Stop off writes the saved values back. The saved values are kept in the switch's `saved_settings` attribute, so a stop survives a Home Assistant restart. If one of these settings is turned back on while stopped, from the Pax app or its own entity, the stop ends and the saved values are dropped. A change made in Home Assistant is noticed straight away, one made in the Pax app at the next daily config read.
+
 Configuration parameters are read only on Home Assistant startup, and subsequently once every day, to get any changes made from elsewhere.
 
 Fast scan interval refers to the interval after a write has been made. This allows for quick feedback when the fan is controlled and does not disconnect between reads. This fast interval will remain for 10 reads.
