@@ -113,14 +113,15 @@ body:
     attributes:
       label: Relevant logs
       description: |
-        Enable debug log by adding this to configuration.yaml:
+        Enable debug log by adding this to `configuration.yaml`:
         ```
         logger:
           logs:
-            custom_components.pax_ble: debug`
+            custom_components.pax_ble: debug
         ```
-        Log location: Settings → System → Logs → search `pax_ble` or `hacs` → paste lines from when the problem happened.
-        For HACS download failures, enable HACS debug logging first (HACS → Settings).
+        Log location: *Settings → System → Logs → search* `pax_ble` or `hacs` → paste lines from when the problem happened.
+        
+        For HACS download failures, enable HACS debug logging first (*HACS → Settings*).
       render: shell
     validations:
       required: true
